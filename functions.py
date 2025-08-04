@@ -21,9 +21,12 @@ k_set = 3
 #Threshold for FNN detection
 Rtol_set = 20
 
+#Workflow folder path
+path = '/home/lunis/Documents/nlin-EEG/'
+
 #Backward Masking dataset path
-bw_path = './data/backward_masking/'
-bw_pics_path = './pics/backward_masking'
+bw_path = path + '/data/backward_masking/'
+bw_pics_path = path + '/pics/backward_masking/'
 
 
 
