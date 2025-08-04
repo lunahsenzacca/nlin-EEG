@@ -203,11 +203,23 @@ def twodim_graphs(subID: str, tau: int, trim: int, conditions: list, channels_id
     folder = bw_path + 'subj' + subID + '_band_resample/'
     all_files = os.listdir(folder)
     
-    save_path = bw_pics_path + '/2dim_emb/'+ subID + '/'
+    save_path = bw_pics_path + '/2dim_emb/'+ str(conditions) + subID + '/'
     os.makedirs(save_path, exist_ok = True)
 
-    # Loop over conditi
-    for cond in conditions:
+    if type(channels_idx) == tuple:
+
+        raw_ts = np.empty((0, len(channels_idx), Tst))
+
+    elif type(channels_idx) == list:
+
+        raw_ts = np.empty((0, Tst))
+        
+    else:
+
+        print('Channel indexes format error, check channel_idx data type:\n' + str(type(channels_idx)))
+        return   
+
+    for c_cond, cond in enumerate(conditions):
         
         my_cond_files = [f for f in all_files if cond in f ]
 
@@ -220,7 +232,7 @@ def twodim_graphs(subID: str, tau: int, trim: int, conditions: list, channels_id
                 untup = untup + chs
 
             all_trials = np.empty((0,len(untup),Tst))
-                
+
             for f in my_cond_files:
 
                 path = folder+f
@@ -233,30 +245,17 @@ def twodim_graphs(subID: str, tau: int, trim: int, conditions: list, channels_id
 
             #Average across trials
             avg_trials = all_trials.mean(axis = 0)
+            raw_chs_ts = np.empty((0, Tst))
+            
+            #emb_memory = np.empty((2, len(conditions),len(channels_idx),Tst - 2*trim - tau))
 
             l0 = 0
             for chs in channels_idx:
-
-                raw_ts = avg_trials[l0:l0 + len(chs),:].mean(axis=0)
-                #print(raw_ts.max(), raw_ts.min())
-                idx_val = []
-                for st in chs:
-                    idx_val = idx_val + [int(st)]
-                idx_str = str(idx_val)
-
-                emb = np.empty((2, Tst - 2*trim - tau))
-
-                #Embedd time series
-                emb[0,:] = raw_ts[trim:Tst - trim - tau]
-                emb[1,:] = raw_ts[trim + tau : Tst - trim]
                 
-                fig, ax = plt.subplots()
-                ax.plot(emb[0,:], emb[1,:], 'ko-', linewidth = 1, markersize = 3)
-
-                ax.set(title = cond + idx_str)
-
-                plt.savefig(save_path + cond + idx_str + '.png')
-                plt.close()
+                raw_chs_ts = np.concatenate((raw_chs_ts, avg_trials[l0:l0 + len(chs),:].mean(axis=0)[np.newaxis,:]), axis = 0)
+                l0 += len(chs)
+            
+            raw_ts = np.concatenate((raw_ts, raw_chs_ts[np.newaxis, :,]), axis = 0)
 
         elif type(channels_idx) == list:
 
@@ -271,37 +270,60 @@ def twodim_graphs(subID: str, tau: int, trim: int, conditions: list, channels_id
                 data = mat_data['F'][channels_idx]
                 all_trials = np.concatenate((all_trials, data.mean(axis=0)[np.newaxis, :]))
 
-            #Get the time series data (Average across trials)
-            raw_ts = all_trials.mean(axis=0)
+            raw_ts = np.concatenate((raw_ts, all_trials.mean(axis = 0)[np.newaxis, :]), axis = 0)
+
+    #Printing area
+
+    #Initzialize embedding coordinates
+    emb = np.empty((2, Tst - 2*trim - tau))
+
+    if type(channels_idx) == tuple:
+
+        for c_chs, chs in enumerate(channels_idx):
 
             idx_val = []
-            for chs in channels_idx:
-
-                idx_val = idx_val + [int(chs)]
-            
+            for st in chs:
+                idx_val = idx_val + [int(st)]
             idx_str = str(idx_val)
-
-            emb = np.empty((2, Tst - 2*trim))
-
-            for t in range(trim, Tst - tau - trim):
-
-                emb[0,t - trim] = raw_ts[t]
-                emb[1,t - trim] = raw_ts[t + tau]
-
+            
             fig, ax = plt.subplots()
-            ax.plot(emb[0,:], emb[1,:], 'ko-', linewidth = 1, markersize = 3)
 
-            ax.set(title = cond + idx_str)
+            for c_cond, cond in enumerate(conditions):
+                
+                emb[0,:] = raw_ts[c_cond, c_chs, trim : Tst - trim - tau]
+                emb[1,:] = raw_ts[c_cond, c_chs, trim + tau : Tst - trim]
 
-            plt.savefig(save_path + cond + idx_str + '.png')
+                ax.plot(emb[0,:], emb[1,:], 'o-', linewidth = 1, markersize = 3, label = cond)
+
+            ax.set(title = str(conditions) + idx_str)
+
+            plt.savefig(save_path + idx_str + '.png')
             plt.close()
 
-        else:
+    if type(channels_idx) == list:
 
-            print('Channel indexes format error, check channel_idx data type:\n' + str(type(channels_idx)))
-            return   
+        idx_val = []
+        for chs in channels_idx:
 
-    #print('Sub' + subID + ': Done! ')
+            idx_val = idx_val + [int(chs)]
+
+        idx_str = str(idx_val)
+        
+        fig, ax = plt.subplots()
+
+        for c_cond, cond in enumerate(conditions):
+
+            emb[0,:] = raw_ts[c_cond, trim : Tst - trim - tau]
+            emb[1,:] = raw_ts[c_cond, trim + tau : Tst - trim]
+
+            ax.plot(emb[0,:], emb[1,:], 'o-', linewidth = 1, markersize = 3, label = cond)
+
+        ax.set(title = str(conditions) + idx_str)
+
+        plt.savefig(save_path + idx_str + '.png')
+        plt.close()
+
+    print('Sub' + subID + ': Done! ')
 
     return
 
