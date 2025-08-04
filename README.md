@@ -1,4 +1,4 @@
-**Notebook and functions for non linear EEG analysis**
+## **Notebook and functions for non linear EEG analysis**
 
 Electrodes time series can be studied in a higher dimensional phase space through time or space embedding.
 
