@@ -16,4 +16,4 @@ Install required packages:
     -teaspoon
     -mne
 ```
-Set your own workflow paths in the files and it should just work.
+Set your own workflow path changing the `path` variable both in the [notebook](/nlin-EEG.ipynb) and in the [script](/functions.py]
