@@ -21,4 +21,4 @@ Set your own workflow path changing the `path` variables in the files.
 From backward masking data: 
 
 - [Results](/BW_CS) for the [correlation sum script](/correlation.py)
-- [Graphs](/averageCsum.png) for averaged results between conditions
+- [Graphs](/BW_CS/averageCsum.png) for averaged results between conditions
