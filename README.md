@@ -16,4 +16,9 @@ Install required packages:
     -teaspoon
     -mne
 ```
-Set your own workflow path changing the `path` variable both in the [notebook](/nlin-EEG.ipynb) and in the [script](/functions.py).
+Set your own workflow path changing the `path` variables in the files.
+
+From backward masking data: 
+
+- [Results](/BW_CS) for the [correlation sum script](/correlation.py)
+- [Graphs](/averageCsum.png) for averaged results between conditions
