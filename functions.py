@@ -1,36 +1,140 @@
+import os
+import mne
+
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 import scipy.io as sio
-import os
-
-from time import time
 
 from teaspoon.parameter_selection.FNN_n import FNN_n
 from teaspoon.parameter_selection.MI_delay import MI_for_delay
+from teaspoon.SP.information.entropy import PE
 
-#Time series analysis parameters
+# Time series analysis parameters
 
-#Time series lenght (--> implement autocheck)
+# Time series lenght (--> implement autocheck)
 Tst = 451
 
-#Nearest neighbours for tau estimation through first MI minimum
+# Frequency
+freq = 500
+
+# Nearest neighbours for tau estimation through first MI minimum
 k_set = 3
 
-#Threshold for FNN detection
-Rtol_set = 20
+# Threshold for FNN detection
+Rtol_set = 15
 
-#Workflow folder path
+# Workflow folder path
 path = '/home/lunis/Documents/nlin-EEG/'
 
-#Backward Masking dataset path
+# Backward Masking dataset path
 bw_path = path + '/data/backward_masking/'
 bw_pics_path = path + '/pics/backward_masking/'
 
+#####################################
+
+# Utility functions
+
+# Get subject path
+def sub_path(subID: str, experiment = 'bw'):
+
+    if experiment == 'bw':
+
+        path = bw_path + 'subj' + subID + '_band_resample/'
+
+    return path
+
+# Convert channel names to appropriate .mat data index
+def name_toidx(names: list| tuple):
+    # Load the .mat file (adjust the path)
+    mat_data = sio.loadmat(bw_path + 'subj001_band_resample/channel.mat')
+
+    ch_list = []
+    for m in mat_data['Channel'][0]:
+    #     print(m[0][0])
+        ch_list.append(str(m[0][0]))
+
+    if type(names) ==  tuple:
+
+        first = True
+        for c in names:
+            part = []
+            
+            for sc in c:
+            
+                part = part + [np.where(np.asarray(ch_list)==sc)[0][0]]
+
+            part = part,
+            if first == True:
+
+                ch_clust_idx = part
+                first = False
+
+            else:
+                ch_clust_idx = ch_clust_idx + part
+                
+
+    else:
+
+        ch_clust_idx = []
+        for c in names:
+            ch_clust_idx.append(np.where(np.asarray(ch_list)==c)[0][0])
+
+    return ch_clust_idx
 
 
-#Convert a list into a tuple of lists
+# Convert subject data to evoked format for easier manipulation
+def mat_toevoked(subID: str, conditions: list, exp: str, freq: float):
+
+    sub_folder = sub_path(subID, experiment = exp)
+    all_files = os.listdir(sub_folder)
+
+    # Load the .mat file (Some folders could be missing it)
+    mat_data = sio.loadmat(sub_path('001', experiment =  exp) +'channel.mat')
+
+    ch_list = []
+    for m in mat_data['Channel'][0]:
+    #     print(m[0][0])
+        ch_list.append(str(m[0][0]))
+
+    # Create info file
+    ch_types = ['eeg' for n in range(0, len(ch_list))]
+
+    inf = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
+    inf.set_montage('standard_1020')
+
+    # Initzialize evoked list
+    evoked = []
+
+    # Loop over conditions
+    for cond in conditions:
+        
+        my_cond_files = [f for f in all_files if cond in f ]
+            
+        untup = name_toidx(ch_list)
+
+        all_trials = np.empty((0,len(untup),Tst))
+            
+        for f in my_cond_files:
+
+            path = sub_folder+f
+                
+            mat_data = sio.loadmat(path)
+                
+            data = mat_data['F'][untup]
+
+            
+            all_trials = np.concatenate((all_trials, data[np.newaxis,:]), axis = 0)
+        
+        n_trials = all_trials.shape[0]
+        signals = all_trials.mean(axis = 0)
+
+        evoked.append(mne.EvokedArray(signals, inf, nave = n_trials, comment = cond))
+
+    #print('Sub' + subID + ': Done! ')
+    return evoked
+
+# Convert a list into a tuple of lists
 def tuplinator(list: list):
 
     tup = [],
@@ -45,6 +149,132 @@ def tuplinator(list: list):
             tup = tup + add
 
     return tup
+
+#####################################
+
+# Helper functions
+
+# Euclidean distance
+def dist(x, y):
+    return np.sqrt(np.sum((x - y)**2, axis = 0))
+
+#####################################
+
+# Time series manipulation function
+
+# Time-delay embedding
+def td_embedding(ts, embedding: int, tau: int, fraction = None):
+
+    ts = np.asarray(ts)
+    
+    # Get just a piece of it
+    if fraction != None:
+        ts = ts[int(fraction[0]*len(ts)):int(fraction[1]*len(ts))]
+
+    min_len = (embedding - 1)*tau + 1
+
+    if len(ts) < min_len:
+
+        print('Data lenght is insufficient, try smaller parameters')
+        return
+    
+    # Set lenght of embedding
+    m = len(ts) - min_len + 1
+
+    # Get indeces
+    idxs = np.repeat([np.arange(embedding)*tau], m, axis = 0)
+    idxs += np.arange(m).reshape((m, 1))
+
+    return ts[idxs]
+
+#####################################
+
+# Observables functions
+
+# Correlation sum
+def corr_sum(emb_ts, r: float):
+
+    N = len(emb_ts)
+
+    ds = np.zeros((N,N), dtype = np.float64)
+
+    counter = 0
+
+    for i in range(0,N):
+        for j in range(0,i):
+            
+            dij = dist(emb_ts[i],emb_ts[j])
+            ds[i,j] = dij
+            ds[j,i] = dij
+
+            if dij < r:
+                counter += 1
+
+    csum = (2/(N*(N-1)))*counter
+
+    return csum
+
+# Compute average permutation entropy of a specific time series
+def perm_entropy(subID: str, ch_list: list, conditions: list, embedding: int, ac_time: int, pth: str):
+
+    # Implement directly from evoked data instead of averaging again across trials
+
+    return PE
+
+# Correlation dimension of channel time series 
+def correlation_sum(subID: str, ch_list: list, conditions: list,
+                    embeddings: list, tau: int, rvals: list, fraction: list,
+                    pth: str):
+
+    # Get evokeds
+    file = pth + subID + '-ave.fif'
+    evokeds = mne.read_evokeds(file, verbose = False)
+    
+    # Get only conditions of interest
+    for e in evokeds:
+        if e.comment not in conditions:
+            evokeds.remove(e)
+
+        times = e.times
+
+        tmin = times[int(fraction[0]*(len(times)-1))]
+        tmax = times[int(fraction[1]*(len(times)-1))]
+
+        e.crop(tmin = tmin, tmax = tmax)
+
+    # Start looping around
+    CD = np.empty((0,len(ch_list),len(embeddings),len(rvals)))
+    for i, cond in enumerate(conditions):
+
+        TS = evokeds[i].get_data(picks = ch_list)
+
+        CD1 = np.empty((0,len(embeddings),len(rvals)))
+        for ts in TS:
+
+            CD2 = np.empty((0,len(rvals)))
+            for m in embeddings:
+                emb_ts = td_embedding(ts, embedding = m, tau = tau)
+
+                cd = []
+                for r in rvals:
+
+                    cd.append(corr_sum(emb_ts, r = r))
+
+                CD2 = np.concatenate((CD2, np.asarray(cd)[np.newaxis,:]), axis = 0)
+    
+            CD1 = np.concatenate((CD1, CD2[np.newaxis,:,:]), axis = 0)
+
+        CD = np.concatenate((CD, CD1[np.newaxis,:,:,:]), axis = 0)
+
+    return CD
+
+
+
+#   Following functions do not implement mne data structure and each of them averages over trials
+#   They are useful because they can average over cluster of electrodes as well but this doesn't seem
+#   to be very easy to implement for mapping in mne.
+
+#   They are fast and can be useful later because some observables need more averaging
 
 
 # Prepare dataframe to store results with the following hierarchy:
@@ -196,6 +426,7 @@ def SSub_ntau(subID: str, conditions: list, channels_idx: list | tuple):
 
 # Embed the time series with a fixed tau in a 2-dimensional plot, for easy pics
 
+# This is very stupid and hardly scalable, but they do their job
 def twodim_graphs(subID: str, tau: int, trim: int, conditions: list, channels_idx: list | tuple):
     
     results = [subID]
@@ -327,90 +558,7 @@ def twodim_graphs(subID: str, tau: int, trim: int, conditions: list, channels_id
 
     return
 
-
-# Return array with min and max value taken by the POIs average time series
-
-#   This is done to check for datas anomalies
-
-def check_maxmin(subID: str, conditions: list, channels_idx: list | tuple):
-    
-    results = [subID]
-
-    folder = bw_path + 'subj' + subID + '_band_resample/'
-    all_files = os.listdir(folder)
-    # cond = 'S_1' # unconscious
-
-    # Loop over conditi
-    for cond in conditions:
-        
-        my_cond_files = [f for f in all_files if cond in f ]
-
-        # Check for the right idxs format
-        if type(channels_idx) == tuple:
-            
-            untup = []
-            for chs in channels_idx:
-                
-                untup = untup + chs
-
-            all_trials = np.empty((0,len(untup),Tst))
-                
-            for f in my_cond_files:
-
-                path = folder+f
-                    
-                mat_data = sio.loadmat(path)
-                    
-                data = mat_data['F'][untup]
-
-                
-                all_trials = np.concatenate((all_trials, data[np.newaxis,:]), axis = 0)
-            
-            #Average across trials
-            avg_trials = all_trials.mean(axis = 0)
-
-            l0 = 0
-            for chs in channels_idx:
-
-                raw_ts = avg_trials[l0:l0 + len(chs),:].mean(axis=0)
-
-                l0 += len(chs)
-
-                smax = np.max(raw_ts)
-                smin = np.min(raw_ts)
-                results = results + [smax, smin]
-
-        elif type(channels_idx) == list:
-
-            all_trials = np.empty((0,Tst))
-
-            for f in my_cond_files:
-
-                path = folder+f
-
-                mat_data = sio.loadmat(path)
-                    
-                data = mat_data['F'][channels_idx]
-                all_trials = np.concatenate((all_trials, data.mean(axis=0)[np.newaxis, :]))
-
-            #Get the time series data (Average across trials)
-            raw_ts = all_trials.mean(axis=0)
-            
-            smax = np.max(raw_ts)
-            smin = np.min(raw_ts)
-            results = results + [smax, smin]
-
-        else:
-
-            print('Channel indexes format error, check channel_idx data type:\n' + str(type(channels_idx)))
-            return   
-            
-    print('Sub' + subID + ': Done! ')
-
-    #Remebrer the hierarchy! If it applies
-    return results
-
-
+# Core structure for navigating the raw dataset (not in MNE data structure)
 def core(subID: str, conditions: list, channels_idx: list | tuple):
     
     results = [subID]
