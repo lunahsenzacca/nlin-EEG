@@ -10,6 +10,12 @@ from teaspoon.parameter_selection.FNN_n import FNN_n
 from teaspoon.parameter_selection.MI_delay import MI_for_delay
 from teaspoon.SP.information.entropy import PE
 
+from scipy.stats import linregress
+
+from multiprocessing import Pool
+
+from tqdm import tqdm
+
 # Time series analysis parameters
 
 # Time series lenght (--> implement autocheck)
@@ -158,6 +164,31 @@ def tuplinator(list: list):
 def dist(x, y):
     return np.sqrt(np.sum((x - y)**2, axis = 0))
 
+# Transform data in log scale
+def to_log(CSums, rvals):
+
+    # Get logarithmic scale
+    log_CS = CSums.copy()
+    log_r = np.log(rvals)
+
+    # Embedding dimensions
+    embs = [i for i in range(2,CSums.shape[3]+2)]
+    c = 0
+    # Substitute 0 values with nan values instead of whatever numpy is doing
+    with np.nditer(log_CS, op_flags=['readwrite']) as it:
+        for x in tqdm(it, desc = 'Getting logarithms',
+                        total = it.shape[0], leave = True):
+            
+            if x == 0:
+                c+=1
+                x[...] = None
+            else:
+                x[...] = np.log(x)
+
+    print('Zero valued data points: ' + str(c))
+
+    return log_CS, log_r
+
 #####################################
 
 # Time series manipulation function
@@ -267,6 +298,8 @@ def correlation_sum(subID: str, ch_list: list, conditions: list,
         CD = np.concatenate((CD, CD1[np.newaxis,:,:,:]), axis = 0)
 
     return CD
+
+
 
 
 
