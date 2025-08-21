@@ -15,6 +15,9 @@ chunksize = 1
 # Save folder for results
 sv_pth = '/home/lunis/Documents/nlin-EEG/BM_CS/'
 
+# Label for results files
+lb = 'G'
+
 ### EXPERIMENT FOLDER AND INFOS ###
 
 # Evoked folder path
@@ -45,7 +48,7 @@ ch_list = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
 #sub_list = sub_list[0:3]
 #ch_list = ch_list[0:3]
 
-#Only averaged condition
+#Only averaged conditions
 conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
 #ch_list = ['O2','PO4','PO8','Fp1','Fp2','Fpz']
@@ -102,8 +105,8 @@ if __name__ == '__main__':
     # Save results to local
     os.makedirs(sv_pth, exist_ok = True)
 
-    np.save(sv_pth + 'rvals.npy', r)
-    np.save(sv_pth + 'CSums.npy', results)
+    np.save(sv_pth + lb + 'rvals.npy', r)
+    np.save(sv_pth + lb + 'CSums.npy', results)
 
     print('Results shape: ', results.shape)
 

@@ -12,29 +12,39 @@ from functions import to_log
 
 from tqdm import tqdm
 
-### SCRIPT PARAMETERS ###
+### LOAD PARAMETERS ###
 
 # Multiprocessing parameters
 workers = os.cpu_count() - 2
 chunksize = 1
 
-# Results folder
+# Load results folder
 path = '/home/lunis/Documents/nlin-EEG/BM_CS/'
-sv_path = path + '/D2/'
+
+# Label for load results files
+lb = 'G'
 
 ### FIT PARAMETERS ###
 
 # Interval of r of interest (in indexes)
 vlim = (5,28)
 
-# Correction for expected signal (needs an explanation)
+# Correction for constant (needs an explanation)
 alpha = -0.5
+
+### SAVE FILES PARAMETERS ###
+
+# Save results folder
+sv_path = path + '/D2/'
+
+# Label for results file
+sv_lb = lb + '[' + str(vlim[0]) + '_' + str(vlim[1]) + ']'
 
 ### DATA TRANSFORMATION TO LOG SCALE ###
 
 # Load correlation sum values
-CS = np.load(path + 'CSums.npy')
-r = np.load(path + 'rvals.npy')
+CS = np.load(path + lb + 'CSums.npy')
+r = np.load(path + lb + 'rvals.npy')
 
 # Reduced shape
 rshp = CS.shape[1:4]
@@ -76,7 +86,7 @@ def it_fit(abcd):
                 intercept.append(results.intercept)
                 errintercept.append(results.intercept_stderr)
 
-                if np.isnan(results.stderr) == True or results.stderr == 0:
+                if np.isnan(results.stderr) == True: #or results.stderr == 0:
                     c+=1
                     zscore.append(0)
                 else:
@@ -145,9 +155,9 @@ if __name__ == '__main__':
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
-    np.save(sv_path + str(vlim[0]) + '_' + str(vlim[1]) + 'slopes.npy', slope)
-    np.save(sv_path + str(vlim[0]) + '_' + str(vlim[1]) + 'errslopes.npy', errslope)
-    np.save(sv_path + str(vlim[0]) + '_' + str(vlim[1]) + 'intercept.npy', intercept)
-    np.save(sv_path + str(vlim[0]) + '_' + str(vlim[1]) + 'errintercept.npy', errintercept)
-    np.save(sv_path + str(vlim[0]) + '_' + str(vlim[1]) + 'zscore.npy', zscore)
+    np.save(sv_path + sv_lb + 'slopes.npy', slope)
+    np.save(sv_path + sv_lb + 'errslopes.npy', errslope)
+    np.save(sv_path + sv_lb + 'intercept.npy', intercept)
+    np.save(sv_path + sv_lb + 'errintercept.npy', errintercept)
+    np.save(sv_path + sv_lb + 'zscore.npy', zscore)
     print('Results shape: ', slope.shape)
