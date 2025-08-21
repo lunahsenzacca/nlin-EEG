@@ -41,26 +41,30 @@ ch_list = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
            'P6', 'AF7', 'AF8', 'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8',
            'Fpz', 'CPz', 'POz', 'Oz']
 
-### FOR QUICKER TESTING ###
+### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[0:3]
-#conditions = conditions[0:2]
 #ch_list = ch_list[0:3]
+
+#Only averaged condition
+conditions = conditions[0:2]
+#Parieto-Occipital and Frontal electrodes
+#ch_list = ['O2','PO4','PO8','Fp1','Fp2','Fpz']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embs = [2,3,4,5,6,7]
+embs = [2,3,4,5,6,7,8,9,10]
 
 # Time delay
 tau = 20
 
 # Window of interest
-frc = [0.7, 1]
+frc = [0, 1]
 
 # Distances for sampling the dependance
-r = np.logspace(0.5, 15, num = 30, base = 1.4)
-r = r/1e8
+r = np.logspace(0, 1.7, num = 20, base = 10)
+r = r/1e7
 
 ### SCRIPT FOR COMPUTATION ###
 

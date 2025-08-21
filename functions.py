@@ -25,10 +25,10 @@ Tst = 451
 freq = 500
 
 # Nearest neighbours for tau estimation through first MI minimum
-k_set = 3
+k_set = 5
 
 # Threshold for FNN detection
-Rtol_set = 15
+Rtol_set = 10
 
 # Workflow folder path
 path = '/home/lunis/Documents/nlin-EEG/'
@@ -274,28 +274,23 @@ def correlation_sum(subID: str, ch_list: list, conditions: list,
         e.crop(tmin = tmin, tmax = tmax)
 
     # Start looping around
-    CD = np.empty((0,len(ch_list),len(embeddings),len(rvals)))
+    CD = []
     for i, cond in enumerate(conditions):
 
         TS = evokeds[i].get_data(picks = ch_list)
-
-        CD1 = np.empty((0,len(embeddings),len(rvals)))
+        
         for ts in TS:
 
-            CD2 = np.empty((0,len(rvals)))
+            
             for m in embeddings:
                 emb_ts = td_embedding(ts, embedding = m, tau = tau)
 
-                cd = []
+                
                 for r in rvals:
 
-                    cd.append(corr_sum(emb_ts, r = r))
+                    CD.append(corr_sum(emb_ts, r = r))
 
-                CD2 = np.concatenate((CD2, np.asarray(cd)[np.newaxis,:]), axis = 0)
-    
-            CD1 = np.concatenate((CD1, CD2[np.newaxis,:,:]), axis = 0)
-
-        CD = np.concatenate((CD, CD1[np.newaxis,:,:,:]), axis = 0)
+    CD = np.asarray(CD).reshape((len(conditions),len(ch_list),len(embeddings),len(rvals)))
 
     return CD
 
