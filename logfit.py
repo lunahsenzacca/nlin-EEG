@@ -26,25 +26,34 @@ lb = 'G'
 
 ### FIT PARAMETERS ###
 
+# Average correlation sum over electrodes
+avg = True
+
+# Set label for results
+if avg == True:
+    a_lb = 'avg'
+else:
+    a_lb = ''
+
 # Interval of r of interest (in indexes)
 vlim = (5,28)
-
-# Correction for constant (needs an explanation)
-alpha = -0.5
 
 ### SAVE FILES PARAMETERS ###
 
 # Save results folder
-sv_path = path + '/D2/'
+sv_path = path + lb + '/D2/'
 
 # Label for results file
-sv_lb = lb + '[' + str(vlim[0]) + '_' + str(vlim[1]) + ']'
+sv_lb = a_lb + '[' + str(vlim[0]) + '_' + str(vlim[1]) + ']'
 
 ### DATA TRANSFORMATION TO LOG SCALE ###
 
 # Load correlation sum values
-CS = np.load(path + lb + 'CSums.npy')
-r = np.load(path + lb + 'rvals.npy')
+CS = np.load(path + lb + '/CSums.npy')
+r = np.load(path + lb + '/rvals.npy')
+
+if avg == True:
+    CS = CS.mean(axis = 2)[:,:,np.newaxis,:,:]
 
 # Reduced shape
 rshp = CS.shape[1:4]
@@ -67,15 +76,9 @@ def it_fit(abcd):
     intercept = []
     errintercept = []
 
-    zscore = []
-
     for abc in abcd:
         for ab in abc:
             for i, a in enumerate(ab):
-
-                # Expected slope for a stochastic signal
-
-                m = i + 2 + alpha
 
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
@@ -83,31 +86,23 @@ def it_fit(abcd):
 
                 slope.append(results.slope)
                 errslope.append(results.stderr)
-                intercept.append(results.intercept)
-                errintercept.append(results.intercept_stderr)
+                #intercept.append(results.intercept)
+                #errintercept.append(results.intercept_stderr)
 
                 if np.isnan(results.stderr) == True: #or results.stderr == 0:
                     c+=1
-                    zscore.append(0)
-                else:
-                    z = (results.slope - m)/results.stderr
-                    zscore.append(z)
 
     slope = np.asarray(slope)
     errslope = np.asarray(errslope)
-    intercept = np.asarray(intercept)
-    errintercept = np.asarray(errintercept)
-
-    zscore = np.asarray(zscore)
+    #intercept = np.asarray(intercept)
+    #errintercept = np.asarray(errintercept)
 
     slope = slope.reshape(rshp)
     errslope = errslope.reshape(rshp)
-    intercept = intercept.reshape(rshp)
-    errintercept = errintercept.reshape(rshp)
+    #intercept = intercept.reshape(rshp)
+    #errintercept = errintercept.reshape(rshp)
 
-    zscore = zscore.reshape(rshp)
-
-    return slope, errslope, intercept, errintercept, zscore, c
+    return slope, errslope, c #,intercept, errintercept
 
 # Build multiprocessing function
 def mp_fit():
@@ -124,32 +119,30 @@ def mp_fit():
                         )
     slope = []
     errslope = []
-    intercept = []
-    errintercept = []
-    zscore = []
+    #intercept = []
+    #errintercept = []
     c = 0
     for r in res:
         
         slope.append(r[0])
         errslope.append(r[1])
-        intercept.append(r[2])
-        errintercept.append(r[3])
-        zscore.append(r[4])
-        c+=r[5]
+        c+=r[2]
+        #intercept.append(r[3])
+        #errintercept.append(r[4])
+
     
     slope = np.asarray(slope)
     errslope = np.asarray(errslope)
-    intercept = np.asarray(intercept)
-    errintercept = np.asarray(errintercept)
-    zscore = np.asarray(zscore)
+    #intercept = np.asarray(intercept)
+    #errintercept = np.asarray(errintercept)
 
-    return slope, errslope, intercept, errintercept, zscore, c
+    return slope, errslope, c #, intercept, errintercept
 
 # launch script with 'python -m logfit' in appropriate conda enviroment
 if __name__ == '__main__':
 
     # Compute results
-    slope, errslope, intercept, errintercept, zscore, c = mp_fit()
+    slope, errslope, c = mp_fit()
     print('DONE!')
     print('Number of failed regressions: ' + str(c))
 
@@ -157,7 +150,6 @@ if __name__ == '__main__':
     os.makedirs(sv_path, exist_ok = True)
     np.save(sv_path + sv_lb + 'slopes.npy', slope)
     np.save(sv_path + sv_lb + 'errslopes.npy', errslope)
-    np.save(sv_path + sv_lb + 'intercept.npy', intercept)
-    np.save(sv_path + sv_lb + 'errintercept.npy', errintercept)
-    np.save(sv_path + sv_lb + 'zscore.npy', zscore)
+    #np.save(sv_path + sv_lb + 'intercept.npy', intercept)
+    #np.save(sv_path + sv_lb + 'errintercept.npy', errintercept)
     print('Results shape: ', slope.shape)

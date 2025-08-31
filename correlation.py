@@ -9,14 +9,14 @@ from functions import correlation_sum
 ### SCRIPT PARAMETERS ###
 
 # Multiprocessing parameters
-workers = os.cpu_count() - 2
+workers = os.cpu_count() - 4
 chunksize = 1
 
-# Save folder for results
-sv_pth = '/home/lunis/Documents/nlin-EEG/BM_CS/'
+# Label for results folder
+lb = 'G11-20'
 
-# Label for results files
-lb = 'G'
+# Save folder for results
+sv_pth = '/home/lunis/Documents/nlin-EEG/BM_CS/' + lb + '/'
 
 ### EXPERIMENT FOLDER AND INFOS ###
 
@@ -51,13 +51,13 @@ ch_list = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
 #Only averaged conditions
 conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-#ch_list = ['O2','PO4','PO8','Fp1','Fp2','Fpz']
+#ch_list = ['O2','PO4','PO8'],['Fp1','Fp2','Fpz']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embs = [2,3,4,5,6,7,8,9,10]
+embs = [11,12,14,15,16,17,18,19,20]#[2,3,4,5,6,7,8,9,10]
 
 # Time delay
 tau = 20
@@ -68,6 +68,23 @@ frc = [0, 1]
 # Distances for sampling the dependance
 r = np.logspace(0, 1.7, num = 20, base = 10)
 r = r/1e7
+
+# Check if we are clustering electrodes
+if type(ch_list) == tuple:
+    clt = True
+else:
+    clt = False
+
+# Dictionary for computation variables
+variables = {   
+                'tau' : tau,
+                'window' : frc,
+                'clustered' : clt,
+                'subjects' : sub_list,
+                'conditions' : conditions,
+                'pois' : ch_list,
+                'embeddings' : embs
+            }
 
 ### SCRIPT FOR COMPUTATION ###
 
@@ -105,8 +122,11 @@ if __name__ == '__main__':
     # Save results to local
     os.makedirs(sv_pth, exist_ok = True)
 
-    np.save(sv_pth + lb + 'rvals.npy', r)
-    np.save(sv_pth + lb + 'CSums.npy', results)
+    np.save(sv_pth + 'rvals.npy', r)
+    np.save(sv_pth + 'CSums.npy', results)
+
+    with open(sv_pth + 'variables.json','w') as f:
+        json.dump(variables,f)
 
     print('Results shape: ', results.shape)
 

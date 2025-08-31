@@ -1,5 +1,6 @@
 import os
 import mne
+import json
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,7 +29,7 @@ freq = 500
 k_set = 5
 
 # Threshold for FNN detection
-Rtol_set = 10
+Rtol_set = 15
 
 # Workflow folder path
 path = '/home/lunis/Documents/nlin-EEG/'
@@ -40,6 +41,17 @@ bw_pics_path = path + '/pics/backward_masking/'
 #####################################
 
 # Utility functions
+'''
+sub_path         : Helper function, will be useful with different
+                   datasets and data structures;
+name_toidx       : Converts tuple or list of electrode names to corresponding .mat
+                   file index, for bw dataset only for now;
+mat_toevoked     : Converts multiple trial .mat files into MNE's evokeds file 
+                   format and save them, highly specific for bw dataset for now;
+
+tuplinator       : Old helper function for functions that do not use mne
+                   data type (SSub_ntau, twodim_graphs)
+'''
 
 # Get subject path
 def sub_path(subID: str, experiment = 'bw'):
@@ -51,15 +63,18 @@ def sub_path(subID: str, experiment = 'bw'):
     return path
 
 # Convert channel names to appropriate .mat data index
+# [COULD BE OPTIMIZED BUT WORKS AS INTENDED]
 def name_toidx(names: list| tuple):
+
     # Load the .mat file (adjust the path)
     mat_data = sio.loadmat(bw_path + 'subj001_band_resample/channel.mat')
 
+    # Get list of electrodes names in .mat file
     ch_list = []
     for m in mat_data['Channel'][0]:
-    #     print(m[0][0])
         ch_list.append(str(m[0][0]))
 
+    # Check if we are clustering electrodes with tuples
     if type(names) ==  tuple:
 
         first = True
@@ -67,7 +82,8 @@ def name_toidx(names: list| tuple):
             part = []
             
             for sc in c:
-            
+                
+                # Add new indexes to cluster list
                 part = part + [np.where(np.asarray(ch_list)==sc)[0][0]]
 
             part = part,
@@ -92,18 +108,19 @@ def name_toidx(names: list| tuple):
 # Convert subject data to evoked format for easier manipulation
 def mat_toevoked(subID: str, conditions: list, exp: str, freq: float):
 
+    # Navigate subject folder with raw .mat single trial files
     sub_folder = sub_path(subID, experiment = exp)
     all_files = os.listdir(sub_folder)
 
     # Load the .mat file (Some folders could be missing it)
     mat_data = sio.loadmat(sub_path('001', experiment =  exp) +'channel.mat')
 
+    # Get list of electrodes names in .mat file
     ch_list = []
     for m in mat_data['Channel'][0]:
-    #     print(m[0][0])
         ch_list.append(str(m[0][0]))
 
-    # Create info file
+    # Create info file for MNE
     ch_types = ['eeg' for n in range(0, len(ch_list))]
 
     inf = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
@@ -116,7 +133,8 @@ def mat_toevoked(subID: str, conditions: list, exp: str, freq: float):
     for cond in conditions:
         
         my_cond_files = [f for f in all_files if cond in f ]
-            
+        
+        # Get indexes of electrodes
         untup = name_toidx(ch_list)
 
         all_trials = np.empty((0,len(untup),Tst))
@@ -129,15 +147,14 @@ def mat_toevoked(subID: str, conditions: list, exp: str, freq: float):
                 
             data = mat_data['F'][untup]
 
-            
             all_trials = np.concatenate((all_trials, data[np.newaxis,:]), axis = 0)
         
         n_trials = all_trials.shape[0]
         signals = all_trials.mean(axis = 0)
 
+        # Append new evoked file to list
         evoked.append(mne.EvokedArray(signals, inf, nave = n_trials, comment = cond))
 
-    #print('Sub' + subID + ': Done! ')
     return evoked
 
 # Convert a list into a tuple of lists
@@ -164,7 +181,7 @@ def tuplinator(list: list):
 def dist(x, y):
     return np.sqrt(np.sum((x - y)**2, axis = 0))
 
-# Transform data in log scale
+# Transform data in log scale (Useful for logarithmic fits)
 def to_log(CSums, rvals):
 
     # Get logarithmic scale
@@ -193,9 +210,10 @@ def to_log(CSums, rvals):
 
 # Time series manipulation function
 
-# Time-delay embedding
+# Time-delay embedding of a single time series
 def td_embedding(ts, embedding: int, tau: int, fraction = None):
 
+    # If time series isn't an array now it is
     ts = np.asarray(ts)
     
     # Get just a piece of it
@@ -204,6 +222,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 
     min_len = (embedding - 1)*tau + 1
 
+    # Check if embedding is possible
     if len(ts) < min_len:
 
         print('Data lenght is insufficient, try smaller parameters')
@@ -212,7 +231,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
     # Set lenght of embedding
     m = len(ts) - min_len + 1
 
-    # Get indeces
+    # Get indexes
     idxs = np.repeat([np.arange(embedding)*tau], m, axis = 0)
     idxs += np.arange(m).reshape((m, 1))
 
@@ -222,7 +241,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 
 # Observables functions
 
-# Correlation sum
+# Correlation sum for a single embeddend time series
 def corr_sum(emb_ts, r: float):
 
     N = len(emb_ts)
@@ -231,6 +250,7 @@ def corr_sum(emb_ts, r: float):
 
     counter = 0
 
+    # Cycle through all different couples of points
     for i in range(0,N):
         for j in range(0,i):
             
@@ -238,6 +258,7 @@ def corr_sum(emb_ts, r: float):
             ds[i,j] = dij
             ds[j,i] = dij
 
+            # Get value of theta
             if dij < r:
                 counter += 1
 
@@ -245,15 +266,15 @@ def corr_sum(emb_ts, r: float):
 
     return csum
 
-# Compute average permutation entropy of a specific time series
-def perm_entropy(subID: str, ch_list: list, conditions: list, embedding: int, ac_time: int, pth: str):
+# Compute largest lyapunov exponent
+def lyapunov(subID: str, ch_list: list, conditions: list, embedding: int, ac_time: int, pth: str):
 
     # Implement directly from evoked data instead of averaging again across trials
 
-    return PE
+    return ly
 
 # Correlation dimension of channel time series 
-def correlation_sum(subID: str, ch_list: list, conditions: list,
+def correlation_sum(subID: str, ch_list: list|tuple, conditions: list,
                     embeddings: list, tau: int, rvals: list, fraction: list,
                     pth: str):
 
@@ -268,6 +289,7 @@ def correlation_sum(subID: str, ch_list: list, conditions: list,
 
         times = e.times
 
+        # Trim time series according to fraction variable
         tmin = times[int(fraction[0]*(len(times)-1))]
         tmax = times[int(fraction[1]*(len(times)-1))]
 
@@ -277,10 +299,25 @@ def correlation_sum(subID: str, ch_list: list, conditions: list,
     CD = []
     for i, cond in enumerate(conditions):
 
-        TS = evokeds[i].get_data(picks = ch_list)
+        # Check if we are clustering electrodes
+        if type(ch_list) == tuple:
+
+            tl = []
+            for cl in ch_list:
+                
+                # Get average time series of the cluster
+                ts = evokeds[i].get_data(picks = cl)
+                ts = ts.mean(axis = 0)
+                
+                tl.append(ts)
+            
+            TS = np.asarray(tl)
+
+        else:    
+
+            TS = evokeds[i].get_data(picks = ch_list)
         
         for ts in TS:
-
             
             for m in embeddings:
                 emb_ts = td_embedding(ts, embedding = m, tau = tau)
@@ -290,13 +327,53 @@ def correlation_sum(subID: str, ch_list: list, conditions: list,
 
                     CD.append(corr_sum(emb_ts, r = r))
 
+    # Convert list with 'C' order to array
     CD = np.asarray(CD).reshape((len(conditions),len(ch_list),len(embeddings),len(rvals)))
 
     return CD
 
+#################################
 
+# Results manipulation functions
 
+# Select some electrodes from global results
+def reduceCS(ch_list: list, path : str, label = 'G', nlabel = None):
 
+    CS = np.load(path + label + '/CSums.npy')
+    r = np.load(path + label + '/rvals.npy')
+
+    with open(path + label + '/variables.json', 'r') as f:
+        d = json.load(f)
+
+    # Check if we are loading a clusterd calculation [certaingly not suitable]
+    if d['clustered'] == True:
+        print('Clustered results are not valid for array reduction')
+        return
+
+    ch_idx = name_toidx(ch_list)
+
+    shp = np.asarray(CS.shape)
+    shp[2] = 0
+
+    CSred = np.empty(shp)
+    for idx in ch_idx:
+        CSred = np.concatenate((CSred, CS[:,:,idx,:,:][:,:,np.newaxis,:,:]), axis = 2)
+
+    # Save results in a new directory
+    if nlabel != None:
+
+        # Change dictionary entry for save    
+        d['pois'] = ch_list
+
+        os.makedirs(path + nlabel, exist_ok = True)
+        np.save(path + nlabel + '/CSums.npy', CSred)
+        np.save(path + nlabel + '/rvals.npy', r)
+
+        # Save new variables dictionary
+        with open(path + nlabel + '/variables.json', 'w') as f:
+            json.dump(d, f)
+
+    return CSred, r
 
 #   Following functions do not implement mne data structure and each of them averages over trials
 #   They are useful because they can average over cluster of electrodes as well but this doesn't seem
