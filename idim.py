@@ -1,28 +1,42 @@
+# Usual suspects
 import os
-
+import json
 import warnings
 
 import numpy as np
 
+from tqdm import tqdm
+
+# Scipy function for linear regression
 from scipy.stats import linregress
 
 from multiprocessing import Pool
 
-from functions import to_log
+# Utility function for log conversion
+from core import to_log
 
-from tqdm import tqdm
+# Our Very Big Dictionary
+from init import get_maind
+
+maind = get_maind()
 
 ### LOAD PARAMETERS ###
 
 # Multiprocessing parameters
-workers = os.cpu_count() - 2
+workers = os.cpu_count() - 8
 chunksize = 1
-
-# Load results folder
-path = '/home/lunis/Documents/nlin-EEG/BM_CS/'
 
 # Label for load results files
 lb = 'G'
+
+# Dataset name
+exp_name = 'bmasking'
+
+# Correlation Sum results directory
+path = maind[exp_name]['directories']['results'] + maind['obs_lb']['corrsum'] + '/' + lb + '/'
+
+# Directory for save results
+sv_path = maind[exp_name]['directories']['results'] + maind['obs_lb']['idim'] + '/' + lb + '/'
 
 ### FIT PARAMETERS ###
 
@@ -40,17 +54,14 @@ vlim = (5,28)
 
 ### SAVE FILES PARAMETERS ###
 
-# Save results folder
-sv_path = path + lb + '/D2/'
-
 # Label for results file
 sv_lb = a_lb + '[' + str(vlim[0]) + '_' + str(vlim[1]) + ']'
 
 ### DATA TRANSFORMATION TO LOG SCALE ###
 
 # Load correlation sum values
-CS = np.load(path + lb + '/CSums.npy')
-r = np.load(path + lb + '/rvals.npy')
+CS = np.load(path + 'CSums.npy')
+r = np.load(path + 'rvals.npy')
 
 if avg == True:
     CS = CS.mean(axis = 2)[:,:,np.newaxis,:,:]
@@ -81,7 +92,7 @@ def it_fit(abcd):
             for i, a in enumerate(ab):
 
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                    warnings.simplefilter('ignore')
                     results = linregress(x = log_r, y = a, alternative = 'greater', nan_policy = 'omit')
 
                 slope.append(results.slope)
@@ -136,6 +147,13 @@ def mp_fit():
     #intercept = np.asarray(intercept)
     #errintercept = np.asarray(errintercept)
 
+    # Save results to local
+    os.makedirs(sv_path, exist_ok = True)
+    np.save(sv_path + sv_lb + 'slopes.npy', slope)
+    np.save(sv_path + sv_lb + 'errslopes.npy', errslope)
+    #np.save(sv_path + sv_lb + 'intercept.npy', intercept)
+    #np.save(sv_path + sv_lb + 'errintercept.npy', errintercept)
+
     return slope, errslope, c #, intercept, errintercept
 
 # launch script with 'python -m logfit' in appropriate conda enviroment
@@ -143,13 +161,7 @@ if __name__ == '__main__':
 
     # Compute results
     slope, errslope, c = mp_fit()
-    print('DONE!')
+    print('\nDONE!\n')
     print('Number of failed regressions: ' + str(c))
 
-    # Save results to local
-    os.makedirs(sv_path, exist_ok = True)
-    np.save(sv_path + sv_lb + 'slopes.npy', slope)
-    np.save(sv_path + sv_lb + 'errslopes.npy', errslope)
-    #np.save(sv_path + sv_lb + 'intercept.npy', intercept)
-    #np.save(sv_path + sv_lb + 'errintercept.npy', errintercept)
-    print('Results shape: ', slope.shape)
+    print('\nResults shape: ', slope.shape)

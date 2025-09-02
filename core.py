@@ -1,46 +1,51 @@
+'''
+In this file we define the various functions for dataset navigation and
+analysis.
+
+EDIT THE init.py FILE ACCORDINGLY BEFORE AND AFTER YOU MAKE CHANGES HERE.
+'''
+# Our Very Big Dictionary
+from init import get_maind
+
+maind = get_maind()
+
+# Usual suspects
 import os
 import mne
 import json
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import scipy.io as sio
-
-from teaspoon.parameter_selection.FNN_n import FNN_n
-from teaspoon.parameter_selection.MI_delay import MI_for_delay
-from teaspoon.SP.information.entropy import PE
-
-from scipy.stats import linregress
-
-from multiprocessing import Pool
 
 from tqdm import tqdm
 
-# Time series analysis parameters
+    # Teaspoon library functions #
 
-# Time series lenght (--> implement autocheck)
-Tst = 451
+# Autocorrelation time according to first minimum of Mutual Information (FMMI)
+from teaspoon.parameter_selection.MI_delay import MI_for_delay
 
-# Frequency
-freq = 500
+# False Nearest Neighbour method
+from teaspoon.parameter_selection.FNN_n import FNN_n
 
-# Nearest neighbours for tau estimation through first MI minimum
-k_set = 5
+# Permutation Entropy (Not Used For Now...)
+from teaspoon.SP.information.entropy import PE
 
-# Threshold for FNN detection
-Rtol_set = 15
+    # Scipy library #
 
-# Workflow folder path
-path = '/home/lunis/Documents/nlin-EEG/'
+# Method for .mat file loading
+import scipy.io as sio
 
-# Backward Masking dataset path
-bw_path = path + '/data/backward_masking/'
-bw_pics_path = path + '/pics/backward_masking/'
+# Linear regression
+from scipy.stats import linregress
 
-#####################################
+# Power spetrum of time series (Uses FFT)
+from scipy.signal import periodogram
 
-# Utility functions
+#----------------------------------------#
+
+# UTILITY FUNCTIONS #
 '''
 sub_path         : Helper function, will be useful with different
                    datasets and data structures;
@@ -54,25 +59,29 @@ tuplinator       : Old helper function for functions that do not use mne
 '''
 
 # Get subject path
-def sub_path(subID: str, experiment = 'bw'):
+def sub_path(subID: str, exp_name: str):
 
-    if experiment == 'bw':
-
-        path = bw_path + 'subj' + subID + '_band_resample/'
+    # Text to attach before and after subID to get subject folder name
+    snip = maind[exp_name]['directories']['subject']
+    
+    path = snip[0] + subID + snip[1]
 
     return path
 
 # Convert channel names to appropriate .mat data index
 # [COULD BE OPTIMIZED BUT WORKS AS INTENDED]
-def name_toidx(names: list| tuple):
+def name_toidx(names: list| tuple, exp_name: str):
 
     # Load the .mat file (adjust the path)
-    mat_data = sio.loadmat(bw_path + 'subj001_band_resample/channel.mat')
+    mat_data = sio.loadmat(maind[exp_name]['directories']['ch_info'])
 
     # Get list of electrodes names in .mat file
     ch_list = []
+
+    ### THIS PROBABLY IS DATASET SPECIFIC, BE CAREFUL WITH NEW DATA
     for m in mat_data['Channel'][0]:
         ch_list.append(str(m[0][0]))
+    ###
 
     # Check if we are clustering electrodes with tuples
     if type(names) ==  tuple:
@@ -103,59 +112,6 @@ def name_toidx(names: list| tuple):
             ch_clust_idx.append(np.where(np.asarray(ch_list)==c)[0][0])
 
     return ch_clust_idx
-
-
-# Convert subject data to evoked format for easier manipulation
-def mat_toevoked(subID: str, conditions: list, exp: str, freq: float):
-
-    # Navigate subject folder with raw .mat single trial files
-    sub_folder = sub_path(subID, experiment = exp)
-    all_files = os.listdir(sub_folder)
-
-    # Load the .mat file (Some folders could be missing it)
-    mat_data = sio.loadmat(sub_path('001', experiment =  exp) +'channel.mat')
-
-    # Get list of electrodes names in .mat file
-    ch_list = []
-    for m in mat_data['Channel'][0]:
-        ch_list.append(str(m[0][0]))
-
-    # Create info file for MNE
-    ch_types = ['eeg' for n in range(0, len(ch_list))]
-
-    inf = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
-    inf.set_montage('standard_1020')
-
-    # Initzialize evoked list
-    evoked = []
-
-    # Loop over conditions
-    for cond in conditions:
-        
-        my_cond_files = [f for f in all_files if cond in f ]
-        
-        # Get indexes of electrodes
-        untup = name_toidx(ch_list)
-
-        all_trials = np.empty((0,len(untup),Tst))
-            
-        for f in my_cond_files:
-
-            path = sub_folder+f
-                
-            mat_data = sio.loadmat(path)
-                
-            data = mat_data['F'][untup]
-
-            all_trials = np.concatenate((all_trials, data[np.newaxis,:]), axis = 0)
-        
-        n_trials = all_trials.shape[0]
-        signals = all_trials.mean(axis = 0)
-
-        # Append new evoked file to list
-        evoked.append(mne.EvokedArray(signals, inf, nave = n_trials, comment = cond))
-
-    return evoked
 
 # Convert a list into a tuple of lists
 def tuplinator(list: list):
@@ -241,7 +197,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 
 # Observables functions
 
-# Correlation sum for a single embeddend time series
+# Correlation sum for a single embeddend time series [Grassberger-Procaccia]
 def corr_sum(emb_ts, r: float):
 
     N = len(emb_ts)
@@ -255,8 +211,6 @@ def corr_sum(emb_ts, r: float):
         for j in range(0,i):
             
             dij = dist(emb_ts[i],emb_ts[j])
-            ds[i,j] = dij
-            ds[j,i] = dij
 
             # Get value of theta
             if dij < r:
@@ -266,18 +220,78 @@ def corr_sum(emb_ts, r: float):
 
     return csum
 
-# Compute largest lyapunov exponent
-def lyapunov(subID: str, ch_list: list, conditions: list, embedding: int, ac_time: int, pth: str):
+# Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
+def lyap(emb_ts, m_period: int, freq = 500, verbose = True):
 
-    # Implement directly from evoked data instead of averaging again across trials
+    N = len(emb_ts)
 
-    return ly
+    if N < m_period/10:
+        print('Embedded data too short compared to average period')
+        return
+
+    ds = np.zeros((N,N), dtype = np.float64)
+
+    # Cycle through all different couples of points
+    for i in range(0,N):
+        for j in range(0,i):
+            
+            dij = dist(emb_ts[i],emb_ts[j])
+            ds[i,j] = dij
+            ds[j,i] = dij
+
+    # Construct separations trajectories with embedded data
+    lnd = []
+
+    # Duration of separation trajectories
+    lenght = int(m_period/3)
+    for i, el in enumerate(ds):
+
+        if i < N - lenght:
+
+            # Select only distant points on the trajectory but not too far on the end
+            js = [j for j in range(0,N)]
+            jt = []
+            for j in js:
+                if abs(j-i) > m_period and j < N - lenght:
+                    jt.append(j)
+
+            if len(jt) != 0:
+                # Get nearest neighbour
+                d0 = np.min(el[jt])
+                j = int(np.argwhere(el == d0))
+            
+
+            # Construct separation data
+            for delta in range(0,lenght):
+                if len(jt) != 0:
+                    lnd.append(np.log(dist(emb_ts[i + delta],emb_ts[j + delta])))
+                else:
+                    lnd.append(np.nan)
+
+    # Reshape results
+    lnd = np.asarray(lnd).reshape((N - lenght ,lenght))
+
+    # Get slope for largest Lyapunov exponent
+    x = np.asarray([i for i in range (0,lenght)])
+
+    with warnings.catch_warnings():
+        if verbose == False:
+            warnings.simplefilter('ignore')
+        y = np.nanmean(lnd, axis = 0)*freq
+
+    fit = linregress(x,y)
+
+    lyap = fit.slope
+    lyap_e = fit.stderr
+
+    return lyap, lyap_e, x, y, fit
 
 # Correlation dimension of channel time series 
-def correlation_sum(subID: str, ch_list: list|tuple, conditions: list,
-                    embeddings: list, tau: int, rvals: list, fraction: list,
-                    pth: str):
+def correlation_sum(subID: str, conditions: list, ch_list: list|tuple,
+                    embeddings: list, tau: int, rvals: list, 
+                    pth: str, fraction = [0,1]):
 
+    # Get raw (implement)
     # Get evokeds
     file = pth + subID + '-ave.fif'
     evokeds = mne.read_evokeds(file, verbose = False)
@@ -331,6 +345,78 @@ def correlation_sum(subID: str, ch_list: list|tuple, conditions: list,
     CD = np.asarray(CD).reshape((len(conditions),len(ch_list),len(embeddings),len(rvals)))
 
     return CD
+
+# Largest lyapunov exponent of channel time series
+def lyapunov(subID: str, ch_list: list, conditions: list, 
+             embeddings: int, tau: int, pth: str,
+             fraction = [0,1], verbose = True):
+
+    # Get evokeds
+    file = pth + subID + '-ave.fif'
+    evokeds = mne.read_evokeds(file, verbose = False)
+    
+    # Get only conditions of interest
+    for e in evokeds:
+        if e.comment not in conditions:
+            evokeds.remove(e)
+
+        times = e.times
+
+        # Trim time series according to fraction variable
+        tmin = times[int(fraction[0]*(len(times)-1))]
+        tmax = times[int(fraction[1]*(len(times)-1))]
+
+        e.crop(tmin = tmin, tmax = tmax)
+
+    # Start looping around
+    ly = []
+    for i, cond in enumerate(conditions):
+
+        # Check if we are clustering electrodes
+        if type(ch_list) == tuple:
+
+            tl = []
+            for cl in ch_list:
+                
+                # Get average time series of the cluster
+                ts = evokeds[i].get_data(picks = cl)
+                ts = ts.mean(axis = 0)
+                
+                tl.append(ts)
+            
+            TS = np.asarray(tl)
+
+        else:    
+
+            TS = evokeds[i].get_data(picks = ch_list)
+        
+        for ts in TS:
+
+            # Get mean period of the time series through power spectrum analysis
+            f, ps = periodogram(ts)
+            avT = np.sum(ps)/np.sum(f*ps)
+            
+            for m in embeddings:
+                emb_ts = td_embedding(ts, embedding = m, tau = tau)
+                
+                l, l_e, x, y, fit = lyap(emb_ts, m_period = avT, verbose = verbose)
+
+                '''
+                # Plotting for correct estimation of optimal lenght,
+                # the system is bounded so is the separation of trajectories
+
+                plt.plot(x,y)
+                plt.plot(x, (fit.slope*x + fit.intercept))
+
+                plt.show()
+                plt.close()
+                '''
+                ly.append([l,l_e])
+
+    # Convert list with 'C' order to array
+    ly = np.asarray(ly).reshape((len(conditions),len(ch_list),len(embeddings),2))
+
+    return ly
 
 #################################
 
