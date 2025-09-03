@@ -1,3 +1,4 @@
+# Usual suspects
 import os
 import json
 
@@ -5,25 +6,28 @@ import numpy as np
 
 from tqdm import tqdm
 
-from multiprocessing import Pool
-
+# Sub-wise function for Correlation Sum (CS) computation
 from core import correlation_sum
 
+# Utility function for observables directories
+from core import obs_path
+
+#Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
 
-### SCRIPT PARAMETERS ###
-
-# Multiprocessing parameters
-workers = os.cpu_count() - 4
+### MULTIPROCESSING PARAMETERS ###
+workers = os.cpu_count() - 2
 chunksize = 1
+
+### SCRIPT PARAMETERS ###
 
 # Dataset name
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'CPOF'
+lb = 'G'
 
 ### LOAD DATASET DIRECTORIES AND INFOS ###
 
@@ -33,30 +37,32 @@ lb = 'CPOF'
 # Evoked folder path
 path = maind[exp_name]['directories']['ev_data']
 
-# List of subject IDs
+# List of ALL subject IDs
 sub_list = maind[exp_name]['subIDs']
 
-# List of conditions
-conditions = maind[exp_name]['conditions'].values()
+# List of ALL conditions
+conditions = list(maind[exp_name]['conditions'].values())
 
-# List of electrodes
+# List of ALL electrodes
 ch_list = maind[exp_name]['pois']
+
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[0:3]
 #ch_list = ch_list[0:3]
 
 #Only averaged conditions
-conditions = list(conditions)[0:2]
+conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-ch_list = ['O2','PO4','PO8'],['Fp1','Fp2','Fpz']
+#ch_list = ['O2','PO4','PO8'],['Fp1','Fp2','Fpz']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embs = [2,3,4,5,6,7,8,9,10]#[11,12,14,15,16,17,18,19,20]#
-
+embs = [2,3,4,5,6,7,8,9,10]#[11,12,13,14,15,16,17,18,19,20]#
 # Time delay
 tau = maind[exp_name]['tau']
 
@@ -97,14 +103,17 @@ def it_correlation_sum(subID: str):
 # Build multiprocessing function
 def mp_correlation_sum():
 
-    print('Spawning ' + str(workers) + ' processes...')
+    print('\nSpawning ' + str(workers) + ' processes...')
+
+    # Launch Pool multiprocessing
+    from multiprocessing import Pool
     with Pool(workers) as p:
         
         res = list(tqdm(p.imap(it_correlation_sum, sub_list), #chunksize = chunksize),
                        desc = 'Computing subjects ',
                        unit = 'subs',
                        total = len(sub_list),
-                       leave = False)
+                       leave = True)
                        )
 
     return np.asarray(res)
@@ -115,16 +124,18 @@ if __name__ == '__main__':
     # Compute results
     results = mp_correlation_sum()
 
-    print('DONE!')
+    print('\nDONE!\n')
 
     # Save results to local
-    os.makedirs(sv_pth, exist_ok = True)
+    os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_pth + 'rvals.npy', r)
-    np.save(sv_pth + 'CSums.npy', results)
+    np.save(sv_path + 'rvals.npy', r)
+    np.save(sv_path + 'CSums.npy', results)
 
-    with open(sv_pth + 'variables.json','w') as f:
+    variables['shape0'] = results.shape
+
+    with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
-    print('Results shape: ', results.shape)
+    print('Results shape: ', results.shape, '\n')
 

@@ -68,6 +68,18 @@ def sub_path(subID: str, exp_name: str):
 
     return path
 
+# Get observable path
+def obs_path(exp_name: str, obs_name: str, res_lb: str, calc_lb = None):
+
+    # Create directory string
+    path = maind[exp_name]['directories']['results'] + maind['obs_lb'][obs_name] + '/' + res_lb + '/'
+
+    if calc_lb != None:
+
+        path = path + calc_lb + '/'
+
+    return path
+
 # Convert channel names to appropriate .mat data index
 # [COULD BE OPTIMIZED BUT WORKS AS INTENDED]
 def name_toidx(names: list| tuple, exp_name: str):
@@ -150,7 +162,7 @@ def to_log(CSums, rvals):
     # Substitute 0 values with nan values instead of whatever numpy is doing
     with np.nditer(log_CS, op_flags=['readwrite']) as it:
         for x in tqdm(it, desc = 'Getting logarithms',
-                        total = it.shape[0], leave = True):
+                        total = it.shape[0], leave = False):
             
             if x == 0:
                 c+=1
@@ -158,7 +170,7 @@ def to_log(CSums, rvals):
             else:
                 x[...] = np.log(x)
 
-    print('Zero valued data points: ' + str(c))
+    print('\nZero valued data points: ' + str(c))
 
     return log_CS, log_r
 

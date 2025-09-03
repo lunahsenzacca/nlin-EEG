@@ -1,67 +1,72 @@
+# Usual suspects
 import os
 import json
 
 import numpy as np
 
 from tqdm import tqdm
-from multiprocessing import Pool
+
+# Sub-wise function for Largest Lyapunov Exponent (LLE) computation
 from core import lyapunov
+
+# Utility function for observables directories
+from core import obs_path
+
+# Our Very Big Dictionary
+from init import get_maind
+
+maind = get_maind()
+
+### MULTIPROCESSIN PARAMETERS ###
+
+workers = 2
+chunksize = 1
 
 ### SCRIPT PARAMETERS ###
 
-# Multiprocessing parameters
-workers = os.cpu_count() - 2
-chunksize = 1
+# Dataset name
+exp_name = 'bmasking'
 
 # Label for results folder
 lb = 'G'
 
-# Save folder for results
-sv_pth = '/home/lunis/Documents/nlin-EEG/BM_L/' + lb + '/'
+### LOAD DATASET DIRECTORIES AND INFOS ###
 
-### EXPERIMENT FOLDER AND INFOS ###
+# Raw folder path (yet to be implemented)
+#path = maind[exp_name]['directories']['rw_data']
 
 # Evoked folder path
-path = '/home/lunis/Documents/nlin-EEG/BM_evoked/'
+path = maind[exp_name]['directories']['ev_data']
 
-# List of subject IDs
-sub_list = ['001','002','003','004','005','006','007','008','009','010',
-            '011','012','013','014','015','016','017','018','019','020',
-            '023','024','025','026','028','029','030',
-            '031','033','034','035','036','037','038','040',
-            '042']
+# List of ALL subject IDs
+sub_list = maind[exp_name]['subIDs']
 
-# List of conditions
-conditions = ['S__','S_1',
-              'S__1', 'S__2', 'S__3', 'S__4',
-              'S_11', 'S_12', 'S_13', 'S_14']
+# List of ALL conditions
+conditions = list(maind[exp_name]['conditions'].values())
 
-# List of electrodes
-ch_list = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
-           'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 'Pz', 'Iz',
-           'FC1', 'FC2', 'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9',
-           'TP10', 'F1', 'F2', 'C1', 'C2', 'P1', 'P2', 'AF3', 'AF4', 'FC3',
-           'FC4', 'CP3', 'CP4', 'PO3', 'PO4', 'F5', 'F6', 'C5', 'C6', 'P5',
-           'P6', 'AF7', 'AF8', 'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8',
-           'Fpz', 'CPz', 'POz', 'Oz']
+# List of ALL electrodes
+ch_list = maind[exp_name]['pois']
+
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', res_lb = lb)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[0:3]
 #ch_list = ch_list[0:3]
 
 #Only averaged conditions
-conditions = conditions[0:2]
+conditions = list(conditions)[0:2]
 #Parieto-Occipital and Frontal electrodes
-#ch_list = ['O2','PO4','PO8'],['Fp1','Fp2','Fpz']
+#ch_list = ['Fp1','Fp2','Fpz']#['O2','PO4','PO8'],
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embs = [2,3,4,5,6,7,8,9,10]#[11,12,14,15,16,17,18,19,20]
+embs = [2,3,4,5,6,7,8,9,10]#[11,12,13,14,15,16,17,18,19,20]#
 
 # Time delay
-tau = 20
+tau = maind[exp_name]['tau']
 
 # Window of interest
 frc = [0, 1]
@@ -96,14 +101,17 @@ def it_lyapunov(subID: str):
 # Build multiprocessing function
 def mp_lyapunov():
 
-    print('Spawning ' + str(workers) + ' processes...')
+    print('\nSpawning ' + str(workers) + ' processes...')
+
+    # Launch Pool multiprocessing
+    from multiprocessing import Pool
     with Pool(workers) as p:
         
         res = list(tqdm(p.imap(it_lyapunov, sub_list), #chunksize = chunksize),
                        desc = 'Computing subjects ',
                        unit = 'subs',
                        total = len(sub_list),
-                       leave = False)
+                       leave = True)
                        )
 
     return np.asarray(res)
@@ -114,14 +122,14 @@ if __name__ == '__main__':
     # Compute results
     results = mp_lyapunov()
 
-    print('DONE!')
+    print('\nDONE!\n')
 
     # Save results to local
-    os.makedirs(sv_pth, exist_ok = True)
+    os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_pth + 'lyap.npy', results)
+    np.save(sv_path + 'lyap.npy', results)
 
-    with open(sv_pth + 'variables.json','w') as f:
+    with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
     print('Results shape: ', results.shape)

@@ -10,58 +10,71 @@ from tqdm import tqdm
 # Scipy function for linear regression
 from scipy.stats import linregress
 
-from multiprocessing import Pool
-
 # Utility function for log conversion
 from core import to_log
+
+# Utility function for observables directories
+from core import obs_path
 
 # Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
 
-### LOAD PARAMETERS ###
+### MULTIPROCESSIN PARAMETERS ###
 
-# Multiprocessing parameters
-workers = os.cpu_count() - 8
+workers = 10
 chunksize = 1
 
-# Label for load results files
-lb = 'G'
+### LOAD PARAMETERS ###
 
 # Dataset name
 exp_name = 'bmasking'
 
-# Correlation Sum results directory
-path = maind[exp_name]['directories']['results'] + maind['obs_lb']['corrsum'] + '/' + lb + '/'
+# Label for load results files
+lb = 'CPOF'
 
-# Directory for save results
-sv_path = maind[exp_name]['directories']['results'] + maind['obs_lb']['idim'] + '/' + lb + '/'
+# Label for saved results files
+sv_lb = 'GoodRange'
+
+# Correlation Sum results directory
+path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb)
+
+# D2 saved results directory
+sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', res_lb = lb, calc_lb = sv_lb)
 
 ### FIT PARAMETERS ###
 
 # Average correlation sum over electrodes
-avg = True
-
-# Set label for results
-if avg == True:
-    a_lb = 'avg'
-else:
-    a_lb = ''
+avg = False
 
 # Interval of r of interest (in indexes)
-vlim = (5,28)
+vlim = (9,19)
 
-### SAVE FILES PARAMETERS ###
+### RESULTS DICTIONARY ###
 
-# Label for results file
-sv_lb = a_lb + '[' + str(vlim[0]) + '_' + str(vlim[1]) + ']'
+# Load result variables
+with open(path + 'variables.json', 'r') as f:
+    variables = json.load(f)
 
-### DATA TRANSFORMATION TO LOG SCALE ###
+clst = variables['clustered']
+
+# Deny average method when corrsum results come from clustered pois
+if clst == True:
+    avg = False
+    print('\nClustered input: \'avg\' variable bypassed to \'False\'')
 
 # Load correlation sum values
 CS = np.load(path + 'CSums.npy')
 r = np.load(path + 'rvals.npy')
+
+# Add entries to dictionary for save results
+variables['vlim'] = vlim
+variables['avg'] = avg
+variables['shape0'] = CS.shape
+variables['shape1'] = CS.shape[:-2]
+
+### DATA TRANSFORMATION TO LOG SCALE ###
 
 if avg == True:
     CS = CS.mean(axis = 2)[:,:,np.newaxis,:,:]
@@ -78,15 +91,20 @@ log_CS, log_r = to_log(CS, r)
 itrs = [i for i in log_CS]
 
 # Build iterable function (over subjects)
-def it_fit(abcd):
+def it_fit(iinlog_CS: np.ndarray):
 
+    # Bad regression counter
     c = 0 
+
+    # Initzialize results arrays
     slope = []
     errslope = []
 
-    intercept = []
-    errintercept = []
+    # Intercept results are easily attached
+    #intercept = []
+    #errintercept = []
 
+    abcd = iinlog_CS
     for abc in abcd:
         for ab in abc:
             for i, a in enumerate(ab):
@@ -118,15 +136,17 @@ def it_fit(abcd):
 # Build multiprocessing function
 def mp_fit():
 
+    print('\nSpawning ' + str(workers) + ' processes...')
 
-    print('Spawning ' + str(workers) + ' processes...')
+    # Launch Pool multiprocessing
+    from multiprocessing import Pool
     with Pool(workers) as p:
         
         res = list(tqdm(p.imap(it_fit, itrs), #chunksize = chunksize),
                        desc = 'Computing subjects ',
                        unit = 'subs',
                        total = len(itrs),
-                       leave = False)
+                       leave = True)
                         )
     slope = []
     errslope = []
@@ -149,19 +169,23 @@ def mp_fit():
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
-    np.save(sv_path + sv_lb + 'slopes.npy', slope)
-    np.save(sv_path + sv_lb + 'errslopes.npy', errslope)
-    #np.save(sv_path + sv_lb + 'intercept.npy', intercept)
-    #np.save(sv_path + sv_lb + 'errintercept.npy', errintercept)
+    np.save(sv_path + 'slopes.npy', slope)
+    np.save(sv_path + 'errslopes.npy', errslope)
+    #np.save(sv_path + 'intercept.npy', intercept)
+    #np.save(sv_path + 'errintercept.npy', errintercept)
+
+    with open(sv_path + 'variables.json', 'w') as f:
+        json.dump(variables, f)
 
     return slope, errslope, c #, intercept, errintercept
 
-# launch script with 'python -m logfit' in appropriate conda enviroment
+
+# Launch script with 'python -m idim' in appropriate conda enviroment
 if __name__ == '__main__':
 
     # Compute results
     slope, errslope, c = mp_fit()
     print('\nDONE!\n')
-    print('Number of failed regressions: ' + str(c))
+    print('Number of bad regressions: ' + str(c))
 
-    print('\nResults shape: ', slope.shape)
+    print('\nResults shape: ', slope.shape, '\n')
