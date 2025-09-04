@@ -79,22 +79,25 @@ BM_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
            'P6', 'AF7', 'AF8', 'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8',
            'Fpz', 'CPz', 'POz', 'Oz']
 
-BM_conditions = {'con_left_self': 'S__1',
-                   'con_left_other': 'S__2',
-                   'con_right_self': 'S__3',
-                   'con_right_other': 'S__4',
-                   'uncon_left_self': 'S_11',
-                   'uncon_left_other': 'S_12',
-                   'uncon_right_self': 'S_13',
-                   'uncon_right_other': 'S_14',}
+BM_conditions = {'con_all':'S__',
+                 'uncon_all':'S_1',
+                 'con_left_self': 'S__1',
+                 'con_left_other': 'S__2',
+                 'con_right_self': 'S__3',
+                 'con_right_other': 'S__4',
+                 'uncon_left_self': 'S_11',
+                 'uncon_left_other': 'S_12',
+                 'uncon_right_self': 'S_13',
+                 'uncon_right_other': 'S_14',}
 
 BM_paths = {
-    'data': d_path + exp_lb['bmasking'] + '/',
-    'rw_data': path + 'raw/' + exp_lb['bmasking'] + '/',
-    'ev_data': path + 'evoked/' + exp_lb['bmasking'] + '/',
+    'rw_data': d_path + exp_lb['bmasking'] + '/',
+    'avg_data': path + 'evoked/avg/' + exp_lb['bmasking'] + '/',
+    'trl_data': path + 'evoked/trl/' + exp_lb['bmasking'] + '/',
     'subject': [d_path + exp_lb['bmasking'] + '/subj','_band_resample/'],
     'ch_info': d_path +  exp_lb['bmasking'] + '/subj001_band_resample/channel.mat',
-    'results': r_path + exp_lb['bmasking'] + '/',
+    'avg_results': r_path + 'avg/' + exp_lb['bmasking'] + '/',
+    'trl_results': r_path + 'trl/' + exp_lb['bmasking'] + '/',
     'pics': p_path + exp_lb['bmasking'] + '/'
 }
 

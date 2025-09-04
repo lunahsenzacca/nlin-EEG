@@ -47,21 +47,30 @@ from scipy.signal import periodogram
 
 # UTILITY FUNCTIONS #
 '''
-sub_path         : Helper function, will be useful with different
-                   datasets and data structures;
+sub_path         : Get subject rw_data directory
+
+obs_path         : Get observable directory
+
 name_toidx       : Converts tuple or list of electrode names to corresponding .mat
                    file index, for bw dataset only for now;
-mat_toevoked     : Converts multiple trial .mat files into MNE's evokeds file 
-                   format and save them, highly specific for bw dataset for now;
 
 tuplinator       : Old helper function for functions that do not use mne
                    data type (SSub_ntau, twodim_graphs)
+
+raw_tolist       : Extract raw data and prepare it for MNE evoked file format conversion
+                   by computing the input for list_toevoked;
+                   
+toinfo           : Create info file for MNE evoked file format;
+
+list_toevoked    : Converts multiple trial array to MNE evoked file format;
+
+toevoked         : Concatenates taw_tolist and list_toevoked.
 '''
 
 # Get subject path
 def sub_path(subID: str, exp_name: str):
 
-    # Text to attach before and after subID to get subject folder name
+    # Text to attach before and after subID to get subject folder name for raw data
     snip = maind[exp_name]['directories']['subject']
     
     path = snip[0] + subID + snip[1]
@@ -69,10 +78,15 @@ def sub_path(subID: str, exp_name: str):
     return path
 
 # Get observable path
-def obs_path(exp_name: str, obs_name: str, res_lb: str, calc_lb = None):
+def obs_path(exp_name: str, obs_name: str, res_lb: str, avg_trials: bool, calc_lb = None):
+
+    if avg_trials == True:
+        results = 'avg_results'
+    else:
+        results = 'trl_results'
 
     # Create directory string
-    path = maind[exp_name]['directories']['results'] + maind['obs_lb'][obs_name] + '/' + res_lb + '/'
+    path = maind[exp_name]['directories'][results] + res_lb + '/'+ maind['obs_lb'][obs_name] + '/'
 
     if calc_lb != None:
 
@@ -81,7 +95,6 @@ def obs_path(exp_name: str, obs_name: str, res_lb: str, calc_lb = None):
     return path
 
 # Convert channel names to appropriate .mat data index
-# [COULD BE OPTIMIZED BUT WORKS AS INTENDED]
 def name_toidx(names: list| tuple, exp_name: str):
 
     # Load the .mat file (adjust the path)
@@ -93,7 +106,6 @@ def name_toidx(names: list| tuple, exp_name: str):
     ### THIS PROBABLY IS DATASET SPECIFIC, BE CAREFUL WITH NEW DATA
     for m in mat_data['Channel'][0]:
         ch_list.append(str(m[0][0]))
-    ###
 
     # Check if we are clustering electrodes with tuples
     if type(names) ==  tuple:
@@ -140,6 +152,132 @@ def tuplinator(list: list):
             tup = tup + add
 
     return tup
+
+# Function for single subject conversion from raw data to list  for MNE 
+def raw_tolist(subID: str, exp_name: str):
+
+    # Navigate subject folder with raw .mat single trial files
+    sub_folder = sub_path(subID, exp_name = exp_name)
+    all_files = os.listdir(sub_folder)
+
+    # Load the .mat file (Some folders could be missing it)
+    mat_data = sio.loadmat(maind[exp_name]['directories']['ch_info'])
+
+    # Get list of electrodes names in .mat file
+    ch_list = maind[exp_name]['pois']
+
+    # Get time points lenght
+    Tst = maind[exp_name]['T']
+
+    # Get conditions
+    conditions = list(maind[exp_name]['conditions'].values())
+
+    # Loop over conditions
+    data_list = []
+    for cond in conditions:
+        
+        # This depends on the raw data structure
+        if exp_name == 'bmasking':
+            my_cond_files = [f for f in all_files if cond in f ]
+        
+        # Get indexes of electrodes
+        untup = name_toidx(ch_list, exp_name = exp_name)
+
+        all_trials = np.empty((0,len(untup),Tst))
+            
+        for f in my_cond_files:
+
+            path = sub_folder + f
+            
+            # This also depends on raw data structure
+            if exp_name == 'bmasking':
+                mat_data = sio.loadmat(path)
+                    
+                data = mat_data['F'][untup]
+
+            all_trials = np.concatenate((all_trials, data[np.newaxis,:]), axis = 0)
+        
+        data_list.append(all_trials)
+
+    return data_list
+
+# Create info file for specific datased
+def toinfo(exp_name: str, ch_type = 'eeg'):
+
+    # Get electrodes labels
+    ch_list = maind[exp_name]['pois']
+
+    ch_types = [ch_type for n in range(0, len(ch_list))]
+
+    # Get sampling frequency
+    freq = maind[exp_name]['f']
+
+    info = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
+    info.set_montage(maind[exp_name]['montage'])
+
+    return info
+
+# Function for subwise evoked conversion from list of arrays
+def list_toevoked(data_list: list, subID: str, exp_name: str, method: str, alt_sv: str):
+    
+    # There are different number of trials for each condition,
+    # so a simple ndarray is inconvenient. We use a list of ndarray instead
+
+    # Create info file
+    info = toinfo(exp_name = exp_name)
+
+    conditions = list(maind[exp_name]['conditions'].values())
+
+    # Initialize evokeds list
+    evokeds = []
+
+    # Cycle around conditions
+    for i, array in enumerate(data_list):
+
+        # 'array' structure
+        # Axis 0 = Trials
+        # Axis 1 = Electrodes
+
+        # Average across same condition trials
+        if method == 'avg_data':
+
+            n_trials = array.shape[0]
+            avg = array.mean(axis = 0)
+
+            ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i])
+            evokeds.append(ev)
+
+        # Keep each individual trial
+        elif method == 'trl_data':
+
+            for trl in array:
+
+                ev = mne.EvokedArray(trl, info, nave = 1, comment = conditions[i])
+                evokeds.append(ev)
+
+    # This is meant for testing in notebooks
+    if alt_sv != None:
+
+        # Create directory
+        os.makedirs(alt_sv, exist_ok = True)
+
+        # Evoked file directory
+        sv_path = alt_sv + subID + '-ave.fif'
+
+        mne.write_evokeds(sv_path, evokeds, overwrite = True, verbose = False)
+ 
+    return evokeds
+
+# Create evoked file straight from raw data
+def toevoked(subID: str, exp_name: str, method: str, alt_sv = None):
+
+    # Create data list
+    data_list = raw_tolist(subID = subID, exp_name = exp_name)
+
+    # Generate evokeds
+    evokeds = list_toevoked(data_list = data_list, subID = subID, exp_name = exp_name, method = method, alt_sv = alt_sv)
+
+    return evokeds
 
 #####################################
 

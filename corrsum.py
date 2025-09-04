@@ -18,7 +18,7 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = os.cpu_count() - 2
+workers = os.cpu_count() - 6
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -27,15 +27,20 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'G'
+lb = 'G20'
+
+# Get data averaged across trials
+avg_trials = True
+
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
 
 ### LOAD DATASET DIRECTORIES AND INFOS ###
 
-# Raw folder path (yet to be implemented)
-#path = maind[exp_name]['directories']['rw_data']
-
-# Evoked folder path
-path = maind[exp_name]['directories']['ev_data']
+# Evoked folder paths
+path = maind[exp_name]['directories'][method]
 
 # List of ALL subject IDs
 sub_list = maind[exp_name]['subIDs']
@@ -47,7 +52,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[0:3]
@@ -62,7 +67,8 @@ conditions = conditions[0:2]
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embs = [2,3,4,5,6,7,8,9,10]#[11,12,13,14,15,16,17,18,19,20]#
+embs = [i for i in range(2,21)]
+
 # Time delay
 tau = maind[exp_name]['tau']
 
@@ -90,14 +96,14 @@ variables = {
                 'embeddings' : embs
             }
 
-### SCRIPT FOR COMPUTATION ###
+### COMPUTATION ###
 
 # Build iterable function
 def it_correlation_sum(subID: str):
 
     CD = correlation_sum(subID = subID, conditions = conditions, ch_list = ch_list,
-                          embeddings = embs, tau = tau, fraction = frc,
-                          rvals = r, pth = path)
+                        embeddings = embs, tau = tau, fraction = frc,
+                        rvals = r, pth = path)
     return CD
 
 # Build multiprocessing function
@@ -115,27 +121,27 @@ def mp_correlation_sum():
                        total = len(sub_list),
                        leave = True)
                        )
-
-    return np.asarray(res)
-
-# Launch script with 'python -m correlation' in appropriate conda enviroment
-if __name__ == '__main__':
-
-    # Compute results
-    results = mp_correlation_sum()
-
+   
+    res = np.asarray(res)
     print('\nDONE!\n')
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
     np.save(sv_path + 'rvals.npy', r)
-    np.save(sv_path + 'CSums.npy', results)
+    np.save(sv_path + 'CSums.npy', res)
 
-    variables['shape0'] = results.shape
+    variables['shape0'] = res.shape
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
-    print('Results shape: ', results.shape, '\n')
+    print('Results shape: ', res.shape, '\n')
+
+    return
+
+# Launch script with 'python -m corrsum' in appropriate conda enviroment
+if __name__ == '__main__':
+
+    results = mp_correlation_sum()
 

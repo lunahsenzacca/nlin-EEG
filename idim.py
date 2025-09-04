@@ -32,7 +32,7 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for load results files
-lb = 'CPOF'
+lb = 'G'
 
 # Label for saved results files
 sv_lb = 'GoodRange'
@@ -146,7 +146,7 @@ def mp_fit():
                        desc = 'Computing subjects ',
                        unit = 'subs',
                        total = len(itrs),
-                       leave = True)
+                       leave = False)
                         )
     slope = []
     errslope = []

@@ -36,7 +36,7 @@ lb = 'G'
 #path = maind[exp_name]['directories']['rw_data']
 
 # Evoked folder path
-path = maind[exp_name]['directories']['ev_data']
+path = maind[exp_name]['directories']['avg_data']
 
 # List of ALL subject IDs
 sub_list = maind[exp_name]['subIDs']
