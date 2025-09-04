@@ -26,7 +26,7 @@ clust_dict = {'G': 'Global (m $\\leq$ 10)',
 ### PLOTTING WRAPPERS ###
 
 # Plot scalar observable in ofg 4-dimensional array
-def plot_scalar(exp_name: str, obs_name: str, res_lb: str, avg_method: str, calc_lb = None, verbose = True):
+def plot_scalar(exp_name: str, avg_trials: bool, obs_name: str, res_lb: str, avg_method: str, calc_lb = None, verbose = True):
 
     # Legend
 
@@ -50,7 +50,7 @@ def plot_scalar(exp_name: str, obs_name: str, res_lb: str, avg_method: str, calc
     if obs_name == 'idim':
 
         # Get relevant paths
-        d2_path = obs_path(exp_name = exp_name, obs_name = 'idim', res_lb = res_lb, calc_lb = calc_lb)
+        d2_path = obs_path(exp_name = exp_name, obs_name = 'idim', res_lb = res_lb, calc_lb = calc_lb, avg_trials = avg_trials)
 
         # Load result variables
         with open(d2_path + 'variables.json', 'r') as f:
@@ -137,16 +137,22 @@ def plot_scalar(exp_name: str, obs_name: str, res_lb: str, avg_method: str, calc
 
             for j, ax in enumerate(axs.flat):
                 
-                ax.plot(embs, M[j,0,:], label = 'Conscious')
-                ax.fill_between(embs, M[j,0,:]-EM[j,0,:], M[j,0,:]+EM[j,0,:], alpha = 0.5)
+                if j == 0:
+                    ax.plot(embs, M[j,0,:], label = 'Conscious')
+                    ax.plot(embs, M[j,1,:], label = 'Unconscious')
+                else:
+                    ax.plot(embs, M[j,0,:])
+                    ax.plot(embs, M[j,1,:])
 
-                ax.plot(embs, M[j,1,:], label = 'Unconscious')
+                ax.fill_between(embs, M[j,0,:]-EM[j,0,:], M[j,0,:]+EM[j,0,:], alpha = 0.5)
                 ax.fill_between(embs, M[j,1,:]-EM[j,1,:], M[j,1,:]+EM[j,1,:], alpha = 0.5)
 
-                ax.set_ylim(1.2,3)
+                ax.set_ylim(1.2,2.7)
                 #ax.set_title(sub_list[j])
 
             fig.suptitle(title, size = 25)
+
+            fig.legend(loc = 'lower center')
 
             plt.savefig(sv_path + sv_lb + '_Dattractor.png', dpi = 300)
 
