@@ -18,8 +18,7 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
-
-workers = 2
+workers = 10
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -28,15 +27,20 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'G'
+lb = 'CPOF'
+
+# Get data averaged across trials
+avg_trials = True
+
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
 
 ### LOAD DATASET DIRECTORIES AND INFOS ###
 
-# Raw folder path (yet to be implemented)
-#path = maind[exp_name]['directories']['rw_data']
-
 # Evoked folder path
-path = maind[exp_name]['directories']['avg_data']
+path = maind[exp_name]['directories'][method]
 
 # List of ALL subject IDs
 sub_list = maind[exp_name]['subIDs']
@@ -48,7 +52,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', res_lb = lb)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', res_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[0:3]
@@ -57,13 +61,13 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', res_lb = lb)
 #Only averaged conditions
 conditions = list(conditions)[0:2]
 #Parieto-Occipital and Frontal electrodes
-#ch_list = ['Fp1','Fp2','Fpz']#['O2','PO4','PO8'],
+ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embs = [2,3,4,5,6,7,8,9,10]#[11,12,13,14,15,16,17,18,19,20]#
+embs = [i for i in range(2,21)]
 
 # Time delay
 tau = maind[exp_name]['tau']
@@ -127,7 +131,7 @@ if __name__ == '__main__':
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_path + 'lyap.npy', results)
+    np.save(sv_path + 'llyap.npy', results)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)

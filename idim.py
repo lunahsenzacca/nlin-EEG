@@ -23,7 +23,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 10
+workers = 8
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -31,17 +31,20 @@ chunksize = 1
 # Dataset name
 exp_name = 'bmasking'
 
+# Get data averaged across trials
+avg_trials = True
+
 # Label for load results files
-lb = 'G'
+lb = 'CPOF'
 
 # Label for saved results files
 sv_lb = 'GoodRange'
 
 # Correlation Sum results directory
-path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb)
+path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb, avg_trials = avg_trials)
 
 # D2 saved results directory
-sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', res_lb = lb, calc_lb = sv_lb)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', res_lb = lb, calc_lb = sv_lb, avg_trials = avg_trials)
 
 ### FIT PARAMETERS ###
 
@@ -167,25 +170,25 @@ def mp_fit():
     #intercept = np.asarray(intercept)
     #errintercept = np.asarray(errintercept)
 
+    # Save value and error as one array
+    idim = np.concatenate((slope[:,:,:,:,np.newaxis], errslope[:,:,:,:,np.newaxis]), axis = 4)
+
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
-    np.save(sv_path + 'slopes.npy', slope)
-    np.save(sv_path + 'errslopes.npy', errslope)
-    #np.save(sv_path + 'intercept.npy', intercept)
-    #np.save(sv_path + 'errintercept.npy', errintercept)
+
+    np.save(sv_path + 'idim.npy', idim)
 
     with open(sv_path + 'variables.json', 'w') as f:
         json.dump(variables, f)
 
-    return slope, errslope, c #, intercept, errintercept
-
+    return idim, c #, intercept, errintercept
 
 # Launch script with 'python -m idim' in appropriate conda enviroment
 if __name__ == '__main__':
 
     # Compute results
-    slope, errslope, c = mp_fit()
+    idim, c = mp_fit()
     print('\nDONE!\n')
     print('Number of bad regressions: ' + str(c))
 
-    print('\nResults shape: ', slope.shape, '\n')
+    print('\nResults shape: ', idim.shape, '\n')

@@ -18,7 +18,7 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = os.cpu_count() - 6
+workers = os.cpu_count() - 4
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -27,7 +27,7 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'G20'
+lb = 'CPOF'
 
 # Get data averaged across trials
 avg_trials = True
@@ -61,7 +61,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb, avg_t
 #Only averaged conditions
 conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-#ch_list = ['O2','PO4','PO8'],['Fp1','Fp2','Fpz']
+ch_list = ['O2','PO4','PO8'],['Fp1','Fp2','Fpz']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###

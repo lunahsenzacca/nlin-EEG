@@ -47,15 +47,17 @@ from scipy.signal import periodogram
 
 # UTILITY FUNCTIONS #
 '''
-sub_path         : Get subject rw_data directory
+sub_path         : Get subject rw_data directory;
 
-obs_path         : Get observable directory
+obs_path         : Get observable directory;
+
+obs_data         : Get observable data;
 
 name_toidx       : Converts tuple or list of electrode names to corresponding .mat
                    file index, for bw dataset only for now;
 
 tuplinator       : Old helper function for functions that do not use mne
-                   data type (SSub_ntau, twodim_graphs)
+                   data type (SSub_ntau, twodim_graphs);
 
 raw_tolist       : Extract raw data and prepare it for MNE evoked file format conversion
                    by computing the input for list_toevoked;
@@ -93,6 +95,29 @@ def obs_path(exp_name: str, obs_name: str, res_lb: str, avg_trials: bool, calc_l
         path = path + calc_lb + '/'
 
     return path
+
+# Get observable data
+def obs_data(path: str, obs_name: str):
+
+    if obs_name == 'idim':
+
+        M = np.load(path + 'idim.npy')
+
+    elif obs_name == 'llyap':
+
+        M = np.load(path + 'llyap.npy')
+
+    # Load result variables
+    with open(path + 'variables.json', 'r') as f:
+        variables = json.load(f)
+
+    # Get value and error arrays
+    OBS = M[:,:,:,:,0]
+    E_OBS = M[:,:,:,:,1]
+
+    X = variables['embeddings']
+
+    return OBS, E_OBS, X, variables
 
 # Convert channel names to appropriate .mat data index
 def name_toidx(names: list| tuple, exp_name: str):
@@ -543,8 +568,13 @@ def lyapunov(subID: str, ch_list: list, conditions: list,
         for ts in TS:
 
             # Get mean period of the time series through power spectrum analysis
-            f, ps = periodogram(ts)
-            avT = np.sum(ps)/np.sum(f*ps)
+            # this method is not very robust to noise if the estimated period is too
+            # large for the embeddin dimension
+            #f, ps = periodogram(ts)
+            #avT = np.sum(ps)/np.sum(f*ps)
+
+            # Or set a fixed lenght
+            avT = tau*2
             
             for m in embeddings:
                 emb_ts = td_embedding(ts, embedding = m, tau = tau)

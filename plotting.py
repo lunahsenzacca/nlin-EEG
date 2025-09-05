@@ -6,8 +6,8 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-# Utility function for observables directories
-from core import obs_path
+# Utility function for observables directories and data
+from core import obs_path, obs_data
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -16,146 +16,192 @@ maind = get_maind()
 
 ### Extra DICTIONARIES (Eventually put in init.py)###
 
-clust_dict = {'G': 'Global (m $\\leq$ 10)',
-              'G20': 'Global (m $\\leq$ 20)',
-              'PO': 'O2, PO4, PO8',
-              'F': 'Fp1, Fp2, Fpz',
-              'CPOF': ['O2, PO4, PO8','Fp1, Fp2, Fpz']}
+avg = {'pois': 2,
+            'sub_pois': (0,2),
+            'sub': 0,}
+
+clust_dict = {'G': ['Global'],
+              'PO': ['Parieto-Occipital'],
+              'F': ['Frontal'],
+              'CPOF': ['Parieto-Occipital (c)','Frontal (c)']}
+
+obs_dict = {'idim': '$D_{2}(m)$ ',
+            'llyap': '$\\lambda(m)$ '}
+
+cond_dict = {'S__': 'Conscious',
+             'S_1': 'Unconscious'}
 
 
 ### PLOTTING WRAPPERS ###
 
-# Plot scalar observable in ofg 4-dimensional array
-def plot_scalar(exp_name: str, avg_trials: bool, obs_name: str, res_lb: str, avg_method: str, calc_lb = None, verbose = True):
+def plot_function_subject(OBS: np.ndarray, E_OBS: np.ndarray, X: list, grid: list, figsize: list):
+
+    # Scalar value 4-dimensional array
+
+    # Axis 0 = Subjects
+    # Axis 1 = Conditions
+    # Axis 2 = Clusters
+    # Axis 3 = m: Embedding dimension
+
+    # Initialize list of pyplot objects to handle to main function
+    figs = []
+    axes = []
+
+    rng = OBS.shape[2]
+    print(rng)
+
+    for idx in range (0,rng):
+            OBS = OBS[:,:,idx,:]
+            E_OBS = E_OBS[:,:,idx,:]
+
+            fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize)
+
+            if grid[0]*grid[1] == 1:
+                ax_iter = [axs]
+            else:
+                ax_iter = axs.flat
+
+            for j, ax in enumerate(ax_iter):
+
+                if j == 0:
+                    ax.plot(X, OBS[j,0,:])#, label = label[0])
+                    ax.plot(X, OBS[j,1,:])#, label = label[1])
+                else:
+                    ax.plot(X, OBS[j,0,:])
+                    ax.plot(X, OBS[j,1,:])
+                
+                ax.fill_between(X, OBS[j,0,:]-E_OBS[j,0,:], OBS[j,0,:]+E_OBS[j,0,:], alpha = 0.5)
+                ax.fill_between(X, OBS[j,1,:]-E_OBS[j,1,:], OBS[j,1,:]+E_OBS[j,1,:], alpha = 0.5)
+
+            figs.append(fig)
+            axes.append(axs)
+
+            #plt.close()
+
+    return figs, axes
+
+
+# Main wrapper for function over pois
+def plot_observable(info: dict, instructions: dict, save = False, verbose = True):
 
     # Legend
+
+    # Info
+    #
+    #'exp_name'
+    #'avg_trials'
+    #'obs_name'
+    #'res_lb'
+    #'calc_lb'
+
+    # Instructions
+    #
+    # 'avg'
+    # 'confront'
+    # 'grid'
+    # 'figsize'
+    # 'titlesz'
+    # 'sv_name'
 
     # Scalar value 4-dimensional array
 
     # Axis 0 = Subjects
     # Axis 1 = Conditions
     # Axis 2 = Electrodes
-    # Axis 3 = m: Embedding dimension
+    # Axis 3 = m: x
 
-    method_d = {
+    # Value of the array is y(x) or e_y(x)
 
-        'subjects': 0,
-        'conditions': 1,
-        'pois': 2,
-        'embeddings': 3,
-        'all': (0,1,2,3)
+    # Get observable file path
+    # Get relevant paths
+    path = obs_path(
+                       exp_name = info['exp_name'],
+                       avg_trials = info['avg_trials'],
+                       obs_name = info['obs_name'],
+                       res_lb = info['res_lb'],
+                       calc_lb = info['calc_lb']
 
-    }
+                       )
 
-    if obs_name == 'idim':
+    # Load results for specific observable
+    OBS, E_OBS, X, variables = obs_data(path = path, obs_name = info['obs_name'])
 
-        # Get relevant paths
-        d2_path = obs_path(exp_name = exp_name, obs_name = 'idim', res_lb = res_lb, calc_lb = calc_lb, avg_trials = avg_trials)
+    if verbose == True:
+        print(variables)
 
-        # Load result variables
-        with open(d2_path + 'variables.json', 'r') as f:
-            variables = json.load(f)
+    clst = variables['clustered']
 
-        # Get input shape
-        shape0 = variables['shape0']
+    conditions = variables['conditions']
 
-        # Get output shape
-        shape1 = variables['shape1']
+    # Apply instructions
+    if instructions['avg'] != 'none':
+        OBS = OBS.mean(axis = avg[instructions['avg']])
+        E_OBS = E_OBS.mean(axis = avg[instructions['avg']])
 
-        embs = variables['embeddings']
+    grid = instructions['grid']
 
-        clst = variables['clustered']
-
-        avg = variables['avg']
-
-        # Fit parameters
-        vmin = variables['vlim'][1]
-        vmax = variables['vlim'][0]
-
-        # Load results from idim.py script
-
-        m = np.load(d2_path + 'slopes.npy')
-        em = np.load(d2_path + 'errslopes.npy')
-
-        if verbose == True:
-            print(variables)
-
-        # Make appropriate labeling
-        sv_lb = res_lb
-
-        if avg == True:
-            a_lb = 'avg'
-        else:
-            a_lb = ''
-
-        info_lb = '_' + a_lb + str(vmin) + '_' + str(vmax)
-
-        sv_path = maind[exp_name]['directories']['pics']
-
+    if instructions['avg'] == 'pois':
+        OBS = OBS[:,:,np.newaxis,:]
+        E_OBS = E_OBS[:,:,np.newaxis,:]
         if clst == True:
+            print('Instructions for pois average of clustered data, not the intended use')
+            return
 
-            print('\nClustered input: \'avg_method\' bypassed, more pictures will be printed.')
+    elif instructions['avg'] == 'sub_pois':
+        OBS = OBS[np.newaxis,:,np.newaxis,:]
+        E_OBS = E_OBS[np.newaxis,:,np.newaxis,:]
+        if clst == True:
+            print('Instructions for pois average of clustered data, not the intended use')
+            return
 
-            rng = len(clust_dict[res_lb])
-            
-            for cl_idx in range (0,rng):
-                M = m[:,:,cl_idx,:]
-                EM = em[:,:,cl_idx,:]
+        # Set grid to trivial
+        grid = (1,1)
 
-                sv_lb = res_lb + '_ ' + str(cl_idx) + info_lb
-                title = '$D_{2}(m)$ [' + clust_dict[res_lb][cl_idx] + ']'
+    elif instructions['avg'] == 'sub':
+        OBS = OBS[np.newaxis,:,:,:]
+        E_OBS = E_OBS[np.newaxis,:,:,:]
 
-                fig, axs = plt.subplots(6,6, figsize = (12,10))
+    # Swap dimensions for different compatring in the same picture
+    if instructions['confront'] == 'clusters':
 
-                for j, ax in enumerate(axs.flat):
-                    
-                    ax.plot(embs, M[j,0,:], label = 'Conscious')
-                    ax.fill_between(embs, M[j,0,:]-EM[j,0,:], M[j,0,:]+EM[j,0,:], alpha = 0.5)
+        OBS = np.swapaxes(OBS,1,2)
+        E_OBS = np.swapaxes(E_OBS,1,2)
 
-                    ax.plot(embs, M[j,1,:], label = 'Unconscious')
-                    ax.fill_between(embs, M[j,1,:]-EM[j,1,:], M[j,1,:]+EM[j,1,:], alpha = 0.5)
+        title_l = [cond_dict[c] for c in conditions]
+        legend_l = clust_dict[info['res_lb']]
 
-                    ax.set_ylim(1.2,3)
-                    #ax.set_title(sub_list[j])
+        if clst == False or avg[instructions['avg']] != None:
+            print('Cluster confrontation of non clustered data or averaged data')
+            return
 
-                fig.suptitle(title, size = 25)
+    elif instructions['confront'] == 'conditions':
 
-                plt.savefig(sv_path + sv_lb + '_Dattractor.png', dpi = 300)
+        title_l = clust_dict[info['res_lb']]
+        legend_l = [cond_dict[c] for c in conditions]
+        
+    # Initialize figures
+    figs, axes = plot_function_subject(OBS = OBS, E_OBS = E_OBS, X = X, grid = grid, figsize = instructions['figsize'])
 
-                fig.show()
+    # Cycle around axis and figures to add informations
 
+    # Check if we have multiple axes and initialize proper iterable
+    for axs in axes:
+        if grid[0]*grid[1] == 1:
+            ax_iter = [axs]
         else:
+            ax_iter = axs.flat
+        
+        for ax in ax_iter:
+            ax.set_ylim(instructions['ylim'])
 
-            M = m.mean(axis = method_d['pois'])
-            EM = em.mean(axis = method_d['pois'])
+    for i, fig in enumerate(figs):
 
-            sv_lb = res_lb + info_lb
+        title = obs_dict[info['obs_name']] + title_l[i]
 
-            title = '$D_{2}(m)$ [' + clust_dict[res_lb] + ']'
-
-            fig, axs = plt.subplots(6,6, figsize = (12,10))
-
-            for j, ax in enumerate(axs.flat):
-                
-                if j == 0:
-                    ax.plot(embs, M[j,0,:], label = 'Conscious')
-                    ax.plot(embs, M[j,1,:], label = 'Unconscious')
-                else:
-                    ax.plot(embs, M[j,0,:])
-                    ax.plot(embs, M[j,1,:])
-
-                ax.fill_between(embs, M[j,0,:]-EM[j,0,:], M[j,0,:]+EM[j,0,:], alpha = 0.5)
-                ax.fill_between(embs, M[j,1,:]-EM[j,1,:], M[j,1,:]+EM[j,1,:], alpha = 0.5)
-
-                ax.set_ylim(1.2,2.7)
-                #ax.set_title(sub_list[j])
-
-            fig.suptitle(title, size = 25)
-
-            fig.legend(loc = 'lower center')
-
-            plt.savefig(sv_path + sv_lb + '_Dattractor.png', dpi = 300)
-
-            fig.show()
+        fig.suptitle(title, size = instructions['titlesz'])
+        fig.legend(legend_l, loc = 'lower center')
+        if save == True:
+            sv_path = maind[info['exp_name']]['directories']['pics']
+            plt.savefig(sv_path + instructions['sv_name'] + str(i) + '.png', dpi = 300)
 
     return
