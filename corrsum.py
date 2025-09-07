@@ -16,13 +16,16 @@ from core import correlation_sum
 # Utility function for observables directories
 from core import obs_path
 
+# Utility functions for trial data averaging
+from core import flat_evokeds, collapse_trials
+
 #Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 20
+workers = 2
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -31,10 +34,10 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'CPOF'
+lb = 'TEST'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 if avg_trials == True:
     method = 'avg_data'
@@ -59,13 +62,13 @@ ch_list = maind[exp_name]['pois']
 sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[0:1]
+#sub_list = sub_list[0:2]
 #ch_list = ch_list[0:2]
 
 #Only averaged conditions
 conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-ch_list = ['O2','PO4','PO8'],['Fp1','Fp2','Fpz']
+ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
@@ -110,13 +113,12 @@ def it_loadevokeds(subID: str):
 
     return evokeds
 
-
 # Build Correlation Sum iterable function
 def it_correlation_sum(evoked: mne.Evoked):
 
     CS = correlation_sum(evoked = evoked, ch_list = ch_list,
-                        embeddings = embeddings, tau = tau, fraction = frc,
-                        rvals = r)
+                         embeddings = embeddings, tau = tau, fraction = frc,
+                         rvals = r)
 
     return CS
 
@@ -129,17 +131,15 @@ def mp_loadevokeds():
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evoks = list(tqdm(p.imap(it_loadevokeds, sub_list), #chunksize = chunksize),
+        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list), #chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
                        leave = False)
                        )
 
-    # Flatten and save separation points
-    evoks_iters = [x for xss in evoks for xs in xss for x in xs]
-
-    points = [[len(evoks[i][j]) for j in range(0,len(evoks[i]))] for i in range(0,len(evoks))]
+    # Create flat iterable list of evokeds images
+    evoks_iters, points = flat_evokeds(evokeds = evokeds)
 
     print('\nDONE!')
 
@@ -148,6 +148,7 @@ def mp_loadevokeds():
 # Build Correlation Sum multiprocessing function
 def mp_correlation_sum(evoks_iters: list, points: list):
 
+    # Get absolute complexity of the script and estimated completion time
     complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)
 
     velocity = 0.481
@@ -156,11 +157,8 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
 
     print('\nComputing correlation sum over each trial')
-
     print('\nNumber of single computations: ' + str(complexity))
-
     print('\nEstimated completion time: ~' + eta)
-
     print('\nSpawning ' + str(workers) + ' processes...')
     
     if avg_trials == True:
@@ -172,35 +170,17 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        res = list(tqdm(p.imap(it_correlation_sum, evoks_iters), #chunksize = chunksize),
-                       desc = 'Computing subjects ',
-                       unit = unit,
-                       total = len(evoks_iters),
-                       leave = False)
-                       )
-    
-    CS = []
-    CS_STD = []
-    count = 0
-    for s in range(0,len(sub_list)):
-        for c in range(0,len(conditions)):
+        results = list(tqdm(p.imap(it_correlation_sum, evoks_iters), #chunksize = chunksize),
+                            desc = 'Computing channels time series',
+                            unit = unit,
+                            total = len(evoks_iters),
+                            leave = True)
+                        )
 
-            # Average across trial results
-            avg = np.mean(np.asarray(res[count:count + points[s][c]]), axis = 0)
-            std = np.std(np.asarray(res[count:count + points[s][c]]), axis = 0)
+    # Create homogeneous array averaging across trial results
+    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r)]
 
-            CS.append(avg)
-            CS_STD.append(std)
-
-            count = count + points[s][c]
-
-    CS = np.asarray(CS)
-    CS_STD = np.asarray(CS_STD)
-
-    CS = CS.reshape((len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r)))
-    CS_STD = CS_STD.reshape((len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r)))
-
-    CS = np.concatenate((CS[:,:,:,:,:,np.newaxis],CS_STD[:,:,:,:,:,np.newaxis]), axis = 5)
+    CS = collapse_trials(results = results, points = points, fshape = fshape)
     
     print('\nDONE!')
 

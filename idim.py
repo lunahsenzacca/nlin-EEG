@@ -144,9 +144,9 @@ def mp_fit():
         
         res = list(tqdm(p.imap(it_fit, itrs), #chunksize = chunksize),
                        desc = 'Computing subjects ',
-                       unit = 'subs',
+                       unit = 'sub',
                        total = len(itrs),
-                       leave = False)
+                       leave = True)
                         )
     slope = []
     errslope = []

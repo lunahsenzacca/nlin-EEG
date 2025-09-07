@@ -26,9 +26,9 @@ exp_name = 'bmasking'
 
 # Method for conversion
 # Average across trials
-#method = 'avg_data'
+method = 'avg_data'
 # Keep each trial
-method = 'trl_data'
+#method = 'trl_data'
 
 # Subject IDs
 sub_list = maind[exp_name]['subIDs']
@@ -55,7 +55,7 @@ def mp_toevoked():
     with Pool(workers) as p:
         evokeds = list(tqdm(p.imap(it_toevoked, sub_list), 
                     desc = 'Processing',
-                    unit = 'subs',
+                    unit = 'sub',
                     total = len(sub_list),
                     leave = False)
                     )

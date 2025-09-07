@@ -126,29 +126,18 @@ def obs_data(obs_path: str, obs_name: str):
         M = np.load(obs_path + 'corrsum.npy')
         X = np.load(obs_path + 'rvals.npy')
 
-        # Get value and error arrays
-        OBS = M[:,:,:,:,:,0]
-        E_OBS = M[:,:,:,:,:,1]
-
     if obs_name == 'idim':
 
         M = np.load(obs_path + 'idim.npy')
-
-        # Get value and error arrays
-        OBS = M[:,:,:,:,0]
-        E_OBS = M[:,:,:,:,1]
-
         X = variables['embeddings']
 
     elif obs_name == 'llyap':
 
         M = np.load(obs_path + 'llyap.npy')
-
-        # Get value and error arrays
-        OBS = M[:,:,:,:,0]
-        E_OBS = M[:,:,:,:,1]
-
         X = variables['embeddings']
+
+    OBS = M[0]
+    E_OBS = M[1]
 
     return OBS, E_OBS, X, variables
 
@@ -361,6 +350,74 @@ def loadevokeds(exp_name: str, avg_trials: bool, subID: str, conditions: list):
 
     return full_evokeds
 
+# Create one dimensional list with list of evoked objects per subject per condition
+def flat_evokeds(evokeds: list):
+
+    # Flatten evokeds nested list
+    flat = [x for xss in evokeds for xs in xss for x in xs]
+
+    # Save separation coordinates for 'collapse_trials' functions
+    points = [[len(evokeds[i][j]) for j in range(0,len(evokeds[i]))] for i in range(0,len(evokeds))]
+
+    return flat, points
+
+# Function for trials averaging and homogeneous array generation (works for already averaged trials as well)
+def collapse_trials(results: list, points: list, fshape: list, e_results = None):
+
+    if e_results != None:
+        print('\nObservable error in input, will be appended in results along trial error')
+
+    # Initzialize homogeneous arrays for results and standard deviations
+    RES = []
+    RES_STD = []
+
+    if e_results != None:
+        OBS_STD = []
+
+    # Make the array homogeneous
+    count = 0
+    for s in range(0,fshape[0]):
+        for c in range(0,fshape[1]):
+
+            trials = np.asarray(results[count:count + points[s][c]])
+
+            # Average across trial results
+            avg = np.mean(trials, axis = 0)
+            std = np.std(trials, axis = 0)
+
+            RES.append(avg)
+            RES_STD.append(std)
+
+            # Get error from computation uncertainty
+            if e_results != None:
+
+                e_trials = np.asarray(e_results[count:count + points[s][c]])
+                e_avg = np.sqrt(np.sum(e_trials**2, axis = 0))/len(e_trials)
+
+                OBS_STD.append(e_avg)
+
+            count = count + points[s][c]
+            
+    RES = np.asarray(RES)
+    RES = RES.reshape(fshape)
+    
+    RES_STD = np.asarray(RES_STD)
+    RES_STD = RES_STD.reshape(fshape)
+
+    if e_results != None:
+
+        OBS_STD = np.asarray(OBS_STD)
+        OBS_STD = OBS_STD.reshape(fshape)
+
+        # Create a single array to store value and errors
+        RES = np.concatenate((RES[np.newaxis],RES_STD[np.newaxis], OBS_STD[np.newaxis]), axis = 0)
+
+    else:
+        # Create a single array to store value and error
+        RES = np.concatenate((RES[np.newaxis],RES_STD[np.newaxis]), axis = 0)
+
+    return RES
+
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
@@ -447,7 +504,7 @@ def corr_sum(emb_ts, r: float):
     return csum
 
 # Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
-def lyap(emb_ts, m_period: int, freq = int, verbose = True):
+def lyap(emb_ts, m_period: int, sfreq: int, verbose = False):
 
     N = len(emb_ts)
 
@@ -503,7 +560,7 @@ def lyap(emb_ts, m_period: int, freq = int, verbose = True):
     with warnings.catch_warnings():
         if verbose == False:
             warnings.simplefilter('ignore')
-        y = np.nanmean(lnd, axis = 0)*freq
+        y = np.nanmean(lnd, axis = 0)*sfreq
 
     fit = linregress(x,y)
 
@@ -528,7 +585,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
     evoked.crop(tmin = tmin, tmax = tmax)
 
-    # Start looping around
+    # Initzialize result array
     CD = []
 
     # Check if we are clustering electrodes
@@ -565,88 +622,84 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     return CD
 
 # Largest lyapunov exponent of channel time series
-def lyapunov(subID: str, ch_list: list, conditions: list, 
-             embeddings: int, tau: int, pth: str,
-             fraction = [0,1], verbose = True):
+def lyapunov(evoked: mne.Evoked, ch_list: list | tuple, 
+             embeddings: list, tau: int,
+             fraction = [0,1], verbose = False):
 
-    # Get evokeds
-    file = pth + subID + '-ave.fif'
-    evokeds = mne.read_evokeds(file, verbose = False)
-    
-    # Get only conditions of interest
-    for e in evokeds:
-        if e.comment not in conditions:
-            evokeds.remove(e)
+    # Get sampling frequency
+    sfreq = evoked.info['sfreq']
 
-        times = e.times
+    # Apply fraction to time series
+    times = evoked.times
 
-        # Trim time series according to fraction variable
-        tmin = times[int(fraction[0]*(len(times)-1))]
-        tmax = times[int(fraction[1]*(len(times)-1))]
+    # Trim time series according to fraction variable
+    tmin = times[int(fraction[0]*(len(times)-1))]
+    tmax = times[int(fraction[1]*(len(times)-1))]
 
-        e.crop(tmin = tmin, tmax = tmax)
+    evoked.crop(tmin = tmin, tmax = tmax)
 
-    # Start looping around
+    # Initzialize result arrays
     ly = []
-    for i, cond in enumerate(conditions):
+    # Error given by alghorithm, to use in case 'avg_trials == True'
+    ly_e = []
 
-        # Check if we are clustering electrodes
-        if type(ch_list) == tuple:
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
 
-            tl = []
-            for cl in ch_list:
-                
-                # Get average time series of the cluster
-                ts = evokeds[i].get_data(picks = cl)
-                ts = ts.mean(axis = 0)
-                
-                tl.append(ts)
+        tl = []
+        for cl in ch_list:
             
-            TS = np.asarray(tl)
-
-        else:    
-
-            TS = evokeds[i].get_data(picks = ch_list)
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            ts = ts.mean(axis = 0)
+            
+            tl.append(ts)
         
-        for ts in TS:
+        TS = np.asarray(tl)
 
-            # Get mean period of the time series through power spectrum analysis
-            # this method is not very robust to noise if the estimated period is too
-            # large for the embeddin dimension
-            #f, ps = periodogram(ts)
-            #avT = np.sum(ps)/np.sum(f*ps)
+    else:    
 
-            # Or set a fixed lenght
-            avT = tau*2
+        TS = evoked.get_data(picks = ch_list)
+    
+    # Loop around pois tim series
+    for ts in TS:
+
+        # Get mean period of the time series through power spectrum analysis
+        # this method is not very robust to noise if the estimated period is too
+        # large for the embeddin dimension
+        #f, ps = periodogram(ts)
+        #avT = np.sum(ps)/np.sum(f*ps)
+
+        # Or set a fixed lenght
+        avT = tau*2
+        
+        for m in embeddings:
+            emb_ts = td_embedding(ts, embedding = m, tau = tau)
             
-            for m in embeddings:
-                emb_ts = td_embedding(ts, embedding = m, tau = tau)
-                
-                l, l_e, x, y, fit = lyap(emb_ts, m_period = avT, verbose = verbose)
+            l, l_e, x, y, fit = lyap(emb_ts, m_period = avT, sfreq = sfreq, verbose = verbose)
 
-                '''
-                # Plotting for correct estimation of optimal lenght,
-                # the system is bounded so is the separation of trajectories
+            '''
+            # Plotting for correct estimation of optimal lenght,
+            # the system is bounded so is the separation of trajectories
 
-                plt.plot(x,y)
-                plt.plot(x, (fit.slope*x + fit.intercept))
+            plt.plot(x,y)
+            plt.plot(x, (fit.slope*x + fit.intercept))
 
-                plt.show()
-                plt.close()
-                '''
-                ly.append([l,l_e])
+            plt.show()
+            plt.close()
+            '''
 
-    # Convert list with 'C' order to array
-    ly = np.asarray(ly).reshape((len(conditions),len(ch_list),len(embeddings),2))
+            ly.append(l)
+            ly_e.append(l_e)
 
-    return ly
+    return ly, ly_e
 
 ### RESULTS MANIPULATION FUNCTION ###
 
 # Select some electrodes from global results
 def reduceCS(ch_list: list, path : str, label = 'G', nlabel = None):
 
-    CS = np.load(path + label + '/CSums.npy')
+    CS = np.load(path + label + '/corrsum.npy')
     r = np.load(path + label + '/rvals.npy')
 
     with open(path + label + '/variables.json', 'r') as f:
