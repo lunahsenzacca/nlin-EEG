@@ -43,9 +43,9 @@ from scipy.stats import linregress
 # Power spetrum of time series (Uses FFT)
 from scipy.signal import periodogram
 
-#----------------------------------------#
 
-# UTILITY FUNCTIONS #
+### UTILITY FUNCTIONS ###
+
 '''
 sub_path         : Get subject rw_data directory;
 
@@ -66,7 +66,9 @@ toinfo           : Create info file for MNE evoked file format;
 
 list_toevoked    : Converts multiple trial array to MNE evoked file format;
 
-toevoked         : Concatenates taw_tolist and list_toevoked.
+toevoked         : Concatenates taw_tolist and list_toevoke;
+
+loadevokeds       : Loads evoked files.
 '''
 
 # Get subject path
@@ -80,7 +82,7 @@ def sub_path(subID: str, exp_name: str):
     return path
 
 # Get observable path
-def obs_path(exp_name: str, obs_name: str, res_lb: str, avg_trials: bool, calc_lb = None):
+def obs_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc_lb = None):
 
     if avg_trials == True:
         results = 'avg_results'
@@ -88,7 +90,23 @@ def obs_path(exp_name: str, obs_name: str, res_lb: str, avg_trials: bool, calc_l
         results = 'trl_results'
 
     # Create directory string
-    path = maind[exp_name]['directories'][results] + res_lb + '/'+ maind['obs_lb'][obs_name] + '/'
+    path = maind[exp_name]['directories'][results] + clust_lb + '/'+ maind['obs_lb'][obs_name] + '/'
+
+    if calc_lb != None:
+
+        path = path + calc_lb + '/'
+
+    return path
+
+def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc_lb = None):
+
+    if avg_trials == True:
+        pics = 'avg_pics'
+    else:
+        pics = 'trl_pics'
+
+    # Create directory string
+    path = maind[exp_name]['directories'][pics] + clust_lb + '/'+ maind['obs_lb'][obs_name] + '/'
 
     if calc_lb != None:
 
@@ -97,25 +115,40 @@ def obs_path(exp_name: str, obs_name: str, res_lb: str, avg_trials: bool, calc_l
     return path
 
 # Get observable data
-def obs_data(path: str, obs_name: str):
+def obs_data(obs_path: str, obs_name: str):
+
+    # Load result variables
+    with open(obs_path + 'variables.json', 'r') as f:
+        variables = json.load(f)
+
+    if obs_name == 'corrsum':
+
+        M = np.load(obs_path + 'corrsum.npy')
+        X = np.load(obs_path + 'rvals.npy')
+
+        # Get value and error arrays
+        OBS = M[:,:,:,:,:,0]
+        E_OBS = M[:,:,:,:,:,1]
 
     if obs_name == 'idim':
 
-        M = np.load(path + 'idim.npy')
+        M = np.load(obs_path + 'idim.npy')
+
+        # Get value and error arrays
+        OBS = M[:,:,:,:,0]
+        E_OBS = M[:,:,:,:,1]
+
+        X = variables['embeddings']
 
     elif obs_name == 'llyap':
 
-        M = np.load(path + 'llyap.npy')
+        M = np.load(obs_path + 'llyap.npy')
 
-    # Load result variables
-    with open(path + 'variables.json', 'r') as f:
-        variables = json.load(f)
+        # Get value and error arrays
+        OBS = M[:,:,:,:,0]
+        E_OBS = M[:,:,:,:,1]
 
-    # Get value and error arrays
-    OBS = M[:,:,:,:,0]
-    E_OBS = M[:,:,:,:,1]
-
-    X = variables['embeddings']
+        X = variables['embeddings']
 
     return OBS, E_OBS, X, variables
 
@@ -304,9 +337,31 @@ def toevoked(subID: str, exp_name: str, method: str, alt_sv = None):
 
     return evokeds
 
-#####################################
+# Load evoked files of a specific subject
+def loadevokeds(exp_name: str, avg_trials: bool, subID: str, conditions: list):
 
-# Helper functions
+    # Select correct path for data
+    if avg_trials == True:
+        file_p = maind[exp_name]['directories']['avg_data']
+    else:
+        file_p = maind[exp_name]['directories']['trl_data']
+
+    evokeds = mne.read_evokeds(file_p + subID + '-ave.fif', verbose = False)
+
+    # Create evoked list
+    full_evokeds = []
+    for cond in conditions:
+
+        c_evokeds = []
+        for e in evokeds:
+            if e.comment == cond:
+                c_evokeds.append(e)
+        
+        full_evokeds.append(c_evokeds)
+
+    return full_evokeds
+
+### HELPER FUNCTIONS ###
 
 # Euclidean distance
 def dist(x, y):
@@ -337,9 +392,7 @@ def to_log(CSums, rvals):
 
     return log_CS, log_r
 
-#####################################
-
-# Time series manipulation function
+### TIME SERIES MANIPULATION FUNCTIONS ###
 
 # Time-delay embedding of a single time series
 def td_embedding(ts, embedding: int, tau: int, fraction = None):
@@ -368,9 +421,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 
     return ts[idxs]
 
-#####################################
-
-# Observables functions
+### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
 # Correlation sum for a single embeddend time series [Grassberger-Procaccia]
 def corr_sum(emb_ts, r: float):
@@ -396,7 +447,7 @@ def corr_sum(emb_ts, r: float):
     return csum
 
 # Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
-def lyap(emb_ts, m_period: int, freq = 500, verbose = True):
+def lyap(emb_ts, m_period: int, freq = int, verbose = True):
 
     N = len(emb_ts)
 
@@ -461,63 +512,55 @@ def lyap(emb_ts, m_period: int, freq = 500, verbose = True):
 
     return lyap, lyap_e, x, y, fit
 
-# Correlation dimension of channel time series 
-def correlation_sum(subID: str, conditions: list, ch_list: list|tuple,
+### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
+
+# Correlation dimension of channel time series of a specific trial
+def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: int, rvals: list, 
-                    pth: str, fraction = [0,1]):
+                    fraction = [0,1]):
 
-    # Get raw (implement)
-    # Get evokeds
-    file = pth + subID + '-ave.fif'
-    evokeds = mne.read_evokeds(file, verbose = False)
-    
-    # Get only conditions of interest
-    for e in evokeds:
-        if e.comment not in conditions:
-            evokeds.remove(e)
+    # Apply fraction to time series
+    times = evoked.times
 
-        times = e.times
+    # Trim time series according to fraction variable
+    tmin = times[int(fraction[0]*(len(times)-1))]
+    tmax = times[int(fraction[1]*(len(times)-1))]
 
-        # Trim time series according to fraction variable
-        tmin = times[int(fraction[0]*(len(times)-1))]
-        tmax = times[int(fraction[1]*(len(times)-1))]
-
-        e.crop(tmin = tmin, tmax = tmax)
+    evoked.crop(tmin = tmin, tmax = tmax)
 
     # Start looping around
     CD = []
-    for i, cond in enumerate(conditions):
 
-        # Check if we are clustering electrodes
-        if type(ch_list) == tuple:
-
-            tl = []
-            for cl in ch_list:
-                
-                # Get average time series of the cluster
-                ts = evokeds[i].get_data(picks = cl)
-                ts = ts.mean(axis = 0)
-                
-                tl.append(ts)
-            
-            TS = np.asarray(tl)
-
-        else:    
-
-            TS = evokeds[i].get_data(picks = ch_list)
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
         
-        for ts in TS:
+
+        tl = []
+        for cl in ch_list:
             
-            for m in embeddings:
-                emb_ts = td_embedding(ts, embedding = m, tau = tau)
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            ts = ts.mean(axis = 0)
+            
+            tl.append(ts)
+        
+        TS = np.asarray(tl)
 
-                
-                for r in rvals:
+    else:    
 
-                    CD.append(corr_sum(emb_ts, r = r))
+        TS = evoked.get_data(picks = ch_list)
+    
+    # Loop around pois time series
+    for ts in TS:
+        
+        for m in embeddings:
+            emb_ts = td_embedding(ts, embedding = m, tau = tau)
 
-    # Convert list with 'C' order to array
-    CD = np.asarray(CD).reshape((len(conditions),len(ch_list),len(embeddings),len(rvals)))
+            for r in rvals:
+
+                CD.append(corr_sum(emb_ts, r = r))
+
+    # Returns list in -C style ordering
 
     return CD
 
@@ -598,9 +641,7 @@ def lyapunov(subID: str, ch_list: list, conditions: list,
 
     return ly
 
-#################################
-
-# Results manipulation functions
+### RESULTS MANIPULATION FUNCTION ###
 
 # Select some electrodes from global results
 def reduceCS(ch_list: list, path : str, label = 'G', nlabel = None):

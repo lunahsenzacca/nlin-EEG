@@ -52,7 +52,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', res_lb = lb, avg_trials = avg_trials)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[0:3]

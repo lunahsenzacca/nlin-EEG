@@ -13,8 +13,8 @@ from scipy.stats import linregress
 # Utility function for log conversion
 from core import to_log
 
-# Utility function for observables directories
-from core import obs_path
+# Utility function for observables directories and data
+from core import obs_path, obs_data
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -23,7 +23,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 8
+workers = 10
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -32,19 +32,19 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Get data averaged across trials
-avg_trials = True
+avg_trials = False
 
 # Label for load results files
-lb = 'CPOF'
+lb = 'TEST'
 
 # Label for saved results files
 sv_lb = 'GoodRange'
 
 # Correlation Sum results directory
-path = obs_path(exp_name = exp_name, obs_name = 'corrsum', res_lb = lb, avg_trials = avg_trials)
+path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
 
 # D2 saved results directory
-sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', res_lb = lb, calc_lb = sv_lb, avg_trials = avg_trials)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', clust_lb = lb, calc_lb = sv_lb, avg_trials = avg_trials)
 
 ### FIT PARAMETERS ###
 
@@ -56,9 +56,8 @@ vlim = (9,19)
 
 ### RESULTS DICTIONARY ###
 
-# Load result variables
-with open(path + 'variables.json', 'r') as f:
-    variables = json.load(f)
+# Load correlation sum results
+CS, E_CS, r, variables = obs_data(obs_path = path, obs_name = 'corrsum')
 
 clst = variables['clustered']
 
@@ -67,15 +66,10 @@ if clst == True:
     avg = False
     print('\nClustered input: \'avg\' variable bypassed to \'False\'')
 
-# Load correlation sum values
-CS = np.load(path + 'CSums.npy')
-r = np.load(path + 'rvals.npy')
-
 # Add entries to dictionary for save results
 variables['vlim'] = vlim
 variables['avg'] = avg
-variables['shape0'] = CS.shape
-variables['shape1'] = CS.shape[:-2]
+variables['shape'] = variables['shape'][:-1]
 
 ### DATA TRANSFORMATION TO LOG SCALE ###
 
@@ -86,6 +80,9 @@ if avg == True:
 rshp = CS.shape[1:4]
 
 # Get log values
+
+print('\n    INFORMATION DIMENSION SCRIPT')
+
 log_CS, log_r = to_log(CS, r)
 
 ### SCRIPT FOR COMPUTATION ###
@@ -188,7 +185,8 @@ if __name__ == '__main__':
 
     # Compute results
     idim, c = mp_fit()
-    print('\nDONE!\n')
-    print('Number of bad regressions: ' + str(c))
+
+    print('\nDONE!')
+    print('\nNumber of bad regressions: ' + str(c))
 
     print('\nResults shape: ', idim.shape, '\n')

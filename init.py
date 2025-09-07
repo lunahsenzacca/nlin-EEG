@@ -98,7 +98,8 @@ BM_paths = {
     'ch_info': d_path +  exp_lb['bmasking'] + '/subj001_band_resample/channel.mat',
     'avg_results': r_path + 'avg/' + exp_lb['bmasking'] + '/',
     'trl_results': r_path + 'trl/' + exp_lb['bmasking'] + '/',
-    'pics': p_path + exp_lb['bmasking'] + '/'
+    'avg_pics': p_path +'avg/' + exp_lb['bmasking'] + '/',
+    'trl_pics': p_path +'trl/' + exp_lb['bmasking'] + '/'
 }
 
 # Summarize in a dictionary
