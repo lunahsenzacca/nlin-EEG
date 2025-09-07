@@ -19,19 +19,24 @@ Install required packages:
 
 **Dataset info and observables**
 
-Set dataset information and labels in init.py[\init.py] file.
+Set dataset information and labels in [init.py][/init.py] file.
 
 This is a central hub for every string and information which is dataset specific. All of this info is stored in a dictionary called by other scripts with the ```get_maind()``` function.
 
 **Convert and save dataset to MNE evoked file format**
 
-For use across different datasets the data has to be converted using the toMNE.py[\toMNE.py] script.
+For use across different datasets the data has to be converted using the [toMNE.py][/toMNE.py] script.
 
 Data can be saved using two methods:
 
 ```avg_trials = True``` : Save data averaged across repeated trials;
 
-
 ```avg_trials = False``` : Save data keeping each repeated trial.
+
+**Compute observables**
+
+After data conversion the following observables can  be computed:
+
+*  $C(m,r)\righarrow$ ```python -m corrsum```: Correlation Sum over different embedding dimensions $m$ and scales $r$;
 
 
