@@ -151,14 +151,14 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     # Get absolute complexity of the script and estimated completion time
     complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)
 
-    velocity = 0.481
+    velocity = 0.5
 
     import datetime
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
 
     print('\nComputing correlation sum over each trial')
     print('\nNumber of single computations: ' + str(complexity))
-    print('\nEstimated completion time: ~' + eta)
+    print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
     
     if avg_trials == True:
@@ -174,7 +174,8 @@ def mp_correlation_sum(evoks_iters: list, points: list):
                             desc = 'Computing channels time series',
                             unit = unit,
                             total = len(evoks_iters),
-                            leave = True)
+                            leave = True,
+                            dynamic_ncols = True)
                         )
 
     # Create homogeneous array averaging across trial results

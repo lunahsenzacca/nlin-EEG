@@ -115,7 +115,7 @@ def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, cal
     return path
 
 # Get observable data
-def obs_data(obs_path: str, obs_name: str):
+def obs_data(obs_path: str, obs_name: str, compound_error = False):
 
     # Load result variables
     with open(obs_path + 'variables.json', 'r') as f:
@@ -138,6 +138,9 @@ def obs_data(obs_path: str, obs_name: str):
 
     OBS = M[0]
     E_OBS = M[1]
+
+    if compound_error == True:
+        E_OBS = E_OBS + M[2]
 
     return OBS, E_OBS, X, variables
 

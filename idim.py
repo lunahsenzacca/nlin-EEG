@@ -146,7 +146,8 @@ def mp_fit():
                        desc = 'Computing subjects ',
                        unit = 'sub',
                        total = len(itrs),
-                       leave = True)
+                       leave = True,
+                       dynamic_ncols = True)
                         )
     slope = []
     errslope = []

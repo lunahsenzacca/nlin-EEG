@@ -57,7 +57,8 @@ def mp_toevoked():
                     desc = 'Processing',
                     unit = 'sub',
                     total = len(sub_list),
-                    leave = False)
+                    leave = True,
+                    dynamic_ncols = True)
                     )
 
     # Save results to local

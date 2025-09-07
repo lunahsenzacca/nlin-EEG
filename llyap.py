@@ -146,14 +146,14 @@ def mp_lyapunov(evoks_iters: list, points: list):
 
     complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)
 
-    velocity = 0.8
+    velocity = 0.7
 
     import datetime
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
 
     print('\nComputing largest lyapunov exponent over each trial')
     print('\nNumber of single computations: ' + str(complexity))
-    print('\nEstimated completion time: ~' + eta)
+    print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
 
     if avg_trials == True:
@@ -169,7 +169,8 @@ def mp_lyapunov(evoks_iters: list, points: list):
                                         desc = 'Computing channels time series',
                                         unit = unit,
                                         total = len(evoks_iters),
-                                        leave = True)
+                                        leave = True,
+                                        dynamic_ncols = True)
                                     )
     
     # Get separate results lists

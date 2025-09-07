@@ -23,7 +23,7 @@ avg = {'pois': 2,
 clust_dict = {'G': ['Global'],
               'PO': ['Parieto-Occipital'],
               'F': ['Frontal'],
-              'CPOF': ['Parieto-Occipital (c)','Frontal (c)'],
+              'CFPO': ['Frontal (c)', 'Parieto-Occipital (c)'],
               'TEST': 'TEST'}
 
 obs_dict = {'idim': '$D_{2}(m)$ ',
@@ -225,7 +225,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     for i, fig in enumerate(figs):
 
-        title = obs_dict[info['obs_name']] + title_l[i]
+        title = obs_dict[info['obs_name']] + str(title_l[i])
 
         fig.suptitle(title, size = instructions['titlesz'])
         fig.legend(loc = 'lower center')
@@ -239,7 +239,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
             os.makedirs(sv_path, exist_ok = True)
 
-            fig.savefig(sv_path + title_l[i] + '.png', dpi = 300)
+            fig.savefig(sv_path + str(title_l[i]) + '.png', dpi = 300)
 
         plt.close()
 
