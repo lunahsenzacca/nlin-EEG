@@ -41,7 +41,7 @@ After data conversion the following observables can be computed running a ```.py
 
 $\rightarrow$ ```python -m corrsum```
 
-*  $\nu(m,r)$: Correlation Exponent for different embedding dimensions $m$ and scales $r$ deriving results for $C(m,r)$;
+*  $\nu(m,r)$: Correlation Exponent for different embedding dimensions $m$ and scales $r$ deriving results from $C(m,r)$;
 
 $\rightarrow$ ```python -m correxp```
 
