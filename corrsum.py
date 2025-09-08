@@ -25,7 +25,7 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 2
+workers = 12
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -34,7 +34,7 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'TEST'
+lb = 'Gr'
 
 # Get data averaged across trials
 avg_trials = True
@@ -68,7 +68,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg
 #Only averaged conditions
 conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
+#ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
@@ -83,7 +83,7 @@ tau = maind[exp_name]['tau']
 frc = [0, 1]
 
 # Distances for sampling the dependance
-r = np.logspace(0, 1.7, num = 20, base = 10)
+r = np.logspace(1.7, 2.38, num = 8, base = 10)
 r = r/1e7
 
 # Check if we are clustering electrodes
@@ -156,15 +156,10 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     import datetime
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
 
-    print('\nComputing correlation sum over each trial')
+    print('\nComputing Correlation Sum over each trial')
     print('\nNumber of single computations: ' + str(complexity))
     print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
-    
-    if avg_trials == True:
-        unit = 'sub'
-    else:
-        unit = 'trl'
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
@@ -172,7 +167,7 @@ def mp_correlation_sum(evoks_iters: list, points: list):
         
         results = list(tqdm(p.imap(it_correlation_sum, evoks_iters), #chunksize = chunksize),
                             desc = 'Computing channels time series',
-                            unit = unit,
+                            unit = trl,
                             total = len(evoks_iters),
                             leave = True,
                             dynamic_ncols = True)
@@ -188,10 +183,10 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_path + 'rvals.npy', r)
     np.save(sv_path + 'corrsum.npy', CS)
 
     variables['shape'] = CS.shape
+    variables['log_r'] = list(np.log(r))
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)

@@ -151,15 +151,10 @@ def mp_lyapunov(evoks_iters: list, points: list):
     import datetime
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
 
-    print('\nComputing largest lyapunov exponent over each trial')
+    print('\nComputing Largest Lyapunov Exponent over each trial')
     print('\nNumber of single computations: ' + str(complexity))
     print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
-
-    if avg_trials == True:
-        unit = 'sub'
-    else:
-        unit = 'trl'
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
@@ -167,7 +162,7 @@ def mp_lyapunov(evoks_iters: list, points: list):
         
         results = list(tqdm(p.imap(it_lyapunov, evoks_iters), #chunksize = chunksize),
                                         desc = 'Computing channels time series',
-                                        unit = unit,
+                                        unit = 'trl',
                                         total = len(evoks_iters),
                                         leave = True,
                                         dynamic_ncols = True)

@@ -124,17 +124,32 @@ def obs_data(obs_path: str, obs_name: str, compound_error = False):
     if obs_name == 'corrsum':
 
         M = np.load(obs_path + 'corrsum.npy')
-        X = np.load(obs_path + 'rvals.npy')
+        x = variables['embeddings']
+        y = variables['log_r']
 
-    if obs_name == 'idim':
+        X = [x,y]
+
+    elif obs_name == 'correxp':
+
+        M = np.load(obs_path + 'correxp.npy')
+        x = variables['embeddings']
+        y = variables['log_r']
+
+        X = [x,y]
+
+    elif obs_name == 'idim':
 
         M = np.load(obs_path + 'idim.npy')
-        X = variables['embeddings']
+        x = variables['embeddings']
+
+        X = [x]
 
     elif obs_name == 'llyap':
 
         M = np.load(obs_path + 'llyap.npy')
-        X = variables['embeddings']
+        x = variables['embeddings']
+
+        X = [x]
 
     OBS = M[0]
     E_OBS = M[1]
@@ -421,6 +436,33 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
 
     return RES
 
+# Prepare corrsum.py results for idim.py script
+def idim_getcorrsum(path: str, avg: bool):
+
+    # Load correlation sum results
+    CS, E_CS, X, variables = obs_data(obs_path = path, obs_name = 'corrsum')
+
+    clst = variables['clustered']
+
+    # Deny average method when corrsum results come from clustered pois
+    if clst == True:
+        avg = False
+        print('\nClustered input: \'avg\' variable bypassed to \'False\'')
+
+    if avg == True:
+        CS = CS.mean(axis = 2)[:,:,np.newaxis,:,:]
+        E_CS = E_CS + CS.std(axis = 2)[:,:,np.newaxis,:,:]
+
+    # Get log values
+    CS = np.concatenate((CS[np.newaxis],E_CS[np.newaxis]), axis = 0)
+
+    log_CS = to_log(CS)
+
+    # Build sub-wise iterable
+    log_CS_iters = [[i, j] for i, j in zip(log_CS[0], log_CS[1])]
+
+    return log_CS_iters, variables
+
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
@@ -428,19 +470,17 @@ def dist(x, y):
     return np.sqrt(np.sum((x - y)**2, axis = 0))
 
 # Transform data in log scale (Useful for logarithmic fits)
-def to_log(CSums, rvals):
+def to_log(OBS: np.ndarray):
 
     # Get logarithmic scale
-    log_CS = CSums.copy()
-    log_r = np.log(rvals)
+    log_OBS = OBS.copy()
 
-    # Embedding dimensions
-    embs = [i for i in range(2,CSums.shape[3]+2)]
     c = 0
+
     # Substitute 0 values with nan values instead of whatever numpy is doing
-    with np.nditer(log_CS, op_flags=['readwrite']) as it:
+    with np.nditer(log_OBS, op_flags=['readwrite']) as it:
         for x in tqdm(it, desc = 'Getting logarithms',
-                        total = it.shape[0], leave = False):
+                        total = it.shape[0], leave = True):
             
             if x == 0:
                 c+=1
@@ -450,7 +490,7 @@ def to_log(CSums, rvals):
 
     print('\nZero valued data points: ' + str(c))
 
-    return log_CS, log_r
+    return log_OBS
 
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
@@ -696,6 +736,56 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
             ly_e.append(l_e)
 
     return ly, ly_e
+
+# Sub-wise function for correlation exponent computation
+def correlation_exponent(sub_log_CS: list, n_points: int, log_r: list):
+
+    # Reduced rvals lenght for mobile average
+    rlen = len(log_r) - n_points + 1
+
+    # Initzialize results arrays
+    CE = []
+    E_CE = []
+
+    abcd = sub_log_CS[0]
+    abcd_ = sub_log_CS[1]
+    for abc, abc_ in zip(abcd, abcd_):
+        for ab, ab_ in zip(abc, abc_):
+            for a, a_ in zip(ab, ab_):
+
+                for i in range(0,rlen):
+
+                    # Check if we have non trivial errors for the correlation sum
+                    if np.isnan(sub_log_CS[1].sum()) == False:
+
+                        # Get values for mobile average
+                        m = np.array([(a[i+j+1] - a[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
+                        em = np.array([(np.sqrt(a_[i+j+1]**2 + a_[i+j]**2))/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
+
+                        CE.append(m.mean())
+                        E_CE.append(np.sqrt(np.sum(em**2))/(n_points - 1))
+                    
+                    # Otherwise append error from linear regression
+                    else:
+
+                        with warnings.catch_warnings():
+                            warnings.simplefilter('ignore')
+                            results = linregress(x = np.asarray(log_r)[i:i + n_points], y = a[i:i + n_points], nan_policy = 'omit')
+
+                        CE.append(results.slope)
+                        E_CE.append(results.stderr)
+
+    CE = np.asarray(CE)
+    E_CE = np.asarray(E_CE)
+
+    rshp = list(sub_log_CS[0].shape)
+
+    rshp[-1] = rlen
+
+    CE = CE.reshape(rshp)
+    E_CE = E_CE.reshape(rshp)
+
+    return CE, E_CE
 
 ### RESULTS MANIPULATION FUNCTION ###
 

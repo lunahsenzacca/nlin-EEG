@@ -1,6 +1,7 @@
 # Usual suspects
 import os
 import json
+import warnings
 
 import numpy as np
 
@@ -26,7 +27,9 @@ clust_dict = {'G': ['Global'],
               'CFPO': ['Frontal (c)', 'Parieto-Occipital (c)'],
               'TEST': 'TEST'}
 
-obs_dict = {'idim': '$D_{2}(m)$ ',
+obs_dict = {'corrsum': '$C(m,r)$ ',
+            'correxp': '$\\nu_{m}(r)$ ',
+            'idim': '$D_{2}(m)$ ',
             'llyap': '$\\lambda(m)$ '}
 
 cond_dict = {'S__': 'Conscious',
@@ -44,14 +47,14 @@ def show_figure(fig):
 
     return
 
-def plot_function_subject(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, grid: list, figsize: list):
+def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, grid: list, figsize: list):
 
     # Scalar value 4-dimensional array
 
     # Axis 0 = Subjects
-    # Axis 1 = Conditions
-    # Axis 2 = Clusters
-    # Axis 3 = m: Embedding dimension
+    # Axis 1 = Confront axis
+    # Axis 2 = New figure axis
+    # Axis 3 = X value
 
     # Initialize list of pyplot objects to handle to main function
     figs = []
@@ -60,8 +63,8 @@ def plot_function_subject(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: li
     rng = OBS.shape[2]
 
     for idx in range (0,rng):
-            obs = OBS[:,:,idx,:]
-            e_obs = E_OBS[:,:,idx,:]
+            obs = OBS[:,:,idx]
+            e_obs = E_OBS[:,:,idx]
 
             fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize)
 
@@ -76,11 +79,10 @@ def plot_function_subject(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: li
 
                     if j == 0:
                         ax.plot(X, obs[j,c,:], label = label[c])
-
                     else:
-                        ax.plot(X, obs[j,c,:])
+                        ax.plot(X, obs[j,c,:], )
                     
-                    ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], alpha = 0.5)
+                    ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], alpha = 0.2)
 
             figs.append(fig)
             axes.append(axs)
@@ -112,13 +114,13 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     # 'titlesz'
     # 'sv_name'
 
-    # Scalar value 4-dimensional array
+    # Scalar value 4/5-dimensional array
 
     # Axis 0 = Subjects
     # Axis 1 = Conditions
-    # Axis 2 = Electrodes
-    # Axis 3 = m: x
-    # Axis 4 = Value and Error (if avg_trials == False)
+    # Axis 2 = Electrodes/Clusters
+    # Axis 3 = X value
+    # Axis 4 = Y value
 
     # Value of the array is y(x) or e_y(x)
 
@@ -152,8 +154,13 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     # Apply instructions
     if instructions['avg'] != 'none':
-        OBS = OBS.mean(axis = avg[instructions['avg']])
-        E_OBS = E_OBS.mean(axis = avg[instructions['avg']])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            OBS = np.nanmean(OBS, axis = avg[instructions['avg']])
+            E_OBS = np.nanmean(E_OBS, axis = avg[instructions['avg']])
+
+            OBS = np.expand_dims(OBS, axis = avg[instructions['avg']])
+            E_OBS = np.expand_dims(E_OBS, axis = avg[instructions['avg']])
 
     else:
         clust_dict[info['clust_lb']] = variables['pois']
@@ -162,15 +169,11 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     grid = instructions['grid']
 
     if instructions['avg'] == 'pois':
-        OBS = OBS[:,:,np.newaxis,:]
-        E_OBS = E_OBS[:,:,np.newaxis,:]
         if clst == True:
             print('Instructions for pois average of clustered data, not the intended use')
             return
 
     elif instructions['avg'] == 'sub_pois':
-        OBS = OBS[np.newaxis,:,np.newaxis,:]
-        E_OBS = E_OBS[np.newaxis,:,np.newaxis,:]
         if clst == True:
             print('Instructions for pois average of clustered data, not the intended use')
             return
@@ -179,8 +182,6 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         grid = (1,1)
 
     elif instructions['avg'] == 'sub':
-        OBS = OBS[np.newaxis,:,:,:]
-        E_OBS = E_OBS[np.newaxis,:,:,:]
         if clst == False:
             print('Multiplot over pois not yet implemented')
             return
@@ -189,8 +190,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
             # Set grid to trivial
             grid = (1,1)
 
-
-    # Swap dimensions for different compatring in the same picture
+    # Swap dimensions for different comparing in the same picture
     if instructions['confront'] == 'clusters':
 
         OBS = np.swapaxes(OBS,1,2)
@@ -200,16 +200,50 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         legend_l = clust_dict[info['clust_lb']]
 
         if clst == False and instructions['avg'] != 'none':
-            print('Cluster confrontation of non clustered data or averaged data')
+            print('Cluster confrontation of non clustered averaged data')
             return
+
+        X = X[0]
+
+    if instructions['confront'] == 'embeddings':
+
+        OBS = np.swapaxes(OBS,1,3)
+        E_OBS = np.swapaxes(E_OBS,1,3)
+
+        OBS = np.swapaxes(OBS,2,3)
+        E_OBS = np.swapaxes(E_OBS,2,3)
+
+        OBS = np.swapaxes(OBS,3,4)
+        E_OBS = np.swapaxes(E_OBS,3,4)
+
+        OBS = OBS[:,:,:,:,0]
+        E_OBS = E_OBS[:,:,:,:,0]
+
+        title_l = [cond_dict[c] for c in conditions]
+        legend_l = X[0]
+
+        if clst != False or instructions['avg'] == 'none':
+            print('Embedding confrontation of clustered or non averaged data')
+            return
+
+        X = X[1]
 
     elif instructions['confront'] == 'conditions':
 
         title_l = clust_dict[info['clust_lb']]
         legend_l = [cond_dict[c] for c in conditions]
-        
+
+        X = X[0]
+
+    if instructions['r_confront'] != None:
+
+        OBS = OBS[:,list(instructions['r_confront']),:,:]
+        E_OBS = E_OBS[:,list(instructions['r_confront']),:,:]
+
+        legend_l = [legend_l[i] for i in instructions['r_confront']]
+
     # Initialize figures
-    figs, axes = plot_function_subject(OBS = OBS, E_OBS = E_OBS, X = X, label = legend_l, grid = grid, figsize = instructions['figsize'])
+    figs, axes = plot_1dfunction(OBS = OBS, E_OBS = E_OBS, X = X, label = legend_l, grid = grid, figsize = instructions['figsize'])
 
     # Cycle around axis and figures to add informations
 
@@ -222,13 +256,16 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         
         for ax in ax_iter:
             ax.set_ylim(instructions['ylim'])
+            ax.grid(instructions['showgrid'], linestyle = '--')
+            ax.set_xlabel(instructions['xlabel'])
+            ax.set_ylabel(instructions['ylabel'])
 
     for i, fig in enumerate(figs):
 
         title = obs_dict[info['obs_name']] + str(title_l[i])
 
         fig.suptitle(title, size = instructions['titlesz'])
-        fig.legend(loc = 'lower center')
+        fig.legend(loc = 'center right', title = instructions['title_l'])
         
         show_figure(fig)
 

@@ -32,8 +32,10 @@ exp_lb = {
 }
 obs_lb = {
     'corrsum': 'CS',
+    'correxp': 'CE',
     'idim': 'D2',
     'llyap': 'LLE'
+
 }
 
 '''
