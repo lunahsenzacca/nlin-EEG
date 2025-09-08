@@ -37,13 +37,17 @@ Data can be saved using two methods:
 
 After data conversion the following observables can be computed running a ```.py``` script in the appropriate conda enviroment:
 
-*  $C(m,r)\rightarrow$: Correlation Sum over different embedding dimensions $m$ and scales $r$;
+*  $C(m,r)$: Correlation Sum for different embedding dimensions $m$ and scales $r$;
 
 $\rightarrow$ ```python -m corrsum```
 
+*  $\nu(m,r)$: Correlation Exponent for different embedding dimensions $m$ and scales $r$ deriving results for $C(m,r)$;
+
+$\rightarrow$ ```python -m correxp```
+
 *  $D_{2}(m)$: Information Dimension for different embedding dimensions $m$ fitting results of $C(m,r)$;
 
-$\rightarrow$ ```python -m idim```
+$\rightarrow$ ```python -m idim``` (DEPRECATED FOR NOW, WILL BE BASED ON $\nu(m,r)$ LATER...)
 
 *  $\lambda(m)$: Largest Lyapunov Exponent for different embedding dimensions $m$.
 
