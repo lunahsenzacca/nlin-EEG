@@ -11,7 +11,7 @@ from tqdm import tqdm
 from scipy.stats import linregress
 
 # Utility function for corrsum.py results loading
-from core import idim_getcorrsum
+from core import correxp_getcorrsum
 
 # Utility function for observables directories and data
 from core import obs_path, obs_data
@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 4
+workers = 6
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -41,7 +41,7 @@ avg_trials = True
 clust_lb = 'G'
 
 # Label for saved results files
-sv_lb = 'NewScript'
+sv_lb = '3noavg'
 
 # Correlation Sum results directory
 path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = clust_lb, avg_trials = avg_trials)
@@ -75,10 +75,10 @@ def it_correlation_exponent(sub_log_CS: np.ndarray):
 # Build multiprocessing function
 def mp_correlation_exponent():
 
-    print('\nPreparing Correlation Sum results for computation\n')
+    print('\nPreparing Correlation Sum results for computation')
 
     # Build iterable over subject
-    log_CS_iters, variables = idim_getcorrsum(path = path, avg = avg)
+    log_CS_iters, variables = correxp_getcorrsum(path = path, avg = avg)
 
     # Check if mobile average leaves more than three cooridnates
     rlen = len(log_r) - n_points + 1

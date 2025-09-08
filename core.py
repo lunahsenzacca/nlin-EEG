@@ -436,8 +436,8 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
 
     return RES
 
-# Prepare corrsum.py results for idim.py script
-def idim_getcorrsum(path: str, avg: bool):
+# Prepare corrsum.py results for correxp.py script
+def correxp_getcorrsum(path: str, avg: bool):
 
     # Load correlation sum results
     CS, E_CS, X, variables = obs_data(obs_path = path, obs_name = 'corrsum')
