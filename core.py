@@ -790,27 +790,35 @@ def correlation_exponent(sub_log_CS: list, n_points: int, log_r: list):
 ### RESULTS MANIPULATION FUNCTION ###
 
 # Select some electrodes from global results
-def reduceCS(ch_list: list, path : str, label = 'G', nlabel = None):
+def reduceCS(exp_name: str, avg_trials: bool, ch_list: list, average = False, clust_lb = 'G', nlabel = None):
 
-    CS = np.load(path + label + '/corrsum.npy')
-    r = np.load(path + label + '/rvals.npy')
+    path = obs_path(exp_name = exp_name, clust_lb = clust_lb, obs_name = 'corrsum', avg_trials = avg_trials)
 
-    with open(path + label + '/variables.json', 'r') as f:
+    CS = np.load(path + 'corrsum.npy')
+
+    with open(path + 'variables.json', 'r') as f:
         d = json.load(f)
+
+    log_r = d['log_r']
 
     # Check if we are loading a clusterd calculation [certaingly not suitable]
     if d['clustered'] == True:
         print('Clustered results are not valid for array reduction')
         return
 
-    ch_idx = name_toidx(ch_list)
+    ch_idx = name_toidx(ch_list, exp_name = exp_name)
 
     shp = np.asarray(CS.shape)
-    shp[2] = 0
+    shp[3] = 0
 
     CSred = np.empty(shp)
     for idx in ch_idx:
-        CSred = np.concatenate((CSred, CS[:,:,idx,:,:][:,:,np.newaxis,:,:]), axis = 2)
+        CSred = np.concatenate((CSred, CS[:,:,:,idx,:,:][:,:,:,np.newaxis,:,:]), axis = 3)
+
+    # Average results for plotting
+    if average == True:
+        CSred = CSred.mean(axis = 3)
+        CSred = CSred[:,:,:,np.newaxis,:,:]
 
     # Save results in a new directory
     if nlabel != None:
@@ -818,15 +826,16 @@ def reduceCS(ch_list: list, path : str, label = 'G', nlabel = None):
         # Change dictionary entry for save    
         d['pois'] = ch_list
 
-        os.makedirs(path + nlabel, exist_ok = True)
-        np.save(path + nlabel + '/CSums.npy', CSred)
-        np.save(path + nlabel + '/rvals.npy', r)
+        sv_path = obs_path(exp_name = exp_name, clust_lb = nlabel, obs_name = 'corrsum', avg_trials = avg_trials)
+
+        os.makedirs(sv_path, exist_ok = True)
+        np.save(sv_path + 'corrsum.npy', CSred)
 
         # Save new variables dictionary
-        with open(path + nlabel + '/variables.json', 'w') as f:
+        with open(sv_path + 'variables.json', 'w') as f:
             json.dump(d, f)
 
-    return CSred, r
+    return CSred, log_r
 
 #   Following functions do not implement mne data structure and each of them averages over trials
 #   They are useful because they can average over cluster of electrodes as well but this doesn't seem
