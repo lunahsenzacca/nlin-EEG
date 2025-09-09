@@ -28,7 +28,7 @@ clust_dict = {'G': ['Global'],
               'TEST': 'TEST'}
 
 obs_dict = {'corrsum': '$C(m,r)$ ',
-            'correxp': '$\\nu_{m}(r)$ ',
+            'correxp': '$\\nu(m,r)$ ',
             'idim': '$D_{2}(m)$ ',
             'llyap': '$\\lambda(m)$ '}
 
@@ -47,7 +47,7 @@ def show_figure(fig):
 
     return
 
-def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, grid: list, figsize: list):
+def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, alpha_m: float, grid: list, figsize: list):
 
     # Scalar value 4-dimensional array
 
@@ -66,7 +66,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, gr
             obs = OBS[:,:,idx]
             e_obs = E_OBS[:,:,idx]
 
-            fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize)
+            fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
 
             if grid[0]*grid[1] == 1:
                 ax_iter = [axs]
@@ -78,11 +78,11 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, gr
                 for c in range(0,obs.shape[1]):
 
                     if j == 0:
-                        ax.plot(X, obs[j,c,:], label = label[c])
+                        ax.plot(X, obs[j,c,:], alpha = 1*alpha_m, label = label[c])
                     else:
-                        ax.plot(X, obs[j,c,:], )
+                        ax.plot(X, obs[j,c,:], alpha = 1*alpha_m)
                     
-                    ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], alpha = 0.2)
+                    ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], alpha = 0.2*alpha_m)
 
             figs.append(fig)
             axes.append(axs)
@@ -243,7 +243,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         legend_l = [legend_l[i] for i in instructions['r_confront']]
 
     # Initialize figures
-    figs, axes = plot_1dfunction(OBS = OBS, E_OBS = E_OBS, X = X, label = legend_l, grid = grid, figsize = instructions['figsize'])
+    figs, axes = plot_1dfunction(OBS = OBS, E_OBS = E_OBS, X = X, label = legend_l, alpha_m = instructions['alpha_m'], grid = grid, figsize = instructions['figsize'])
 
     # Cycle around axis and figures to add informations
 
@@ -257,16 +257,18 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         for ax in ax_iter:
             ax.set_ylim(instructions['ylim'])
             ax.grid(instructions['showgrid'], linestyle = '--')
-            ax.set_xlabel(instructions['xlabel'])
-            ax.set_ylabel(instructions['ylabel'])
 
     for i, fig in enumerate(figs):
 
         title = obs_dict[info['obs_name']] + str(title_l[i])
 
-        fig.suptitle(title, size = instructions['titlesz'])
-        fig.legend(loc = 'center right', title = instructions['title_l'])
+        fig.suptitle(title, size = instructions['textsz'])
+        fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
+        fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
+        fig.legend(loc = 'center right', title = instructions['title_l'], fontsize = instructions['textsz']*0.7)
         
+        fig.tight_layout()
+
         show_figure(fig)
 
         if show == True:
