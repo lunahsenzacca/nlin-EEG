@@ -35,7 +35,7 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 # Label for load results files
 clust_lb = 'CFPO'

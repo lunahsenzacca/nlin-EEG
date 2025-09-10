@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 workers = 20
-chunksize = 10
+chunksize = 1
 
 ### SCRIPT PARAMETERS ###
 
@@ -34,10 +34,10 @@ chunksize = 10
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'CFPOr'
+lb = 'CFPO'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 if avg_trials == True:
     method = 'avg_data'
@@ -83,7 +83,7 @@ tau = maind[exp_name]['tau']
 frc = [0, 1]
 
 # Distances for sampling the dependance
-r = np.logspace(1.7, 2.38, num = 8, base = 10)
+r = np.logspace(0, 2.38, num = 27, base = 10)
 r = r/1e7
 
 # Check if we are clustering electrodes

@@ -772,7 +772,7 @@ def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_
                 for i in range(0,rlen):
 
                     # Check if we have non trivial errors for the correlation sum
-                    if np.nanmean(a) != None:
+                    if np.nanmean(a_) != 0:
 
                         # Get values for mobile average
                         m = np.array([(a[i+j+1] - a[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
