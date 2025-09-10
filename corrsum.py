@@ -25,8 +25,8 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 12
-chunksize = 1
+workers = 20
+chunksize = 10
 
 ### SCRIPT PARAMETERS ###
 
@@ -34,10 +34,10 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'G'
+lb = 'CFPOr'
 
 # Get data averaged across trials
-avg_trials = True
+avg_trials = False
 
 if avg_trials == True:
     method = 'avg_data'
@@ -68,7 +68,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg
 #Only averaged conditions
 conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-#ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
+ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
@@ -83,7 +83,7 @@ tau = maind[exp_name]['tau']
 frc = [0, 1]
 
 # Distances for sampling the dependance
-r = np.logspace(0, 2.38, num = 27, base = 10)
+r = np.logspace(1.7, 2.38, num = 8, base = 10)
 r = r/1e7
 
 # Check if we are clustering electrodes
@@ -131,11 +131,12 @@ def mp_loadevokeds():
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list), #chunksize = chunksize),
+        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list),#, chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
-                       leave = False)
+                       leave = False,
+                       dynamic_ncols = True)
                        )
 
     # Create flat iterable list of evokeds images
@@ -151,7 +152,7 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     # Get absolute complexity of the script and estimated completion time
     complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)
 
-    velocity = 0.5
+    velocity = 0.52
 
     import datetime
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
@@ -165,9 +166,9 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_correlation_sum, evoks_iters), #chunksize = chunksize),
+        results = list(tqdm(p.imap(it_correlation_sum, evoks_iters, chunksize = chunksize),
                             desc = 'Computing channels time series',
-                            unit = trl,
+                            unit = 'trl',
                             total = len(evoks_iters),
                             leave = True,
                             dynamic_ncols = True)

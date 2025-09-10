@@ -182,13 +182,9 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         grid = (1,1)
 
     elif instructions['avg'] == 'sub':
-        if clst == False:
-            print('Multiplot over pois not yet implemented')
-            return
 
-        else:
-            # Set grid to trivial
-            grid = (1,1)
+        # Set grid to trivial
+        grid = (1,1)
 
     # Swap dimensions for different comparing in the same picture
     if instructions['confront'] == 'clusters':
@@ -216,15 +212,11 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         OBS = np.swapaxes(OBS,3,4)
         E_OBS = np.swapaxes(E_OBS,3,4)
 
-        OBS = OBS[:,:,:,:,0]
-        E_OBS = E_OBS[:,:,:,:,0]
+        #OBS = OBS[:,:,:,:,0]
+        #E_OBS = E_OBS[:,:,:,:,0]
 
         title_l = [cond_dict[c] for c in conditions]
         legend_l = X[0]
-
-        if clst != False or instructions['avg'] == 'none':
-            print('Embedding confrontation of clustered or non averaged data')
-            return
 
         X = X[1]
 
@@ -242,44 +234,94 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
         legend_l = [legend_l[i] for i in instructions['r_confront']]
 
-    # Initialize figures
-    figs, axes = plot_1dfunction(OBS = OBS, E_OBS = E_OBS, X = X, label = legend_l, alpha_m = instructions['alpha_m'], grid = grid, figsize = instructions['figsize'])
+    if clst == True or (clst == False and (instructions['avg'] == 'none' or instructions['avg'] == 'sub')):
 
-    # Cycle around axis and figures to add informations
+        title_el = variables['pois']
+        for j in range(0,OBS.shape[4]):
 
-    # Check if we have multiple axes and initialize proper iterable
-    for axs in axes:
-        if grid[0]*grid[1] == 1:
-            ax_iter = [axs]
-        else:
-            ax_iter = axs.flat
-        
-        for ax in ax_iter:
-            ax.set_ylim(instructions['ylim'])
-            ax.grid(instructions['showgrid'], linestyle = '--')
+            obs = OBS[:,:,:,:,j]
+            e_obs = E_OBS[:,:,:,:,j]
 
-    for i, fig in enumerate(figs):
+            # Initialize figures
+            figs, axes = plot_1dfunction(OBS = obs, E_OBS = e_obs, X = X, label = legend_l, alpha_m = instructions['alpha_m'], grid = grid, figsize = instructions['figsize'])
 
-        title = obs_dict[info['obs_name']] + str(title_l[i])
+            # Cycle around axis and figures to add informations
 
-        fig.suptitle(title, size = instructions['textsz'])
-        fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
-        fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
-        fig.legend(loc = 'center right', title = instructions['title_l'], fontsize = instructions['textsz']*0.7)
-        
-        fig.tight_layout()
+            # Check if we have multiple axes and initialize proper iterable
+            for axs in axes:
+                if grid[0]*grid[1] == 1:
+                    ax_iter = [axs]
+                else:
+                    ax_iter = axs.flat
+                
+                for ax in ax_iter:
+                    ax.set_ylim(instructions['ylim'])
+                    ax.grid(instructions['showgrid'], linestyle = '--')
 
-        show_figure(fig)
+            for i, fig in enumerate(figs):
 
-        if show == True:
-            plt.show()
+                title = obs_dict[info['obs_name']]  + str (title_el[j]) + ' ' + str(title_l[i])
 
-        if save == True:
+                fig.suptitle(title, size = instructions['textsz'])
+                fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
+                fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
+                fig.legend(loc = 'center right', title = instructions['title_l'], fontsize = instructions['textsz']*0.7)
+                
+                fig.tight_layout()
 
-            os.makedirs(sv_path, exist_ok = True)
+                show_figure(fig)
 
-            fig.savefig(sv_path + str(title_l[i]) + '.png', dpi = 300)
+                if show == True:
+                    plt.show()
 
-        plt.close()
+                if save == True:
+
+                    os.makedirs(sv_path, exist_ok = True)
+
+                    fig.savefig(sv_path + str(title_el[j]) + ' ' + str(title_l[i]) + '.png', dpi = 300)
+
+                plt.close()
+
+    else:
+
+        # Initialize figures
+        figs, axes = plot_1dfunction(OBS = OBS, E_OBS = E_OBS, X = X, label = legend_l, alpha_m = instructions['alpha_m'], grid = grid, figsize = instructions['figsize'])
+
+        # Cycle around axis and figures to add informations
+
+        # Check if we have multiple axes and initialize proper iterable
+        for axs in axes:
+            if grid[0]*grid[1] == 1:
+                ax_iter = [axs]
+            else:
+                ax_iter = axs.flat
+            
+            for ax in ax_iter:
+                ax.set_ylim(instructions['ylim'])
+                ax.grid(instructions['showgrid'], linestyle = '--')
+
+        for i, fig in enumerate(figs):
+
+            title = obs_dict[info['obs_name']] + str(title_l[i])
+
+            fig.suptitle(title, size = instructions['textsz'])
+            fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
+            fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
+            fig.legend(loc = 'center right', title = instructions['title_l'], fontsize = instructions['textsz']*0.7)
+            
+            fig.tight_layout()
+
+            show_figure(fig)
+
+            if show == True:
+                plt.show()
+
+            if save == True:
+
+                os.makedirs(sv_path, exist_ok = True)
+
+                fig.savefig(sv_path + str(title_l[i]) + '.png', dpi = 300)
+
+            plt.close()
 
     return

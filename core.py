@@ -472,23 +472,39 @@ def dist(x, y):
 # Transform data in log scale (Useful for logarithmic fits)
 def to_log(OBS: np.ndarray):
 
-    # Get logarithmic scale
-    log_OBS = OBS.copy()
+    # Initzialize results
+    log_OBS = OBS[0].copy()
+    e_log_OBS = OBS[1].copy()
 
+    # Get shape
+    shp = log_OBS.shape
+
+    # Zero values counter
     c = 0
 
-    # Substitute 0 values with nan values instead of whatever numpy is doing
-    with np.nditer(log_OBS, op_flags=['readwrite']) as it:
-        for x in tqdm(it, desc = 'Getting logarithms',
-                        total = it.shape[0], leave = True):
-            
-            if x == 0:
-                c+=1
-                x[...] = None
-            else:
-                x[...] = np.log(x)
+    flat = log_OBS.flatten()
+    e_flat = e_log_OBS.flatten()
 
-    print('\nZero valued data points: ' + str(c))
+    r = []
+    e_r = []
+    for i, o in enumerate(tqdm(flat, total = len(flat), 
+                                     desc = 'Getting log values and errors',
+                                     leave = False)):
+
+        if o == 0:
+            c += 1
+            r.append(np.nan)
+            e_r.append(np.nan)
+        else:
+            r.append(np.log(o))
+            e_r.append(e_flat[i]/o)
+
+    print('Zero valued data points: ' + str(c))
+            
+    log_OBS = np.reshape(np.asarray(r), shp)
+    e_log_OBS = np.reshape(np.asarray(e_r), shp)
+
+    log_OBS = np.concatenate((log_OBS[np.newaxis], e_log_OBS[np.newaxis]), axis = 0)
 
     return log_OBS
 
@@ -738,7 +754,7 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
     return ly, ly_e
 
 # Sub-wise function for correlation exponent computation
-def correlation_exponent(sub_log_CS: list, n_points: int, log_r: list):
+def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_r: list):
 
     # Reduced rvals lenght for mobile average
     rlen = len(log_r) - n_points + 1
@@ -756,14 +772,14 @@ def correlation_exponent(sub_log_CS: list, n_points: int, log_r: list):
                 for i in range(0,rlen):
 
                     # Check if we have non trivial errors for the correlation sum
-                    if np.isnan(sub_log_CS[1].sum()) == False:
+                    if np.nanmean(a) != None:
 
                         # Get values for mobile average
                         m = np.array([(a[i+j+1] - a[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
                         em = np.array([(np.sqrt(a_[i+j+1]**2 + a_[i+j]**2))/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
 
                         CE.append(m.mean())
-                        E_CE.append(np.sqrt(np.sum(em**2))/(n_points - 1))
+                        E_CE.append((np.sqrt(np.sum(em**2)))/(n_points-1))
                     
                     # Otherwise append error from linear regression
                     else:

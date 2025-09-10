@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 6
+workers = 10
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -35,10 +35,10 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Get data averaged across trials
-avg_trials = True
+avg_trials = False
 
 # Label for load results files
-clust_lb = 'G'
+clust_lb = 'CFPO'
 
 # Label for saved results files
 sv_lb = '3noavg'
@@ -68,7 +68,7 @@ log_r = variables['log_r']
 # Build iterable function
 def it_correlation_exponent(sub_log_CS: np.ndarray):
 
-    CE, E_CE = correlation_exponent(sub_log_CS = sub_log_CS, n_points = n_points, log_r = log_r)
+    CE, E_CE = correlation_exponent(sub_log_CS = sub_log_CS, avg_trials = avg_trials, n_points = n_points, log_r = log_r)
 
     return CE, E_CE
 
