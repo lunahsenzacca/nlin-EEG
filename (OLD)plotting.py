@@ -143,7 +143,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
                        ) + instructions['avg'] + '/'
 
     # Load results for specific observable
-    OBS, E_OBS, X, variables = obs_data(obs_path = path, obs_name = info['obs_name'])
+    OBS, E_OBS, X, variables = obs_data(obs_path = path, obs_name = info['obs_name'], compound_error = info['compound_error'])
 
     if verbose == True:
         print(variables)
@@ -152,15 +152,23 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     conditions = variables['conditions']
 
+    # Add extra dimension for consistency
+    if len(OBS.shape) == 4:
+        print(OBS.shape)
+        OBS = np.expand_dims(OBS, axis = 4)
+        E_OBS = np.expand_dims(E_OBS, axis = 4)
+        print(OBS.shape)
     # Apply instructions
     if instructions['avg'] != 'none':
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
+            print(OBS.shape)
             OBS = np.nanmean(OBS, axis = avg[instructions['avg']])
             E_OBS = np.nanmean(E_OBS, axis = avg[instructions['avg']])
-
+            print(OBS.shape)
             OBS = np.expand_dims(OBS, axis = avg[instructions['avg']])
             E_OBS = np.expand_dims(E_OBS, axis = avg[instructions['avg']])
+            print(OBS.shape)
 
     else:
         clust_dict[info['clust_lb']] = variables['pois']
@@ -234,7 +242,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
         legend_l = [legend_l[i] for i in instructions['r_confront']]
 
-    if clst == True or (clst == False and (instructions['avg'] == 'none' or instructions['avg'] == 'sub')):
+    if (instructions['r_confront'] != None and clst == True) or (instructions['r_confront'] != None and (instructions['avg'] == 'none' or instructions['avg'] == 'sub')):
 
         title_el = variables['pois']
         for j in range(0,OBS.shape[4]):

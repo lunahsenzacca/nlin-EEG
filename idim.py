@@ -1,20 +1,23 @@
 # Usual suspects
 import os
 import json
-import warnings
+import mne
 
 import numpy as np
 
 from tqdm import tqdm
 
-# Scipy function for linear regression
-from scipy.stats import linregress
+# Sub-wise function for evoked file loading
+from core import loadevokeds
 
-# Utility function for log conversion
-from core import to_log
+# Sub-wise function for Information Dimension (D2) computation
+from core import information_dimension
 
-# Utility function for observables directories and data
-from core import obs_path, obs_data
+# Utility function for observables directories
+from core import obs_path
+
+# Utility functions for trial data averaging
+from core import flat_evokeds, collapse_trials
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -22,172 +25,181 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
-
-workers = 10
+workers = 16
 chunksize = 1
 
-### LOAD PARAMETERS ###
+### SCRIPT PARAMETERS ###
 
 # Dataset name
 exp_name = 'bmasking'
 
+# Label for results folder
+lb = 'CFPO'
+
 # Get data averaged across trials
 avg_trials = False
 
-# Label for load results files
-lb = 'TEST'
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
 
-# Label for saved results files
-sv_lb = 'GoodRange'
+### LOAD DATASET DIRECTORIES AND INFOS ###
 
-# Correlation Sum results directory
-path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
+# Evoked folder path
+path = maind[exp_name]['directories'][method]
 
-# D2 saved results directory
-sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', clust_lb = lb, calc_lb = sv_lb, avg_trials = avg_trials)
+# List of ALL subject IDs
+sub_list = maind[exp_name]['subIDs']
 
-### FIT PARAMETERS ###
+# List of ALL conditions
+conditions = list(maind[exp_name]['conditions'].values())
 
-# Average correlation sum over electrodes
-avg = False
+# List of ALL electrodes
+ch_list = maind[exp_name]['pois']
 
-# Interval of r of interest (in indexes)
-vlim = (9,19)
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', clust_lb = lb, avg_trials = avg_trials)
 
-### RESULTS DICTIONARY ###
+### FOR QUICKER EXECUTION ###
+#sub_list = sub_list[0:1]
+#ch_list = ch_list[0:3]
 
-# Load correlation sum results
-CS, E_CS, r, variables = obs_data(obs_path = path, obs_name = 'corrsum')
+#Only averaged conditions
+conditions = list(conditions)[0:2]
+#Parieto-Occipital and Frontal electrodes
+ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
+###########################
 
-clst = variables['clustered']
+### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
-# Deny average method when corrsum results come from clustered pois
-if clst == True:
-    avg = False
-    print('\nClustered input: \'avg\' variable bypassed to \'False\'')
+# Embedding dimensions
+embeddings = [i for i in range(2,21)]
 
-# Add entries to dictionary for save results
-variables['vlim'] = vlim
-variables['avg'] = avg
-variables['shape'] = variables['shape'][:-1]
+# Time delay
+tau = maind[exp_name]['tau']
 
-### DATA TRANSFORMATION TO LOG SCALE ###
+# Window of interest
+frc = [0, 1]
 
-if avg == True:
-    CS = CS.mean(axis = 2)[:,:,np.newaxis,:,:]
+# Check if we are clustering electrodes
+if type(ch_list) == tuple:
+    clt = True
+else:
+    clt = False
 
-# Reduced shape
-rshp = CS.shape[1:4]
-
-# Get log values
-
-print('\n    INFORMATION DIMENSION SCRIPT')
-
-log_CS, log_r = to_log(CS, r)
+# Dictionary for computation variables
+variables = {   
+                'tau' : tau,
+                'window' : frc,
+                'clustered' : clt,
+                'subjects' : sub_list,
+                'conditions' : conditions,
+                'pois' : ch_list,
+                'embeddings' : embeddings
+            }
 
 ### SCRIPT FOR COMPUTATION ###
 
-# Build iterable
-itrs = [i for i in log_CS]
+# Build evokeds loading iterable function
+def it_loadevokeds(subID: str):
 
-# Build iterable function (over subjects)
-def it_fit(iinlog_CS: np.ndarray):
+    evokeds = loadevokeds(subID = subID, exp_name = exp_name,
+                          avg_trials = avg_trials, conditions = conditions)
 
-    # Bad regression counter
-    c = 0 
+    return evokeds
 
-    # Initzialize results arrays
-    slope = []
-    errslope = []
+# Build Largest Lyapunov Exponent iterable function
+def it_information_dimension(evoked: mne.Evoked):
 
-    # Intercept results are easily attached
-    #intercept = []
-    #errintercept = []
+    D2, e_D2 = information_dimension(evoked = evoked, ch_list = ch_list,
+                                     embeddings = embeddings, tau = tau,
+                                     fraction = frc)
 
-    abcd = iinlog_CS
-    for abc in abcd:
-        for ab in abc:
-            for i, a in enumerate(ab):
+    return [D2, e_D2]
 
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-                    results = linregress(x = log_r, y = a, alternative = 'greater', nan_policy = 'omit')
+# Build evoked loading multiprocessing function
+def mp_loadevokeds():
 
-                slope.append(results.slope)
-                errslope.append(results.stderr)
-                #intercept.append(results.intercept)
-                #errintercept.append(results.intercept_stderr)
+    print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
 
-                if np.isnan(results.stderr) == True: #or results.stderr == 0:
-                    c+=1
+    # Launch Pool multiprocessing
+    from multiprocessing import Pool
+    with Pool(workers) as p:
 
-    slope = np.asarray(slope)
-    errslope = np.asarray(errslope)
-    #intercept = np.asarray(intercept)
-    #errintercept = np.asarray(errintercept)
+        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list), #chunksize = chunksize),
+                       desc = 'Loading subjects ',
+                       unit = 'sub',
+                       total = len(sub_list),
+                       leave = False,
+                       dynamic_ncols = True)
+                       )
 
-    slope = slope.reshape(rshp)
-    errslope = errslope.reshape(rshp)
-    #intercept = intercept.reshape(rshp)
-    #errintercept = errintercept.reshape(rshp)
+    # Create flat iterable list of evokeds images
+    evoks_iters, points = flat_evokeds(evokeds = evokeds)
 
-    return slope, errslope, c #,intercept, errintercept
+    print('\nDONE!')
+
+    return evoks_iters, points
 
 # Build multiprocessing function
-def mp_fit():
+def mp_information_dimension(evoks_iters: list, points: list):
 
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)
+
+    velocity = 1.5
+
+    import datetime
+    eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
+
+    print('\nComputing Information Dimension over each trial')
+    print('\nNumber of single computations: ' + str(complexity))
+    print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        res = list(tqdm(p.imap(it_fit, itrs), #chunksize = chunksize),
-                       desc = 'Computing subjects ',
-                       unit = 'sub',
-                       total = len(itrs),
-                       leave = True,
-                       dynamic_ncols = True)
-                        )
-    slope = []
-    errslope = []
-    #intercept = []
-    #errintercept = []
-    c = 0
-    for r in res:
-        
-        slope.append(r[0])
-        errslope.append(r[1])
-        c+=r[2]
-        #intercept.append(r[3])
-        #errintercept.append(r[4])
-
+        results = list(tqdm(p.imap(it_information_dimension, evoks_iters), #chunksize = chunksize),
+                                        desc = 'Computing channels time series',
+                                        unit = 'trl',
+                                        total = len(evoks_iters),
+                                        leave = True,
+                                        dynamic_ncols = True)
+                                    )
     
-    slope = np.asarray(slope)
-    errslope = np.asarray(errslope)
-    #intercept = np.asarray(intercept)
-    #errintercept = np.asarray(errintercept)
+    # Get separate results lists
+    r = [[D2 for D2 in trial[0]] for trial in results]
+    e_r = [[e_D2 for e_D2 in trial[1]] for trial in results]
 
-    # Save value and error as one array
-    idim = np.concatenate((slope[:,:,:,:,np.newaxis], errslope[:,:,:,:,np.newaxis]), axis = 4)
+    # Create homogeneous array averaging across trial results
+    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
+
+    d2 = collapse_trials(results = r, points = points, fshape = fshape, e_results = e_r)
+    
+    print('\nDONE!')
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_path + 'idim.npy', idim)
+    np.save(sv_path + 'idim.npy', d2)
 
-    with open(sv_path + 'variables.json', 'w') as f:
-        json.dump(variables, f)
+    variables['shape'] = d2.shape
 
-    return idim, c #, intercept, errintercept
+    with open(sv_path + 'variables.json','w') as f:
+        json.dump(variables,f)
 
-# Launch script with 'python -m idim' in appropriate conda enviroment
+    print('\nResults shape: ', d2.shape, '\n')
+
+    return
+
+# Launch script with 'python -m llyap' in appropriate conda enviroment
 if __name__ == '__main__':
 
-    # Compute results
-    idim, c = mp_fit()
+    print('\n    INFORMATION DIMENSION SCRIPT')
 
-    print('\nDONE!')
-    print('\nNumber of bad regressions: ' + str(c))
+    evoks_iters, points = mp_loadevokeds()
 
-    print('\nResults shape: ', idim.shape, '\n')
+    mp_information_dimension(evoks_iters = evoks_iters, points = points)
+

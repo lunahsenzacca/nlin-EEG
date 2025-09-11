@@ -115,7 +115,7 @@ def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, cal
     return path
 
 # Get observable data
-def obs_data(obs_path: str, obs_name: str, compound_error = False):
+def obs_data(obs_path: str, obs_name: str, compound_error: bool):
 
     # Load result variables
     with open(obs_path + 'variables.json', 'r') as f:
@@ -544,8 +544,6 @@ def corr_sum(emb_ts, r: float):
 
     N = len(emb_ts)
 
-    ds = np.zeros((N,N), dtype = np.float64)
-
     counter = 0
 
     # Cycle through all different couples of points
@@ -562,8 +560,62 @@ def corr_sum(emb_ts, r: float):
 
     return csum
 
+# Information Dimension for a singleembedded time series with 2NN-estimation [Krakovská-Chvosteková]
+def idim(emb_ts: np.ndarray, m_period: int):
+
+    N = len(emb_ts)
+
+    #Initzialize distances array
+    ds = np.zeros((N,N), dtype = np.float64)
+    for i in range(0,N):
+        for j in range(0,N):
+            dij = dist(emb_ts[i],emb_ts[j])
+
+            ds[i,j] = dij
+            ds[j,i] = dij
+
+    #Initzialize reults array
+    ls = []
+    for i in range(0,N):
+        di = ds[i]
+        
+        sorted_di_idx = np.argsort(di)
+
+        # Store first two non-zero smallest distances (far away on the trajectory)
+        r_idx = [0,0]
+        c = 0
+        m = i
+        for d in sorted_di_idx:
+            if di[d] != 0 and abs(i - d) > m_period and abs(m - d) > m_period:
+                r_idx[c] = d
+                m = d
+                c += 1
+            if c == 2:
+                break
+
+        r1 = di[r_idx[0]]
+        r2 = di[r_idx[1]]
+
+        r12 = ds[r_idx[0],r_idx[1]]
+
+        # Get one of three possible values for the estimator
+        if r12 <= r1:
+            l = np.log(3/2)/np.log(r2/r1)
+        elif r12 > r1 and r12 <= r2:
+            l = np.log(3)/np.log(r2/r1)
+        elif r12 > r2:
+            l = np.log(2)/np.log(r2/r1)
+
+        ls.append(l)
+
+    idim = np.median(np.asarray(ls))
+    e_idim = np.std(np.asarray(ls))
+
+    return idim, e_idim
+        
+
 # Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
-def lyap(emb_ts, m_period: int, sfreq: int, verbose = False):
+def lyap(emb_ts: np.ndarray, m_period: int, sfreq: int, verbose = False):
 
     N = len(emb_ts)
 
@@ -591,9 +643,8 @@ def lyap(emb_ts, m_period: int, sfreq: int, verbose = False):
         if i < N - lenght:
 
             # Select only distant points on the trajectory but not too far on the end
-            js = [j for j in range(0,N)]
             jt = []
-            for j in js:
+            for j in range(0,N):
                 if abs(j-i) > m_period and j < N - lenght:
                     jt.append(j)
 
@@ -601,7 +652,6 @@ def lyap(emb_ts, m_period: int, sfreq: int, verbose = False):
                 # Get nearest neighbour
                 d0 = np.min(el[jt])
                 j = int(np.argwhere(el == d0))
-            
 
             # Construct separation data
             for delta in range(0,lenght):
@@ -619,7 +669,7 @@ def lyap(emb_ts, m_period: int, sfreq: int, verbose = False):
     with warnings.catch_warnings():
         if verbose == False:
             warnings.simplefilter('ignore')
-        y = np.nanmean(lnd, axis = 0)*sfreq
+            y = np.nanmean(lnd, axis = 0)*sfreq
 
     fit = linregress(x,y)
 
@@ -630,7 +680,7 @@ def lyap(emb_ts, m_period: int, sfreq: int, verbose = False):
 
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
-# Correlation dimension of channel time series of a specific trial
+# Correlation sum of channel time series of a specific trial
 def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: int, rvals: list, 
                     fraction = [0,1]):
@@ -679,6 +729,56 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     # Returns list in -C style ordering
 
     return CD
+
+# Information dimension of channel time series of a specific trial
+def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
+                          embeddings: list, tau: int, 
+                          fraction = [0,1]):
+
+    # Apply fraction to time series
+    times = evoked.times
+
+    # Trim time series according to fraction variable
+    tmin = times[int(fraction[0]*(len(times)-1))]
+    tmax = times[int(fraction[1]*(len(times)-1))]
+
+    evoked.crop(tmin = tmin, tmax = tmax)
+
+    # Initzialize result array
+    D2 = []
+    e_D2 = []
+
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
+        
+
+        tl = []
+        for cl in ch_list:
+            
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            ts = ts.mean(axis = 0)
+            
+            tl.append(ts)
+        
+        TS = np.asarray(tl)
+
+    else:    
+
+        TS = evoked.get_data(picks = ch_list)
+    
+    # Loop around pois time series
+    for ts in TS:
+        
+        for m in embeddings:
+            emb_ts = td_embedding(ts, embedding = m, tau = tau)
+
+            d2, e_d2 = idim(emb_ts, m_period = tau)
+
+            D2.append(d2)
+            e_D2.append(e_d2)
+
+    return D2, e_D2
 
 # Largest lyapunov exponent of channel time series
 def lyapunov(evoked: mne.Evoked, ch_list: list | tuple, 
