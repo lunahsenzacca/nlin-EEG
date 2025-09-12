@@ -437,10 +437,10 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
     return RES
 
 # Prepare corrsum.py results for correxp.py script
-def correxp_getcorrsum(path: str, avg: bool):
+def correxp_getcorrsum(path: str, avg: bool, compound_error: bool):
 
     # Load correlation sum results
-    CS, E_CS, X, variables = obs_data(obs_path = path, obs_name = 'corrsum')
+    CS, E_CS, X, variables = obs_data(obs_path = path, obs_name = 'corrsum', compound_error = compound_error)
 
     clst = variables['clustered']
 

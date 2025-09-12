@@ -7,6 +7,10 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+import matplotlib.cm as cm
+
+import matplotlib.colors as mcolors
+
 # Utility functions for directories and data
 from core import pics_path, obs_path, obs_data
 
@@ -22,6 +26,7 @@ avg = {'pois': 2,
        'sub': 0,}
 
 clust_dict = {'G': ['Global'],
+              'Gavg': ['Global Average'],
               'PO': ['Parieto-Occipital'],
               'F': ['Frontal'],
               'CFPO': ['Frontal (c)', 'Parieto-Occipital (c)'],
@@ -52,44 +57,39 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, al
     # Scalar value 4-dimensional array
 
     # Axis 0 = Subjects
-    # Axis 1 = Confront axis
-    # Axis 2 = New figure axis
+    # Axis 1 = Legend
     # Axis 3 = X value
 
-    # Initialize list of pyplot objects to handle to main function
-    figs = []
-    axes = []
+    obs = OBS[:,:,:]
+    e_obs = E_OBS[:,:,:]
 
-    rng = OBS.shape[2]
+    cmap = cm.viridis
 
-    for idx in range (0,rng):
-            obs = OBS[:,:,idx]
-            e_obs = E_OBS[:,:,idx]
+    norm = mcolors.Normalize(vmin = 0, vmax = len(label) - 1)
 
-            fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
+    fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
 
-            if grid[0]*grid[1] == 1:
-                ax_iter = [axs]
+    if grid[0]*grid[1] == 1:
+        ax_iter = [axs]
+    else:
+        ax_iter = axs.flat
+
+    for j, ax in enumerate(ax_iter):
+
+        for c in range(0,obs.shape[1]):
+
+            color = cmap(norm(c))
+
+            if j == 0:
+                ax.plot(X, obs[j,c,:], color = color, alpha = 1*alpha_m, label = label[c])
             else:
-                ax_iter = axs.flat
+                ax.plot(X, obs[j,c,:], color = color, alpha = 1*alpha_m)
+            
+            ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], alpha = 0.2*alpha_m)
 
-            for j, ax in enumerate(ax_iter):
+    plt.close()
 
-                for c in range(0,obs.shape[1]):
-
-                    if j == 0:
-                        ax.plot(X, obs[j,c,:], alpha = 1*alpha_m, label = label[c])
-                    else:
-                        ax.plot(X, obs[j,c,:], alpha = 1*alpha_m)
-                    
-                    ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], alpha = 0.2*alpha_m)
-
-            figs.append(fig)
-            axes.append(axs)
-
-            plt.close()
-
-    return figs, axes
+    return fig, axs
 
 
 # Main wrapper for function over pois
@@ -124,6 +124,12 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     # Value of the array is y(x) or e_y(x)
 
+    # Check for confliction instructions
+    check_conflict = [instructions['figure'], instructions['multiplot'], instructions['legend'], instructions['axis']]
+    if len(set(check_conflict)) != len(check_conflict):
+        print('Conflicting instructions,\'figure\', \'multiplot\', \'legend\' and \'axis\', should all be different')
+        return
+
     # Get observable file path
     # Get relevant paths
     path = obs_path(
@@ -152,6 +158,8 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     conditions = variables['conditions']
 
+    labels = [variables['subjects'],variables['conditions'],variables['pois'],variables['embeddings']]
+
     # Add extra dimension for consistency
     if len(OBS.shape) == 4:
         
@@ -169,37 +177,104 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
             OBS = np.expand_dims(OBS, axis = avg[instructions['avg']])
             E_OBS = np.expand_dims(E_OBS, axis = avg[instructions['avg']])
 
-    # Select x-values 
-    if instructions['axis'] == 'm':
-        instructions['xlabel'] = '$m$'
+    # Initzialize list for array rearranging
+    rearrange = [0,0,0,0,0]
+
+    # Check figures
+    if instructions['figure'] == 'pois':
+
+        rearrange[1] = 2
+
+        if clst == True:
+            title_l = clust_dict[info['clust_lb']]
+        else:
+            title_l = labels[2]
+
+    elif instructions['figure'] == 'conditions':
+
+        rearrange[1] = 1
+
+        title_l = [cond_dict[i] for i in labels[1]]
+
+    #elif instructions['figures'] == 'conditions_pois': 
+
+    # Selet multiplot axis
+    if instructions['multiplot'] == 'subjects':
+
+        rearrange[2] = 0
+
+        plot_l = labels[0]
+
+    if instructions['legend'] == 'conditions':
+
+        rearrange[3] = 1
+
+        legend_l = [cond_dict[i] for i in labels[1]]
+
+    elif instructions['legend'] == 'embeddings':
+
+        rearrange[3] = 3
+
+        legend_l = labels[3]
+
+    if instructions['axis'] == 'embeddings':
+
+        rearrange[4] = 3
 
         X = X[0]
 
-    elif instructions['axis'] == 'log_r':
-        instructions['xlabel'] = '$\\log(r)$'
+        instructions['xlabel'] = '$m$'
 
-        OBS = np.swapaxes(OBS, 3, 4)
-        E_OBS = np.swapaxes(E_OBS, 3, 4)
+    elif instructions['axis'] == 'log_r':
+
+        rearrange[4] = 4
 
         X = X[1]
 
-    if instructions['figures'] == 'pois':
+        instructions['xlabel'] = '$\\log(r)$'
 
-        L_OBS = [OBS[:,:,i] for i in range(0,OBS.shape[2])]
+    for i in range(0,len(rearrange)):
+        if i not in rearrange:
+            rearrange[0] = i
 
-    elif instructions['figures'] == 'conditions':
+    # Rearrange arrays
+    obs = np.permute_dims(OBS, rearrange)
+    e_obs = np.permute_dims(E_OBS, rearrange)
+    
+    # Reduce extra axis
+    if obs.shape[0] > 1:
+        if instructions['reduce_method'] == 'product':
+            
+            obs = [i for ob in obs for i in ob]
+            e_obs = [i for e_ob in e_obs for i in e_ob]
 
-        L_OBS = [OBS[:,i] for i in range(0,OBS.shape[1])]
+            title_l = [str(i) + ' ' + str(j) for i in labels[rearrange[0]] for j in title_l]
 
-    #if instructions['legend'] == 'conditions':
+    else:
 
-    #elif instructions['legend'] == 'embeddings':
+        obs = obs[0]
+        e_obs = e_obs[0]
 
-    # Initialize figures
-    figs, axes = plot_1dfunction(OBS = OBS, E_OBS = E_OBS, X = X, label = legend_l, alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'])
+    print(np.asarray(obs).shape)
+
+    # Create iteration around figures
+    OBS = [i for i in obs]
+    E_OBS = [i for i in e_obs]
+
+    # Initzialize lists for figures and axes
+    figs = []
+    axes = []
+    for i in range(0, len(obs)):
+    
+        # Initialize figures
+        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, label = legend_l, alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'])
+
+        figs.append(fig)
+        axes.append(axis)
 
     # Cycle around axis and figures to add informations
 
+    grid = instructions['grid']
     # Check if we have multiple axes and initialize proper iterable
     for axs in axes:
         if grid[0]*grid[1] == 1:

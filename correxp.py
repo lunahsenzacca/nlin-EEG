@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 10
+workers = 16
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -38,7 +38,7 @@ exp_name = 'bmasking'
 avg_trials = True
 
 # Label for load results files
-clust_lb = 'CFPO'
+clust_lb = 'CFPOavg'
 
 # Label for saved results files
 sv_lb = '3noavg'
@@ -78,7 +78,7 @@ def mp_correlation_exponent():
     print('\nPreparing Correlation Sum results for computation')
 
     # Build iterable over subject
-    log_CS_iters, variables = correxp_getcorrsum(path = path, avg = avg)
+    log_CS_iters, variables = correxp_getcorrsum(path = path, avg = avg, compound_error = not(avg_trials))
 
     # Check if mobile average leaves more than three cooridnates
     rlen = len(log_r) - n_points + 1

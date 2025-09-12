@@ -34,10 +34,10 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'CFPO'
+lb = 'G'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 if avg_trials == True:
     method = 'avg_data'
@@ -68,7 +68,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', clust_lb = lb, avg_tr
 #Only averaged conditions
 conditions = list(conditions)[0:2]
 #Parieto-Occipital and Frontal electrodes
-ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
+#ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###

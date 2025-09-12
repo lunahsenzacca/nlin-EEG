@@ -25,7 +25,7 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 20
+workers = 16
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -34,7 +34,7 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Label for results folder
-lb = 'CFPO'
+lb = 'CFPOavg'
 
 # Get data averaged across trials
 avg_trials = True
@@ -68,7 +68,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg
 #Only averaged conditions
 conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
+ch_list = ['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8'], #ch_list,
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
@@ -83,8 +83,8 @@ tau = maind[exp_name]['tau']
 frc = [0, 1]
 
 # Distances for sampling the dependance
-r = np.logspace(0, 2.38, num = 27, base = 10)
-r = r/1e7
+r = np.logspace(0, 4.38, num = 27, base = 10)
+r = r/1e9
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
