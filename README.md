@@ -45,9 +45,9 @@ $\rightarrow$ ```python -m corrsum```
 
 $\rightarrow$ ```python -m correxp```
 
-*  $D_{2}(m)$: Information Dimension for different embedding dimensions $m$ fitting results of $C(m,r)$;
+*  $D_{2}(m)$: Information Dimension for different embedding dimensions $m$;
 
-$\rightarrow$ ```python -m idim``` (DEPRECATED FOR NOW, WILL BE BASED ON $\nu(m,r)$ LATER...)
+$\rightarrow$ ```python -m idim```
 
 *  $\lambda(m)$: Largest Lyapunov Exponent for different embedding dimensions $m$.
 
