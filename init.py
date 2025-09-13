@@ -29,6 +29,7 @@ p_path = path + 'pics/'
 exp_lb = {
     'bmasking': 'BM',
     'fsuppression' : 'FS',
+    'lorenz': 'LZ'
 }
 obs_lb = {
     'corrsum': 'CS',
@@ -115,7 +116,8 @@ BM_info = {
     'directories': BM_paths,
     'k': 5,
     'Rth': 15,
-    'tau': 20
+    'tau': 20,
+    'avT': 40
 }
 
 
@@ -140,6 +142,27 @@ FS_paths = {
 FS_info = {
 }
 
+LZ_conditions = {'lorenz':'lorenz'}
+
+LZ_paths = {
+    'avg_data': path + 'evoked/avg/' + exp_lb['lorenz'] + '/',
+    'trl_data': path + 'evoked/trl/' + exp_lb['lorenz'] + '/',
+    'avg_results': r_path + 'avg/' + exp_lb['lorenz'] + '/',
+    'trl_results': r_path + 'trl/' + exp_lb['lorenz'] + '/',
+    'avg_pics': p_path +'avg/' + exp_lb['lorenz'] + '/',
+    'trl_pics': p_path +'trl/' + exp_lb['lorenz'] + '/'
+}
+
+LZ_info = {
+    'pois': [0],
+    'subIDs': ['000'],
+    'conditions': LZ_conditions,
+    'directories': LZ_paths,
+    'k': 5,
+    'Rth': 15,
+    'tau': 40,
+    'avT': 60
+}
 
 
 # Save all of this in a Very Big Dictionary
@@ -147,6 +170,7 @@ maind = {
     'path': path,
     'bmasking': BM_info,
     'fsuppression': FS_info,
+    'lorenz': LZ_info,
     'exp_lb': exp_lb,
     'obs_lb': obs_lb
 }

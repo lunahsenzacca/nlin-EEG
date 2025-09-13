@@ -31,13 +31,13 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking'
+exp_name = 'lorenz'
 
 # Label for results folder
-lb = 'CFPO'
+lb = 'noisefree'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 if avg_trials == True:
     method = 'avg_data'
@@ -66,18 +66,26 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', clust_lb = lb, avg_t
 #ch_list = ch_list[0:3]
 
 #Only averaged conditions
-conditions = list(conditions)[0:2]
+#conditions = list(conditions)[0:2]
 #Parieto-Occipital and Frontal electrodes
-ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
+#ch_list = ch_list, #['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(2,21)]
+embeddings = [i for i in range(2,10)]
 
 # Time delay
 tau = maind[exp_name]['tau']
+
+# Average period of data
+avT = maind[exp_name]['avT']
+# This  way compute it for each time series
+avT = None
+
+# Lenght of separation trajectories
+lenght = 10
 
 # Window of interest
 frc = [0, 1]
@@ -91,6 +99,8 @@ else:
 # Dictionary for computation variables
 variables = {   
                 'tau' : tau,
+                'avT': avT,
+                'lenght': lenght,
                 'window' : frc,
                 'clustered' : clt,
                 'subjects' : sub_list,
@@ -114,7 +124,7 @@ def it_lyapunov(evoked: mne.Evoked):
 
     ly, ly_e = lyapunov(evoked = evoked, ch_list = ch_list,
                         embeddings = embeddings, tau = tau,
-                        fraction = frc)
+                        lenght = lenght, avT = avT, fraction = frc, verbose = True)
 
     return [ly, ly_e]
 
@@ -167,7 +177,7 @@ def mp_lyapunov(evoks_iters: list, points: list):
                                         leave = True,
                                         dynamic_ncols = True)
                                     )
-    
+
     # Get separate results lists
     r = [[ly for ly in trial[0]] for trial in results]
     e_r = [[e_ly for e_ly in trial[1]] for trial in results]

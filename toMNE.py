@@ -39,7 +39,7 @@ sv_path = maind[exp_name]['directories'][method]
 # Build iterable function
 def it_toevoked(subID: str):
 
-    evokeds = toevoked(subID = subID, exp_name = exp_name, method = method)
+    evokeds = toevoked(subID = subID, exp_name = exp_name, avg_trials = avg_trials)
 
     return evokeds
 

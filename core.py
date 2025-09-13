@@ -283,7 +283,7 @@ def toinfo(exp_name: str, ch_type = 'eeg'):
     return info
 
 # Function for subwise evoked conversion from list of arrays
-def list_toevoked(data_list: list, subID: str, exp_name: str, method: str, alt_sv: str):
+def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, alt_sv: str):
     
     # There are different number of trials for each condition,
     # so a simple ndarray is inconvenient. We use a list of ndarray instead
@@ -304,7 +304,7 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, method: str, alt_s
         # Axis 1 = Electrodes
 
         # Average across same condition trials
-        if method == 'avg_data':
+        if avg_trials == True:
 
             n_trials = array.shape[0]
             avg = array.mean(axis = 0)
@@ -313,7 +313,7 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, method: str, alt_s
             evokeds.append(ev)
 
         # Keep each individual trial
-        elif method == 'trl_data':
+        else:
 
             for trl in array:
 
@@ -340,7 +340,7 @@ def toevoked(subID: str, exp_name: str, method: str, alt_sv = None):
     data_list = raw_tolist(subID = subID, exp_name = exp_name)
 
     # Generate evokeds
-    evokeds = list_toevoked(data_list = data_list, subID = subID, exp_name = exp_name, method = method, alt_sv = alt_sv)
+    evokeds = list_toevoked(data_list = data_list, subID = subID, exp_name = exp_name, avg_trials = avg_trials, alt_sv = alt_sv)
 
     return evokeds
 
@@ -428,7 +428,7 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
         OBS_STD = OBS_STD.reshape(fshape)
 
         # Create a single array to store value and errors
-        RES = np.concatenate((RES[np.newaxis],RES_STD[np.newaxis], OBS_STD[np.newaxis]), axis = 0)
+        RES = np.concatenate((RES[np.newaxis],RES_STD[np.newaxis],OBS_STD[np.newaxis]), axis = 0)
 
     else:
         # Create a single array to store value and error
@@ -508,6 +508,86 @@ def to_log(OBS: np.ndarray):
 
     return log_OBS
 
+# Get average period (in time points) of a 1d trajectory through periodogram
+def avg_period(ts: list):
+
+    f, ps = periodogram(ts)
+    avT = np.sum(ps)/np.sum(f*ps)
+
+    return avT
+
+# Get Lorenz attractor derivatives
+def lorenz_delta(xyz, s=10, r=28, b=8/3):
+    """
+    Parameters
+    ----------
+    xyz : array-like, shape (3,)
+       Point of interest in three-dimensional space.
+    s, r, b : float
+       Parameters defining the Lorenz attractor.
+
+    Returns
+    -------
+    xyz_dot : array, shape (3,)
+       Values of the Lorenz attractor's partial derivatives at *xyz*.
+    """
+    x, y, z = xyz
+    x_dot = s*(y - x)
+    y_dot = r*x - y - x*z
+    z_dot = x*y - b*z
+
+    return np.array([x_dot, y_dot, z_dot])
+
+# Generate lorentz system trajectory
+def lorenz_trajectory(dt: float, time_points: int, target_l = None, x0 = None):
+
+    # Generate random initial values
+    if x0 == None:
+        x0 = np.random.normal(loc = 0, scale = 1, size = 3)
+
+    xyzs = np.empty((time_points + 1, 3))  # Need one more for the initial values
+    xyzs[0] = x0  # Set initial values
+    # Step through "time", calculating the partial derivatives at the current point
+    # and using them to estimate the next point
+    for i in range(time_points):
+        xyzs[i + 1] = xyzs[i] + lorenz_delta(xyzs[i]) * dt
+
+    xyzs = np.swapaxes(xyzs, 0, 1)
+
+    # Downsample if target lenght is given
+    if target_l != None:
+        dxyzs = []
+        for i, x in enumerate(xyzs):
+            
+            dxyzs.append(downsample(x, target_l = target_l))
+
+            xyzs = np.asarray(dxyzs)
+
+    return xyzs
+
+# Downsample timepoints of a timeseries averaging per window
+def downsample(ts, target_l: int):
+
+    initial_l = len(ts)
+
+    # Find interpolation lenght
+
+    window = int(initial_l/target_l)
+
+    if window == 0:
+        print('target lenght too short')
+        return
+
+    partial = int(initial_l/window)
+
+    downsampled = []
+    for i in range(0,partial):
+
+        w = [ts[i*window+j] for j in range(0,window)]
+        downsampled.append(np.asarray(w).mean())
+
+    return np.asarray(downsampled)
+
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
 # Time-delay embedding of a single time series
@@ -559,6 +639,27 @@ def corr_sum(emb_ts, r: float):
     csum = (2/(N*(N-1)))*counter
 
     return csum
+
+# Correlation Exponent computation
+def corr_exp(log_csum: list, log_r: list, n_points: int):
+
+    rlen = len(log_r) - n_points + 1
+
+    ce =  []
+    n_log_r = []
+    for i in range(0,rlen):
+
+        m = np.array([(log_csum[i+j+1] - log_csum[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
+
+        rs = [log_r[i+j] for j in range(0,n_points)]
+
+        ce.append(np.asarray(m).mean())
+        n_log_r.append(np.asarray(rs).mean())
+
+    ce = np.asarray(ce)
+    n_log_r = np.asarray(n_log_r)
+
+    return  ce, n_log_r
 
 # Information Dimension for a singleembedded time series with 2NN-estimation [Krakovská-Chvosteková]
 def idim(emb_ts: np.ndarray, m_period: int):
@@ -615,7 +716,7 @@ def idim(emb_ts: np.ndarray, m_period: int):
         
 
 # Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
-def lyap(emb_ts: np.ndarray, m_period: int, sfreq: int, verbose = False):
+def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = False):
 
     N = len(emb_ts)
 
@@ -635,9 +736,6 @@ def lyap(emb_ts: np.ndarray, m_period: int, sfreq: int, verbose = False):
 
     # Construct separations trajectories with embedded data
     lnd = []
-
-    # Duration of separation trajectories
-    lenght = int(m_period/3)
     for i, el in enumerate(ds):
 
         if i < N - lenght:
@@ -669,6 +767,8 @@ def lyap(emb_ts: np.ndarray, m_period: int, sfreq: int, verbose = False):
     with warnings.catch_warnings():
         if verbose == False:
             warnings.simplefilter('ignore')
+            y = np.nanmean(lnd, axis = 0)*sfreq
+        else:
             y = np.nanmean(lnd, axis = 0)*sfreq
 
     fit = linregress(x,y)
@@ -782,7 +882,7 @@ def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
 
 # Largest lyapunov exponent of channel time series
 def lyapunov(evoked: mne.Evoked, ch_list: list | tuple, 
-             embeddings: list, tau: int,
+             embeddings: list, tau: int, lenght: int, avT = None,
              fraction = [0,1], verbose = False):
 
     # Get sampling frequency
@@ -826,16 +926,16 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
         # Get mean period of the time series through power spectrum analysis
         # this method is not very robust to noise if the estimated period is too
         # large for the embeddin dimension
-        #f, ps = periodogram(ts)
-        #avT = np.sum(ps)/np.sum(f*ps)
-
-        # Or set a fixed lenght
-        avT = tau*2
+        if avT == None:
+            f, ps = periodogram(ts)
+            avT = np.sum(ps)/np.sum(f*ps)
+            if verbose == True:
+                print('Average period: ',avT)
         
         for m in embeddings:
             emb_ts = td_embedding(ts, embedding = m, tau = tau)
             
-            l, l_e, x, y, fit = lyap(emb_ts, m_period = avT, sfreq = sfreq, verbose = verbose)
+            l, l_e, x, y, fit = lyap(emb_ts, m_period = avT, lenght = lenght, sfreq = sfreq, verbose = verbose)
 
             '''
             # Plotting for correct estimation of optimal lenght,

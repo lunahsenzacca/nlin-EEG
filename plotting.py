@@ -30,7 +30,7 @@ clust_dict = {'G': ['Global'],
               'PO': ['Parieto-Occipital'],
               'F': ['Frontal'],
               'CFPO': ['Frontal (c)', 'Parieto-Occipital (c)'],
-              'TEST': 'TEST'}
+              'test': 'test'}
 
 obs_dict = {'corrsum': '$C(m,r)$ ',
             'correxp': '$\\nu(m,r)$ ',
@@ -38,7 +38,8 @@ obs_dict = {'corrsum': '$C(m,r)$ ',
             'llyap': '$\\lambda(m)$ '}
 
 cond_dict = {'S__': 'Conscious',
-             'S_1': 'Unconscious'}
+             'S_1': 'Unconscious',
+             'lorenz': 'lorenz'}
 
 
 ### PLOTTING WRAPPERS ###
@@ -85,7 +86,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, al
             else:
                 ax.plot(X, obs[j,c,:], color = color, alpha = 1*alpha_m)
             
-            ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], alpha = 0.2*alpha_m)
+            ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
 
     plt.close()
 
@@ -158,7 +159,10 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     conditions = variables['conditions']
 
-    labels = [variables['subjects'],variables['conditions'],variables['pois'],variables['embeddings']]
+    labels = [variables['subjects'],variables['conditions'],variables['pois'],variables['embeddings'],['test']]
+
+    if clst == True:
+        labels[2] = clust_dict[info['clust_lb']]
 
     # Add extra dimension for consistency
     if len(OBS.shape) == 4:
@@ -185,10 +189,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
         rearrange[1] = 2
 
-        if clst == True:
-            title_l = clust_dict[info['clust_lb']]
-        else:
-            title_l = labels[2]
+        title_l = labels[2]
 
     elif instructions['figure'] == 'conditions':
 
@@ -242,18 +243,12 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     e_obs = np.permute_dims(E_OBS, rearrange)
     
     # Reduce extra axis
-    if obs.shape[0] > 1:
-        if instructions['reduce_method'] == 'product':
-            
-            obs = [i for ob in obs for i in ob]
-            e_obs = [i for e_ob in e_obs for i in e_ob]
+    if instructions['reduce_method'] == 'product':
+        
+        obs = [i for ob in obs for i in ob]
+        e_obs = [i for e_ob in e_obs for i in e_ob]
 
-            title_l = [str(i) + ' ' + str(j) for i in labels[rearrange[0]] for j in title_l]
-
-    else:
-
-        obs = obs[0]
-        e_obs = e_obs[0]
+    title_l = [str(i) + ' ' + str(j) for i in labels[rearrange[0]] for j in title_l]
 
     print(np.asarray(obs).shape)
 
@@ -293,7 +288,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         fig.suptitle(title, size = instructions['textsz'])
         fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
         fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
-        fig.legend(loc = 'center right', title = instructions['title_l'], fontsize = instructions['textsz']*0.7)
+        fig.legend(loc = 'center right', title = instructions['legend_t'], fontsize = instructions['textsz']*0.7)
         
         fig.tight_layout()
 
