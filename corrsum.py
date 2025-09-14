@@ -25,19 +25,19 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 16
+workers = 20
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = 'lorenz'
 
 # Label for results folder
-lb = 'CFPO'
+lb = 'znoisefree'
 
 # Get data averaged across trials
-avg_trials = True
+avg_trials = False
 
 if avg_trials == True:
     method = 'avg_data'
@@ -65,10 +65,14 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg
 #sub_list = sub_list[0:2]
 #ch_list = ch_list[0:2]
 
-#Only averaged conditions
-conditions = conditions[0:2]
-#Parieto-Occipital and Frontal electrodes
-ch_list = ['Fp1', 'Fp2', 'Fpz'],['O2', 'PO4', 'PO8'] #ch_list,
+# Only averaged conditions
+#conditions = conditions[0:2]
+
+# Frontal and Parieto-Occipital clusters
+#ch_list = ['Fp1', 'Fp2', 'Fpz'],['O2', 'PO4', 'PO8']
+
+# Crazy stupid all electrodes average
+#ch_list =  ch_list,
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
@@ -85,7 +89,7 @@ frc = [0, 1]
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-2.7, 0, num = 30, base = 10)*10
+r = np.logspace(-2.7, 0, num = 15, base = 10)*50
 
 # Apply embedding normalization when computing distances
 m_norm = False

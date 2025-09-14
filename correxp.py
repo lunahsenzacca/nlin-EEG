@@ -32,13 +32,13 @@ chunksize = 1
 ### LOAD PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = 'lorenz'
 
 # Get data averaged across trials
-avg_trials = True
+avg_trials = False
 
 # Label for load results files
-clust_lb = 'CFPO'
+clust_lb = 'm_znoisefree'
 
 # Label for saved results files
 sv_lb = '3noavg'

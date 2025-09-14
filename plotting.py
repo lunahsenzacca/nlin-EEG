@@ -27,9 +27,10 @@ avg = {'pois': 2,
 
 clust_dict = {'G': ['Global'],
               'Gavg': ['Global Average'],
+              'mGavg': ['Global Average (m norm)'],
               'PO': ['Parieto-Occipital'],
               'F': ['Frontal'],
-              'CFPO': ['Frontal (c)', 'Parieto-Occipital (c)'],
+              'CFPO': ['Frontal', 'Parieto-Occipital'],
               'mCFPO': ['Frontal (m norm)', 'Parieto-Occipital (m norm)'],
               'test': 'test'}
 

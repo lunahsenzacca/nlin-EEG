@@ -1009,24 +1009,26 @@ def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_
 
                 for i in range(0,rlen):
 
+                    # Get slope of three points
+                    with warnings.catch_warnings():
+                            warnings.simplefilter('ignore')
+                            results = linregress(x = np.asarray(log_r)[i:i + n_points], y = a[i:i + n_points], nan_policy = 'omit')
+
+                    CE.append(results.slope)
+
                     # Check if we have non trivial errors for the correlation sum
                     if np.nanmean(a_) != 0:
 
                         # Get values for mobile average
-                        m = np.array([(a[i+j+1] - a[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
+                        #m = np.array([(a[i+j+1] - a[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
                         em = np.array([(np.sqrt(a_[i+j+1]**2 + a_[i+j]**2))/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
 
-                        CE.append(m.mean())
-                        E_CE.append((np.sqrt(np.sum(em**2)))/(n_points-1))
+                        #CE.append(m.mean())
+                        E_CE.append((np.sqrt(np.sum(em**2)))/(n_points-1) + results.stderr)
                     
                     # Otherwise append error from linear regression
                     else:
 
-                        with warnings.catch_warnings():
-                            warnings.simplefilter('ignore')
-                            results = linregress(x = np.asarray(log_r)[i:i + n_points], y = a[i:i + n_points], nan_policy = 'omit')
-
-                        CE.append(results.slope)
                         E_CE.append(results.stderr)
 
     CE = np.asarray(CE)
