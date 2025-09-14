@@ -7,6 +7,9 @@ import numpy as np
 
 from tqdm import tqdm
 
+# Utility function for Z-Scoring
+from core import zscore
+
 # Utility function for lorenz attractor time series
 from core import lorenz_trajectory
 
@@ -19,7 +22,8 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 16
+
+workers = 4
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -36,10 +40,6 @@ ref_name = 'bmasking'
 # Number of trajectories with different initial conditions
 N_trajectories = 150
 
-# Method for reduction
-#reduction = 'sum'
-#reduction = 'mean'
-
 # Average trajectories or keep them separated
 avg_trajectories = True
 
@@ -47,6 +47,9 @@ if avg_trajectories == True:
     method = 'avg_data'
 else:
     method = 'trl_data'
+
+# Apply Z-Score
+z_score = True
 
 ### LOAD DATASET DIRECTORIES AND INFOS ###
 
@@ -61,7 +64,7 @@ f = maind[ref_name]['f']
 # Build iterable trajectory generation
 def it_lorenz_trajectory(trajectory_idx: int):
 
-    ts = lorenz_trajectory(dt = 0.0005, time_points = 7000, target_l = T)
+    ts = lorenz_trajectory(dt = 0.01, time_points = 1000, target_l = T)
 
     ts = ts.sum(axis = 0)
 
@@ -81,14 +84,14 @@ def mp_lorenz_trajectory():
     with Pool(workers) as p:
 
         TS  = list(tqdm(p.imap_unordered(it_lorenz_trajectory, N_it),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'itr',
+                       desc = 'Evolving initial conditions',
+                       unit = 'it',
                        total = N_trajectories,
                        leave = False,
                        dynamic_ncols = True)
                        )
 
-    TS = np.asarray(TS)
+    TS = np.asarray(TS)[:,np.newaxis]
 
     # Create mne.info header
     info = mne.create_info(['lorenz'], sfreq = f)
@@ -96,13 +99,16 @@ def mp_lorenz_trajectory():
     # Initzialize Evokeds list
     evokeds = []
 
+    # Apply Z-Score
+    if z_score == True:
+
+        TS = zscore(TS)
+
     # Average trajectories
     if avg_trajectories == True:
 
         n_trials = len(TS)
         avg = TS.mean(axis = 0)
-
-        avg = avg[np.newaxis]
 
         ev = mne.EvokedArray(avg, info, nave = n_trials, comment = 'lorenz')
         evokeds.append(ev)
@@ -111,8 +117,6 @@ def mp_lorenz_trajectory():
     else:
 
         for trj in TS:
-
-            trj = trj[np.newaxis]
 
             ev = mne.EvokedArray(trj, info, nave = 1, comment = 'lorenz')
             evokeds.append(ev)
@@ -128,7 +132,7 @@ def mp_lorenz_trajectory():
     # Evoked file directory
     sv_path = sv_path + subID + '-ave.fif'
 
-    mne.write_evokeds(sv_path, evokeds, overwrite = True, verbose = True)
+    mne.write_evokeds(sv_path, evokeds, overwrite = True, verbose = False)
 
     return
 

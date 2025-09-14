@@ -25,16 +25,16 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
-workers = 16
+workers = 4
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking'
+exp_name = 'lorenz'
 
 # Label for results folder
-lb = 'G'
+lb = 'znoisefree'
 
 # Get data averaged across trials
 avg_trials = True
@@ -66,7 +66,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', clust_lb = lb, avg_tr
 #ch_list = ch_list[0:3]
 
 #Only averaged conditions
-conditions = list(conditions)[0:2]
+#conditions = list(conditions)[0:2]
 #Parieto-Occipital and Frontal electrodes
 #ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
 ###########################

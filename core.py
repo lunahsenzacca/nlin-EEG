@@ -283,7 +283,7 @@ def toinfo(exp_name: str, ch_type = 'eeg'):
     return info
 
 # Function for subwise evoked conversion from list of arrays
-def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, alt_sv: str):
+def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, z_score: bool, alt_sv: str):
     
     # There are different number of trials for each condition,
     # so a simple ndarray is inconvenient. We use a list of ndarray instead
@@ -302,6 +302,12 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
         # 'array' structure
         # Axis 0 = Trials
         # Axis 1 = Electrodes
+        # Axis 2 = Time points
+
+        # Apply zscore normalization
+        if z_score == True:
+
+            array = zscore(array)
 
         # Average across same condition trials
         if avg_trials == True:
@@ -334,13 +340,13 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
     return evokeds
 
 # Create evoked file straight from raw data
-def toevoked(subID: str, exp_name: str, method: str, alt_sv = None):
+def toevoked(subID: str, exp_name: str, avg_trials: bool, z_score = False, alt_sv = None):
 
     # Create data list
     data_list = raw_tolist(subID = subID, exp_name = exp_name)
 
     # Generate evokeds
-    evokeds = list_toevoked(data_list = data_list, subID = subID, exp_name = exp_name, avg_trials = avg_trials, alt_sv = alt_sv)
+    evokeds = list_toevoked(data_list = data_list, subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, alt_sv = alt_sv)
 
     return evokeds
 
@@ -466,8 +472,16 @@ def correxp_getcorrsum(path: str, avg: bool, compound_error: bool):
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
-def dist(x, y):
-    return np.sqrt(np.sum((x - y)**2, axis = 0))
+def dist(x, y, m_norm = False):
+
+    d = np.sqrt(np.sum((x - y)**2, axis = 0))
+
+    if m_norm == True:
+
+        m = x.shape[0]
+        d = d/m
+
+    return d
 
 # Transform data in log scale (Useful for logarithmic fits)
 def to_log(OBS: np.ndarray):
@@ -588,6 +602,30 @@ def downsample(ts, target_l: int):
 
     return np.asarray(downsampled)
 
+# Z-Score normalization for multiple trials timeseries
+def zscore(trials_array: np.ndarray):
+    
+    # 'trials_array' structure
+    # Axis 0 = Trials
+    # Axis 1 = Electrodes
+    # Axis 2 = Time points
+
+    mean = []
+    std = []
+    for trl in trials_array:
+
+        mean.append(trl.mean(axis = 1))
+        std.append(trl.std(axis = 1))
+
+    # Average across electrodes
+    mean = np.asarray(mean).mean()
+    std = np.asarray(std).mean()
+
+    # Apply zscore
+    z_trials_array = (trials_array - mean)/std
+
+    return z_trials_array
+
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
 # Time-delay embedding of a single time series
@@ -620,7 +658,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
 # Correlation sum for a single embeddend time series [Grassberger-Procaccia]
-def corr_sum(emb_ts, r: float):
+def corr_sum(emb_ts, r: float, m_norm = False):
 
     N = len(emb_ts)
 
@@ -630,7 +668,7 @@ def corr_sum(emb_ts, r: float):
     for i in range(0,N):
         for j in range(0,i):
             
-            dij = dist(emb_ts[i],emb_ts[j])
+            dij = dist(emb_ts[i],emb_ts[j], m_norm = m_norm)
 
             # Get value of theta
             if dij < r:
@@ -783,7 +821,7 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
 # Correlation sum of channel time series of a specific trial
 def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: int, rvals: list, 
-                    fraction = [0,1]):
+                    m_norm: bool, fraction = [0,1]):
 
     # Apply fraction to time series
     times = evoked.times
@@ -824,7 +862,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
             for r in rvals:
 
-                CD.append(corr_sum(emb_ts, r = r))
+                CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm))
 
     # Returns list in -C style ordering
 

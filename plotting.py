@@ -30,10 +30,11 @@ clust_dict = {'G': ['Global'],
               'PO': ['Parieto-Occipital'],
               'F': ['Frontal'],
               'CFPO': ['Frontal (c)', 'Parieto-Occipital (c)'],
+              'mCFPO': ['Frontal (m norm)', 'Parieto-Occipital (m norm)'],
               'test': 'test'}
 
-obs_dict = {'corrsum': '$C(m,r)$ ',
-            'correxp': '$\\nu(m,r)$ ',
+obs_dict = {'corrsum': '$C_{m}(r)$ ',
+            'correxp': '$\\nu_{m}(r)$ ',
             'idim': '$D_{2}(m)$ ',
             'llyap': '$\\lambda(m)$ '}
 
@@ -159,7 +160,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     conditions = variables['conditions']
 
-    labels = [variables['subjects'],variables['conditions'],variables['pois'],variables['embeddings'],['test']]
+    labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],variables['embeddings'],[instructions['e_title']]]
 
     if clst == True:
         labels[2] = clust_dict[info['clust_lb']]
@@ -248,7 +249,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         obs = [i for ob in obs for i in ob]
         e_obs = [i for e_ob in e_obs for i in e_ob]
 
-    title_l = [str(i) + ' ' + str(j) for i in labels[rearrange[0]] for j in title_l]
+    title_l = [str(i) + '; ' + str(j) for i in labels[rearrange[0]] for j in title_l]
 
     print(np.asarray(obs).shape)
 
@@ -284,6 +285,10 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     for i, fig in enumerate(figs):
 
         title = obs_dict[info['obs_name']] + str(title_l[i])
+
+        if instructions['e_title'] != None:
+
+            title = obs_dict[info['obs_name']] + instructions['e_title']
 
         fig.suptitle(title, size = instructions['textsz'])
         fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])

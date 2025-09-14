@@ -26,19 +26,19 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 16
+workers = 12
 chunksize = 1
 
 ### LOAD PARAMETERS ###
 
 # Dataset name
-exp_name = 'lorenz'
+exp_name = 'zbmasking'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 # Label for load results files
-clust_lb = 'test'
+clust_lb = 'CFPO'
 
 # Label for saved results files
 sv_lb = '3noavg'
@@ -51,7 +51,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_l
 
 ### SCRIPT PARAMETERS ###
 
-# Average correlation sum over electrodes
+# Average Correlation Sum over electrodes
 avg = False
 
 # Number of points in moving average

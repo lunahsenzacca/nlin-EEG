@@ -28,6 +28,7 @@ p_path = path + 'pics/'
 # Experiments and observables labels (More observables coming)
 exp_lb = {
     'bmasking': 'BM',
+    'zbmasking': 'ZBM',
     'fsuppression' : 'FS',
     'lorenz': 'LZ'
 }
@@ -120,6 +121,33 @@ BM_info = {
     'avT': 40
 }
 
+# Create similar dictionary for zscored results
+ZBM_paths = {
+    'rw_data': d_path + exp_lb['zbmasking'] + '/',
+    'avg_data': path + 'evoked/avg/' + exp_lb['zbmasking'] + '/',
+    'trl_data': path + 'evoked/trl/' + exp_lb['zbmasking'] + '/',
+    'subject': [d_path + exp_lb['bmasking'] + '/subj','_band_resample/'],
+    'ch_info': d_path +  exp_lb['bmasking'] + '/subj001_band_resample/channel.mat',
+    'avg_results': r_path + 'avg/' + exp_lb['zbmasking'] + '/',
+    'trl_results': r_path + 'trl/' + exp_lb['zbmasking'] + '/',
+    'avg_pics': p_path +'avg/' + exp_lb['zbmasking'] + '/',
+    'trl_pics': p_path +'trl/' + exp_lb['zbmasking'] + '/'
+}
+
+ZBM_info = {
+    'T': 451,
+    'f': 500,
+    'montage': 'standard_1020',
+    'subIDs': BM_subids,
+    'pois': BM_pois,
+    'conditions': BM_conditions,
+    'directories': ZBM_paths,
+    'k': 5,
+    'Rth': 15,
+    'tau': 20,
+    'avT': 40
+}
+
 
 ### Continuous Flash Suppresion dataset (At Some Point...) ###
 
@@ -160,8 +188,8 @@ LZ_info = {
     'directories': LZ_paths,
     'k': 5,
     'Rth': 15,
-    'tau': 40,
-    'avT': 60
+    'tau': 20,
+    'avT': 55
 }
 
 
@@ -169,6 +197,7 @@ LZ_info = {
 maind = {
     'path': path,
     'bmasking': BM_info,
+    'zbmasking': ZBM_info,
     'fsuppression': FS_info,
     'lorenz': LZ_info,
     'exp_lb': exp_lb,

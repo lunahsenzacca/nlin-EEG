@@ -31,13 +31,13 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'lorenz'
+exp_name = 'zbmasking'
 
 # Label for results folder
-lb = 'noisefree'
+lb = 'CFPO'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 if avg_trials == True:
     method = 'avg_data'
@@ -66,9 +66,9 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg
 #ch_list = ch_list[0:2]
 
 #Only averaged conditions
-#conditions = conditions[0:2]
+conditions = conditions[0:2]
 #Parieto-Occipital and Frontal electrodes
-#ch_list = ch_list, #['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+ch_list = ['Fp1', 'Fp2', 'Fpz'],['O2', 'PO4', 'PO8'] #ch_list,
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
@@ -85,7 +85,10 @@ frc = [0, 1]
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-2, 2, num = 30, base = 10)
+r = np.logspace(-2.7, 0, num = 30, base = 10)*10
+
+# Apply embedding normalization when computing distances
+m_norm = False
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
@@ -97,6 +100,7 @@ else:
 variables = {   
                 'tau' : tau,
                 'window' : frc,
+                'm_norm': m_norm,
                 'clustered' : clt,
                 'subjects' : sub_list,
                 'conditions' : conditions,
@@ -119,7 +123,7 @@ def it_correlation_sum(evoked: mne.Evoked):
 
     CS = correlation_sum(evoked = evoked, ch_list = ch_list,
                          embeddings = embeddings, tau = tau, fraction = frc,
-                         rvals = r)
+                         rvals = r, m_norm = m_norm)
 
     return CS
 

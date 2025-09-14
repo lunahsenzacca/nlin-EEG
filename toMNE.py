@@ -24,22 +24,30 @@ chunksize = 1
 # Dataset name
 exp_name = 'bmasking'
 
-# Method for conversion
 # Average across trials
-method = 'avg_data'
-# Keep each trial
-#method = 'trl_data'
+avg_trials = False
 
 # Subject IDs
 sub_list = maind[exp_name]['subIDs']
 
+# Apply Z-Score
+z_score = True
+
+if z_score == True:
+    sv_name = 'z' + exp_name
+else:
+    sv_name = exp_name
+
 # Directory for saved results
-sv_path = maind[exp_name]['directories'][method]
+if avg_trials == True:
+    sv_path = maind[sv_name]['directories']['avg_data']
+else:
+    sv_path = maind[sv_name]['directories']['trl_data']
 
 # Build iterable function
 def it_toevoked(subID: str):
 
-    evokeds = toevoked(subID = subID, exp_name = exp_name, avg_trials = avg_trials)
+    evokeds = toevoked(subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score)
 
     return evokeds
 
@@ -62,8 +70,10 @@ def mp_toevoked():
                     )
 
     # Save results to local
-    print('\nSaving results...')
+    print('\nSaving evokeds...')
+
     os.makedirs(sv_path, exist_ok = True)
+    
     for i in range(0,len(evokeds)):
 
         data = evokeds[i]
