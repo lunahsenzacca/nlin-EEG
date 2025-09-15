@@ -35,7 +35,7 @@ chunksize = 1
 exp_name = 'zbmasking'
 
 # Label for results folder
-lb = 'CFPO'
+lb = 'mCFPO'
 
 # Get data averaged across trials
 avg_trials = True
@@ -69,8 +69,8 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg
 # Only averaged conditions
 conditions = conditions[0:2]
 
-# Frontal and Parieto-Occipital clusters
-ch_list = ['Fp1', 'Fp2', 'Fpz'],['O2', 'PO4', 'PO8']
+# Compare Frontal and Parieto-occipital clusters
+ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,
@@ -90,10 +90,10 @@ frc = [0, 1]
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-1, 2, num = 15, base = 10)
+r = np.logspace(-2, 1, num = 20, base = 10)
 
 # Apply embedding normalization when computing distances
-m_norm = False
+m_norm = True
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
