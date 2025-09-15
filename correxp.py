@@ -26,19 +26,19 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 12
+workers = 1
 chunksize = 1
 
 ### LOAD PARAMETERS ###
 
 # Dataset name
-exp_name = 'lorenz'
+exp_name = 'zbmasking'
 
 # Get data averaged across trials
-avg_trials = False
+avg_trials = True
 
 # Label for load results files
-clust_lb = 'm_znoisefree'
+clust_lb = 'CFPO'
 
 # Label for saved results files
 sv_lb = '3noavg'

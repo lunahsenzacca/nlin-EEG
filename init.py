@@ -30,7 +30,8 @@ exp_lb = {
     'bmasking': 'BM',
     'zbmasking': 'ZBM',
     'fsuppression' : 'FS',
-    'lorenz': 'LZ'
+    'lorenz': 'LZ',
+    'noise': 'NZ'
 }
 obs_lb = {
     'corrsum': 'CS',
@@ -192,6 +193,28 @@ LZ_info = {
     'avT': 55
 }
 
+NZ_conditions = {'noise':'noise'}
+
+NZ_paths = {
+    'avg_data': path + 'evoked/avg/' + exp_lb['noise'] + '/',
+    'trl_data': path + 'evoked/trl/' + exp_lb['noise'] + '/',
+    'avg_results': r_path + 'avg/' + exp_lb['noise'] + '/',
+    'trl_results': r_path + 'trl/' + exp_lb['noise'] + '/',
+    'avg_pics': p_path +'avg/' + exp_lb['noise'] + '/',
+    'trl_pics': p_path +'trl/' + exp_lb['noise'] + '/'
+}
+
+NZ_info = {
+    'pois': [0],
+    'subIDs': ['000'],
+    'conditions': NZ_conditions,
+    'directories': NZ_paths,
+    'k': 5,
+    'Rth': 15,
+    'tau': 20,
+    'avT': 55
+}
+
 
 # Save all of this in a Very Big Dictionary
 maind = {
@@ -200,6 +223,7 @@ maind = {
     'zbmasking': ZBM_info,
     'fsuppression': FS_info,
     'lorenz': LZ_info,
+    'noise': NZ_info,
     'exp_lb': exp_lb,
     'obs_lb': obs_lb
 }

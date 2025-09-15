@@ -25,7 +25,7 @@ chunksize = 1
 exp_name = 'bmasking'
 
 # Average across trials
-avg_trials = False
+avg_trials = True
 
 # Subject IDs
 sub_list = maind[exp_name]['subIDs']

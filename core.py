@@ -472,13 +472,12 @@ def correxp_getcorrsum(path: str, avg: bool, compound_error: bool):
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
-def dist(x, y, m_norm = False):
+def dist(x, y, m_norm = False, m = None):
 
     d = np.sqrt(np.sum((x - y)**2, axis = 0))
 
-    if m_norm == True:
+    if m_norm == True and m != None:
 
-        m = x.shape[0]
         d = d/m
 
     return d
@@ -603,26 +602,49 @@ def downsample(ts, target_l: int):
     return np.asarray(downsampled)
 
 # Z-Score normalization for multiple trials timeseries
-def zscore(trials_array: np.ndarray):
+def zscore(trials_array: np.ndarray, keep_relations = False):
     
     # 'trials_array' structure
     # Axis 0 = Trials
     # Axis 1 = Electrodes
     # Axis 2 = Time points
 
-    mean = []
-    std = []
-    for trl in trials_array:
+    z_trials_array = np.copy(trials_array)
 
-        mean.append(trl.mean(axis = 1))
-        std.append(trl.std(axis = 1))
+    m = trials_array.mean(axis = (0,2))
+    s = trials_array.std(axis = (0,2))
 
-    # Average across electrodes
-    mean = np.asarray(mean).mean()
-    std = np.asarray(std).mean()
+    if keep_relations == True:
 
-    # Apply zscore
-    z_trials_array = (trials_array - mean)/std
+        m = m.mean()
+        s = s.mean()
+
+        #Apply Z-Score
+        z_trials_array = (trials_array - m)/std
+
+    # Full electrode-wise Z-Score
+    else:
+
+        m = m[np.newaxis,:,np.newaxis]
+        s = s[np.newaxis,:,np.newaxis]
+        
+        M = m
+        S = s
+        for i in range(0,trials_array.shape[2] - 1):
+
+            M = np.concatenate((M,m),axis = 2)
+            S = np.concatenate((S,s),axis = 2)
+        
+        m = M
+        s = S
+        for i in range(0,trials_array.shape[0] - 1):
+
+            M = np.concatenate((M,m),axis = 0)
+            S = np.concatenate((S,s),axis = 0)
+
+
+        # Apply Z-Score
+        z_trials_array = np.divide(trials_array - M, S)
 
     return z_trials_array
 
@@ -658,9 +680,9 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
 # Correlation sum for a single embeddend time series [Grassberger-Procaccia]
-def corr_sum(emb_ts, r: float, m_norm = False):
+def corr_sum(emb_ts, r: float, m_norm = False, m = None):
 
-    N = len(emb_ts)
+    N = emb_ts.shape[-1]
 
     counter = 0
 
@@ -668,7 +690,7 @@ def corr_sum(emb_ts, r: float, m_norm = False):
     for i in range(0,N):
         for j in range(0,i):
             
-            dij = dist(emb_ts[i],emb_ts[j], m_norm = m_norm)
+            dij = dist(emb_ts[:,i],emb_ts[:,j], m_norm = m_norm, m = m)
 
             # Get value of theta
             if dij < r:
@@ -839,30 +861,48 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     if type(ch_list) == tuple:
         
 
-        tl = []
+        TS = []
         for cl in ch_list:
             
             # Get average time series of the cluster
             ts = evoked.get_data(picks = cl)
-            ts = ts.mean(axis = 0)
+            #ts = ts.mean(axis = 0)
             
-            tl.append(ts)
+            TS.append(ts)
         
-        TS = np.asarray(tl)
+        for ts in TS:
 
-    else:    
+            for m in embeddings:
+                
+                emb_ts = []
+                for t in ts:
+
+                    emb_ts.append(td_embedding(t, embedding = m, tau = tau))
+
+                emb_ts = np.asarray(emb_ts)
+
+                emb_ts = np.swapaxes(emb_ts, 1, 2)
+                emb_ts = np.swapaxes(emb_ts, 0, 1)
+
+                emb_ts = np.asarray([emb_ts[i,j] for j in range(0,emb_ts.shape[1]) for i in range(0,emb_ts.shape[0])])
+
+                for r in rvals:
+
+                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(m)))
+
+    else:
 
         TS = evoked.get_data(picks = ch_list)
     
-    # Loop around pois time series
-    for ts in TS:
-        
-        for m in embeddings:
-            emb_ts = td_embedding(ts, embedding = m, tau = tau)
+        # Loop around pois time series
+        for ts in TS:
+            
+            for m in embeddings:
+                emb_ts = td_embedding(ts, embedding = m, tau = tau)
 
-            for r in rvals:
+                for r in rvals:
 
-                CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm))
+                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(m)))
 
     # Returns list in -C style ordering
 

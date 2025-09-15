@@ -27,12 +27,16 @@ avg = {'pois': 2,
 
 clust_dict = {'G': ['Global'],
               'Gavg': ['Global Average'],
+              'mG': ['Global (m norm)'],
               'mGavg': ['Global Average (m norm)'],
               'PO': ['Parieto-Occipital'],
               'F': ['Frontal'],
               'CFPO': ['Frontal', 'Parieto-Occipital'],
               'mCFPO': ['Frontal (m norm)', 'Parieto-Occipital (m norm)'],
-              'test': 'test'}
+              'znoisefree': ['Lorenz'],
+              'm_znoisefree': ['Lorenz (m norm)'],
+              'gnoise': ['Gaussian Noise'],
+              'm_gnoise': ['Gaussian Noise (m norm)']}
 
 obs_dict = {'corrsum': '$C_{m}(r)$ ',
             'correxp': '$\\nu_{m}(r)$ ',
@@ -41,7 +45,8 @@ obs_dict = {'corrsum': '$C_{m}(r)$ ',
 
 cond_dict = {'S__': 'Conscious',
              'S_1': 'Unconscious',
-             'lorenz': 'lorenz'}
+             'lorenz': 'Lorenz',
+             'noise': 'Noise'}
 
 
 ### PLOTTING WRAPPERS ###
@@ -183,6 +188,10 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
             OBS = np.expand_dims(OBS, axis = avg[instructions['avg']])
             E_OBS = np.expand_dims(E_OBS, axis = avg[instructions['avg']])
 
+    if instructions['avg'] == 'sub_pois' or 'pois':
+
+        labels[2] = clust_dict[info['clust_lb']]
+
     # Initzialize list for array rearranging
     rearrange = [0,0,0,0,0]
 
@@ -197,7 +206,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
         rearrange[1] = 1
 
-        title_l = [cond_dict[i] for i in labels[1]]
+        title_l = labels[1]
 
     #elif instructions['figures'] == 'conditions_pois': 
 
