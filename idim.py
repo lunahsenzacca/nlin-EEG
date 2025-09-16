@@ -31,10 +31,10 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'lorenz'
+exp_name = 'zbmasking'
 
 # Label for results folder
-lb = 'znoisefree'
+lb = 'mCFPO'
 
 # Get data averaged across trials
 avg_trials = True
@@ -62,19 +62,25 @@ ch_list = maind[exp_name]['pois']
 sv_path = obs_path(exp_name = exp_name, obs_name = 'idim', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[0:1]
-#ch_list = ch_list[0:3]
 
-#Only averaged conditions
-#conditions = list(conditions)[0:2]
-#Parieto-Occipital and Frontal electrodes
-#ch_list = ['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
+### FOR QUICKER EXECUTION ###
+sub_list = sub_list[0:2]
+#ch_list = ch_list[0:2]
+
+# Only averaged conditions
+conditions = conditions[0:2]
+
+# Compare Frontal and Parieto-occipital clusters
+ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+
+# Crazy stupid all electrodes average
+#ch_list =  ch_list,
 ###########################
 
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(2,21)]
+embeddings = [i for i in range(3,7)]
 
 # Time delay
 tau = maind[exp_name]['tau']

@@ -304,22 +304,27 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
         # Axis 1 = Electrodes
         # Axis 2 = Time points
 
-        # Apply zscore normalization
-        if z_score == True:
-
-            array = zscore(array)
-
         # Average across same condition trials
         if avg_trials == True:
 
             n_trials = array.shape[0]
             avg = array.mean(axis = 0)
 
-            ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i])
+            # Apply Z-Score
+            if z_score == True:
+
+                avg = zscore(avg[np.newaxis])
+
+            ev = mne.EvokedArray(avg[0], info, nave = n_trials, comment = conditions[i])
             evokeds.append(ev)
 
         # Keep each individual trial
         else:
+
+            # Apply zscore normalization
+            if z_score == True:
+
+                array = zscore(array)
 
             for trl in array:
 
@@ -721,7 +726,7 @@ def corr_exp(log_csum: list, log_r: list, n_points: int):
 
     return  ce, n_log_r
 
-# Information Dimension for a singleembedded time series with 2NN-estimation [Krakovská-Chvosteková]
+# Information Dimension for a single embedded time series with 2NN-estimation [Krakovská-Chvosteková]
 def idim(emb_ts: np.ndarray, m_period: int):
 
     N = len(emb_ts)
@@ -888,8 +893,8 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
                 for r in rvals:
 
-                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(m)))
-
+                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(len(emb_ts))))
+                    #print(len(emb_ts))
     else:
 
         TS = evoked.get_data(picks = ch_list)

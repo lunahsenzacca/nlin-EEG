@@ -38,7 +38,8 @@ clust_dict = {'G': ['Global'],
               'znoisefree': ['Lorenz'],
               'm_znoisefree': ['Lorenz (m norm)'],
               'gnoise': ['Gaussian Noise'],
-              'm_gnoise': ['Gaussian Noise (m norm)']}
+              'm_gnoise': ['Gaussian Noise (m norm)'],
+              'test':['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],}
 
 obs_dict = {'corrsum': '$C_{m}(r)$ ',
             'correxp': '$\\nu_{m}(r)$ ',
@@ -62,7 +63,7 @@ def show_figure(fig):
 
     return
 
-def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, alpha_m: float, grid: list, figsize: list):
+def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, label_idxs: list, alpha_m: float, grid: list, figsize: list):
 
     # Scalar value 4-dimensional array
 
@@ -75,7 +76,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, al
 
     cmap = cm.viridis
 
-    norm = mcolors.Normalize(vmin = 0, vmax = len(label) - 1)
+    norm = mcolors.Normalize(vmin = 0, vmax = len(label_idxs) - 1)
 
     fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
 
@@ -86,9 +87,9 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, al
 
     for j, ax in enumerate(ax_iter):
 
-        for c in range(0,obs.shape[1]):
+        for i, c in enumerate(label_idxs):
 
-            color = cmap(norm(c))
+            color = cmap(norm(i))
 
             if j == 0:
                 ax.plot(X, obs[j,c,:], color = color, alpha = 1*alpha_m, label = label[c])
@@ -183,9 +184,14 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     if instructions['avg'] != 'none':
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
+
+            norm = OBS.shape[avg[instructions['avg']]]
+
+            if type(norm) != int:
+                norm = norm[0]*norm[1]
             
             OBS = np.nanmean(OBS, axis = avg[instructions['avg']])
-            E_OBS = np.nanmean(E_OBS, axis = avg[instructions['avg']])
+            E_OBS = np.sqrt(np.nansum(E_OBS**2, axis = avg[instructions['avg']]))/norm
             
             OBS = np.expand_dims(OBS, axis = avg[instructions['avg']])
             E_OBS = np.expand_dims(E_OBS, axis = avg[instructions['avg']])
@@ -223,7 +229,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
         rearrange[3] = 1
 
-        legend_l = [cond_dict[i] for i in labels[1]]
+        legend_l = labels[1]
 
     elif instructions['legend'] == 'embeddings':
 
@@ -251,6 +257,14 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         if i not in rearrange:
             rearrange[0] = i
 
+    if instructions['reduce_legend'] != None:
+
+        label_idxs = instructions['reduce_legend']
+
+    else:
+
+        label_idxs = [i for i in range(0,len(legend_l))]
+
     # Rearrange arrays
     obs = np.permute_dims(OBS, rearrange)
     e_obs = np.permute_dims(E_OBS, rearrange)
@@ -275,7 +289,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     for i in range(0, len(obs)):
     
         # Initialize figures
-        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, label = legend_l, alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'])
+        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, label = legend_l, label_idxs = label_idxs, alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'])
 
         figs.append(fig)
         axes.append(axis)

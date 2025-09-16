@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 16
+workers = 10
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -35,7 +35,7 @@ chunksize = 1
 exp_name = 'zbmasking'
 
 # Label for results folder
-lb = 'mCFPO'
+lb = 'VAN'
 
 # Get data averaged across trials
 avg_trials = True
@@ -79,18 +79,18 @@ ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],[
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(2,21)]
+embeddings = [i for i in range(3,7)]
 
 # Time delay
 tau = maind[exp_name]['tau']
 
 # Window of interest
-frc = [0, 1]
+frc = [.1, .5]
 
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-2, 1, num = 20, base = 10)
+r = np.logspace(-1.7, 0.7, num = 30, base = 10)
 
 # Apply embedding normalization when computing distances
 m_norm = True

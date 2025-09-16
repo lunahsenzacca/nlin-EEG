@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 1
+workers = 10
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -38,7 +38,7 @@ exp_name = 'zbmasking'
 avg_trials = True
 
 # Label for load results files
-clust_lb = 'CFPO'
+clust_lb = 'test'
 
 # Label for saved results files
 sv_lb = '3noavg'
