@@ -32,16 +32,16 @@ chunksize = 1
 ### LOAD PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = 'lorenz'
 
 # Get data averaged across trials
 avg_trials = True
 
 # Label for load results files
-clust_lb = 'test'
+clust_lb = 'znoisefree'
 
 # Label for saved results files
-sv_lb = '3noavg'
+sv_lb = '5noavg'
 
 # Correlation Sum results directory
 path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = clust_lb, avg_trials = avg_trials)
@@ -55,7 +55,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_l
 avg = False
 
 # Number of points in moving average
-n_points = 3
+n_points = 5
 
 # Get log_r for initzialization
 with open(path + 'variables.json', 'r') as f:

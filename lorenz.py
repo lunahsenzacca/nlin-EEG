@@ -29,7 +29,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # ID for save
-subID = '000'
+subID = '100'
 
 # Dataset name to add subject
 exp_name = 'lorenz'
@@ -64,7 +64,7 @@ f = maind[ref_name]['f']
 # Build iterable trajectory generation
 def it_lorenz_trajectory(trajectory_idx: int):
 
-    ts = lorenz_trajectory(dt = 0.01, time_points = 1000, target_l = T)
+    ts = lorenz_trajectory(dt = 0.01, time_points = 10000, target_l = T)
 
     ts = ts.sum(axis = 0)
 
@@ -99,22 +99,28 @@ def mp_lorenz_trajectory():
     # Initzialize Evokeds list
     evokeds = []
 
-    # Apply Z-Score
-    if z_score == True:
-
-        TS = zscore(TS)
-
     # Average trajectories
     if avg_trajectories == True:
 
         n_trials = len(TS)
         avg = TS.mean(axis = 0)
 
+        # Apply Z-Score
+        if z_score == True:
+
+            avg = zscore(avg[np.newaxis])
+            avg = avg[0]
+
         ev = mne.EvokedArray(avg, info, nave = n_trials, comment = 'lorenz')
         evokeds.append(ev)
 
     # Keep each individual one
     else:
+
+        # Apply Z-Score
+        if z_score == True:
+
+            TS = zscore(TS)
 
         for trj in TS:
 

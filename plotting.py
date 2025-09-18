@@ -27,19 +27,22 @@ avg = {'pois': 2,
 
 clust_dict = {'G': ['Global'],
               'Gavg': ['Global Average'],
-              'mG': ['Global (m norm)'],
-              'mGavg': ['Global Average (m norm)'],
+              'mG': ['Global (m)'],
+              'mGavg': ['Global Average (m)'],
               'Gsystem': ['Global System'],
-              'mGsystem': ['Global System (m norm)'],
+              'mGsystem': ['Global System (m)'],
               'PO': ['Parieto-Occipital'],
               'F': ['Frontal'],
               'CFPO': ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],
-              'mCFPO': ['Fp1 (m norm)','Fp2 (m norm)','Fpz (m norm)','Frontal (m norm)','O2 (m norm)','PO4 (m norm)','PO8 (m norm)','Parieto-Occipital (m norm)', 'Fronto-Parieto-Occipital System (m norm)'],
+              'mCFPO': [ i + ' (m)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital', 'Fronto-Parieto-Occipital System']],
               'znoisefree': ['Lorenz'],
-              'm_znoisefree': ['Lorenz (m norm)'],
+              'm_znoisefree': ['Lorenz (m)'],
+              'm_znoisefree_dense': ['Lorenz (m)'],
               'gnoise': ['Gaussian Noise'],
-              'm_gnoise': ['Gaussian Noise (m norm)'],
-              'test':['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],}
+              'm_gnoise': ['Gaussian Noise (m)'],
+              'mCFPOVANdense':[ i + ' (m, VAN)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System']],
+              'mCFPOdense':[ i + ' (m)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System']],
+              'test': ['test']}
 
 obs_dict = {'corrsum': '$C_{m}(r)$ ',
             'correxp': '$\\nu_{m}(r)$ ',
@@ -63,13 +66,11 @@ def show_figure(fig):
 
     return
 
-def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, label_idxs: list, alpha_m: float, grid: list, figsize: list):
+def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: list, label: list, label_idxs: list, alpha_m: float, grid: list, figsize: list):
 
-    # Scalar value 4-dimensional array
-
-    # Axis 0 = Subjects
+    # Axis 0 = Multiplot
     # Axis 1 = Legend
-    # Axis 3 = X value
+    # Axis 2 = X value
 
     obs = OBS[:,:,:]
     e_obs = E_OBS[:,:,:]
@@ -80,12 +81,12 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, label: list, la
 
     fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
 
-    if grid[0]*grid[1] == 1:
+    if len(multi_idxs) == 1:
         ax_iter = [axs]
     else:
         ax_iter = axs.flat
 
-    for j, ax in enumerate(ax_iter):
+    for j, ax in zip(multi_idxs, ax_iter):
 
         for i, c in enumerate(label_idxs):
 
@@ -265,6 +266,14 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
         label_idxs = [i for i in range(0,len(legend_l))]
 
+    if instructions['reduce_multi'] != None:
+
+        multi_idxs = instructions['reduce_multi']
+
+    else:
+
+        multi_idxs = [i for i in range(0,len(plot_l))]
+
     # Rearrange arrays
     obs = np.permute_dims(OBS, rearrange)
     e_obs = np.permute_dims(E_OBS, rearrange)
@@ -289,7 +298,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     for i in range(0, len(obs)):
     
         # Initialize figures
-        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, label = legend_l, label_idxs = label_idxs, alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'])
+        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, multi_idxs = multi_idxs, label = legend_l, label_idxs = label_idxs, alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'])
 
         figs.append(fig)
         axes.append(axis)
@@ -299,7 +308,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     grid = instructions['grid']
     # Check if we have multiple axes and initialize proper iterable
     for axs in axes:
-        if grid[0]*grid[1] == 1:
+        if len(multi_idxs) == 1:
             ax_iter = [axs]
         else:
             ax_iter = axs.flat

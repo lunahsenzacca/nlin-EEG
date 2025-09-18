@@ -183,8 +183,9 @@ LZ_paths = {
 }
 
 LZ_info = {
+    'T': 451,
     'pois': [0],
-    'subIDs': ['000'],
+    'subIDs': ['000','100'],
     'conditions': LZ_conditions,
     'directories': LZ_paths,
     'k': 5,
@@ -205,6 +206,7 @@ NZ_paths = {
 }
 
 NZ_info = {
+    'T': 451,
     'pois': [0],
     'subIDs': ['000'],
     'conditions': NZ_conditions,

@@ -26,16 +26,16 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 10
+workers = 1
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = 'lorenz'
 
 # Label for results folder
-lb = 'VAN'
+lb = 'znoisefree1'
 
 # Get data averaged across trials
 avg_trials = True
@@ -63,14 +63,14 @@ ch_list = maind[exp_name]['pois']
 sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[0:2]
+sub_list = sub_list[1:2]
 #ch_list = ch_list[0:2]
 
 # Only averaged conditions
-conditions = conditions[0:2]
+#conditions = conditions[0:2]
 
 # Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+#ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,
@@ -79,21 +79,21 @@ ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],[
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(3,7)]
+embeddings = [i for i in range(3,21)]
 
 # Time delay
 tau = maind[exp_name]['tau']
 
 # Window of interest
-frc = [.1, .5]
+frc = [0, 1]
 
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-1.7, 0.7, num = 30, base = 10)
+r = np.logspace(-1.7, 0.7, num = 150, base = 10)*2
 
 # Apply embedding normalization when computing distances
-m_norm = True
+m_norm = False
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
@@ -160,15 +160,15 @@ def mp_loadevokeds():
 def mp_correlation_sum(evoks_iters: list, points: list):
 
     # Get absolute complexity of the script and estimated completion time
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)*((maind[exp_name]['T']**2)*(frc[1]-frc[0])**2)
 
-    velocity = 0.52
+    velocity = 0.52/(451**2)
 
     import datetime
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
 
     print('\nComputing Correlation Sum over each trial')
-    print('\nNumber of single computations: ' + str(complexity))
+    print('\nNumber of single computations: ' + str(int(complexity)))
     print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
 

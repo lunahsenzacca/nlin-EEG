@@ -97,20 +97,26 @@ def mp_noise():
     # Initzialize Evokeds list
     evokeds = []
 
-    # Apply Z-Score
-    if z_score == True:
-
-        TS = zscore(TS)
-
     # Average trajectories
     if avg_trajectories == True:
 
-        ev = mne.EvokedArray(TS[0], info, nave = 1, comment = 'noise')
+        # Apply Z-Score
+        if z_score == True:
+
+            TS = zscore(TS)
+            TS = TS[0]
+
+        ev = mne.EvokedArray(TS, info, nave = 1, comment = 'noise')
         
         evokeds.append(ev)
 
     # Keep each individual one
     else:
+
+        # Apply Z-Score
+        if z_score == True:
+
+            TS = zscore(TS)
 
         for trj in TS:
 

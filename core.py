@@ -314,8 +314,9 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
             if z_score == True:
 
                 avg = zscore(avg[np.newaxis])
+                avg = avg[0]
 
-            ev = mne.EvokedArray(avg[0], info, nave = n_trials, comment = conditions[i])
+            ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i])
             evokeds.append(ev)
 
         # Keep each individual trial
@@ -568,7 +569,7 @@ def lorenz_trajectory(dt: float, time_points: int, target_l = None, x0 = None):
     # Step through "time", calculating the partial derivatives at the current point
     # and using them to estimate the next point
     for i in range(time_points):
-        xyzs[i + 1] = xyzs[i] + lorenz_delta(xyzs[i]) * dt
+        xyzs[i + 1] = xyzs[i] + lorenz_delta(xyzs[i])*dt
 
     xyzs = np.swapaxes(xyzs, 0, 1)
 
@@ -635,14 +636,14 @@ def zscore(trials_array: np.ndarray, keep_relations = False):
         
         M = m
         S = s
-        for i in range(0,trials_array.shape[2] - 1):
+        for i in range(1,trials_array.shape[2]):
 
             M = np.concatenate((M,m),axis = 2)
             S = np.concatenate((S,s),axis = 2)
         
         m = M
         s = S
-        for i in range(0,trials_array.shape[0] - 1):
+        for i in range(1,trials_array.shape[0]):
 
             M = np.concatenate((M,m),axis = 0)
             S = np.concatenate((S,s),axis = 0)
@@ -894,7 +895,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
                 for r in rvals:
 
                     CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(len(emb_ts))))
-                    #print(len(emb_ts))
+
     else:
 
         TS = evoked.get_data(picks = ch_list)
@@ -904,6 +905,10 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
             
             for m in embeddings:
                 emb_ts = td_embedding(ts, embedding = m, tau = tau)
+
+                emb_ts = np.asarray(emb_ts)
+
+                emb_ts = np.swapaxes(emb_ts, 0, 1)
 
                 for r in rvals:
 
