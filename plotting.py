@@ -41,11 +41,12 @@ clust_dict = {'G': ['Global'],
               'gnoise': ['Gaussian Noise'],
               'm_gnoise': ['Gaussian Noise (m)'],
               'mCFPOVANdense':[ i + ' (m, VAN)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System']],
-              'mCFPOdense':[ i + ' (m)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System']],
+              'mCFPOdense':['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],
               'test': ['test']}
 
 obs_dict = {'corrsum': '$C_{m}(r)$ ',
             'correxp': '$\\nu_{m}(r)$ ',
+            'peaks': '$\\nu_{max}$ ',
             'idim': '$D_{2}(m)$ ',
             'llyap': '$\\lambda(m)$ '}
 
@@ -66,7 +67,7 @@ def show_figure(fig):
 
     return
 
-def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: list, label: list, label_idxs: list, alpha_m: float, grid: list, figsize: list):
+def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: list, label: list, label_idxs: list, alpha_m: float, grid: list, figsize: list, style: str, markersize: str, linewidth: str):
 
     # Axis 0 = Multiplot
     # Axis 1 = Legend
@@ -81,7 +82,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
     fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
 
-    if len(multi_idxs) == 1:
+    if len(multi_idxs) == 1 or grid[0]*grid[1] == 1:
         ax_iter = [axs]
     else:
         ax_iter = axs.flat
@@ -93,11 +94,11 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
             color = cmap(norm(i))
 
             if j == 0:
-                ax.plot(X, obs[j,c,:], color = color, alpha = 1*alpha_m, label = label[c])
+                ax.plot(X, obs[j,c,:], style, markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
             else:
-                ax.plot(X, obs[j,c,:], color = color, alpha = 1*alpha_m)
+                ax.plot(X, obs[j,c,:], style, markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
             
-            ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
+            #ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
 
     plt.close()
 
@@ -254,6 +255,14 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
         instructions['xlabel'] = '$\\log(r)$'
 
+    elif instructions['axis'] == 'pois':
+
+        rearrange[4] = 2
+
+        X = np.asarray([i for i in range(0,len(labels[2]))])
+
+        instructions['xlabel'] = 'POIs'
+
     for i in range(0,len(rearrange)):
         if i not in rearrange:
             rearrange[0] = i
@@ -280,11 +289,11 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     
     # Reduce extra axis
     if instructions['reduce_method'] == 'product':
-        
-        obs = [i for ob in obs for i in ob]
-        e_obs = [i for e_ob in e_obs for i in e_ob]
 
-    title_l = [str(i) + '; ' + str(j) for i in labels[rearrange[0]] for j in title_l]
+        title_l = [str(i) + '; ' + str(j) for i in labels[rearrange[0]] for j in title_l]
+
+    obs = [i for ob in obs for i in ob]
+    e_obs = [i for e_ob in e_obs for i in e_ob]
 
     print(np.asarray(obs).shape)
 
@@ -298,7 +307,10 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     for i in range(0, len(obs)):
     
         # Initialize figures
-        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, multi_idxs = multi_idxs, label = legend_l, label_idxs = label_idxs, alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'])
+        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, multi_idxs = multi_idxs, label = legend_l, label_idxs = label_idxs,
+                                    alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'],
+                                    style = instructions['style'],
+                                    markersize = instructions['markersize'], linewidth = instructions['linewidth'])
 
         figs.append(fig)
         axes.append(axis)
@@ -308,14 +320,19 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     grid = instructions['grid']
     # Check if we have multiple axes and initialize proper iterable
     for axs in axes:
-        if len(multi_idxs) == 1:
+        if len(multi_idxs) == 1 or instructions['grid'][0]*instructions['grid'][1] == 1:
             ax_iter = [axs]
         else:
             ax_iter = axs.flat
         
         for ax in ax_iter:
             ax.set_ylim(instructions['ylim'])
-            ax.grid(instructions['showgrid'], linestyle = '--')
+
+            if instructions['showgrid'] != False:
+                ax.grid(instructions['showgrid'], linestyle = '--')
+
+            if instructions['axis'] == 'pois':
+                ax.set_xticks(ticks = X, labels = labels[2], rotation = 90, fontsize = instructions['textsz']/2)
 
     for i, fig in enumerate(figs):
 
@@ -328,7 +345,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         fig.suptitle(title, size = instructions['textsz'])
         fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
         fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
-        fig.legend(loc = 'center right', title = instructions['legend_t'], fontsize = instructions['textsz']*0.7)
+        fig.legend(loc = 'lower left', title = instructions['legend_t'], fontsize = instructions['textsz']*0.7)
         
         fig.tight_layout()
 

@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 1
+workers = 3
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -35,7 +35,7 @@ chunksize = 1
 exp_name = 'lorenz'
 
 # Label for results folder
-lb = 'znoisefree1'
+lb = 'm_znoisefree'
 
 # Get data averaged across trials
 avg_trials = True
@@ -63,7 +63,7 @@ ch_list = maind[exp_name]['pois']
 sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
-sub_list = sub_list[1:2]
+#sub_list = sub_list[1:2]
 #ch_list = ch_list[0:2]
 
 # Only averaged conditions
@@ -93,7 +93,7 @@ frc = [0, 1]
 r = np.logspace(-1.7, 0.7, num = 150, base = 10)*2
 
 # Apply embedding normalization when computing distances
-m_norm = False
+m_norm = True
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:

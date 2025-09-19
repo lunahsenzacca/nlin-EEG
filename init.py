@@ -36,6 +36,7 @@ exp_lb = {
 obs_lb = {
     'corrsum': 'CS',
     'correxp': 'CE',
+    'peaks': 'PK',
     'idim': 'D2',
     'llyap': 'LLE'
 
@@ -185,7 +186,7 @@ LZ_paths = {
 LZ_info = {
     'T': 451,
     'pois': [0],
-    'subIDs': ['000','100'],
+    'subIDs': ['000','100','200'],
     'conditions': LZ_conditions,
     'directories': LZ_paths,
     'k': 5,

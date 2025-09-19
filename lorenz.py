@@ -29,7 +29,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # ID for save
-subID = '100'
+subID = '000'
 
 # Dataset name to add subject
 exp_name = 'lorenz'
@@ -64,7 +64,7 @@ f = maind[ref_name]['f']
 # Build iterable trajectory generation
 def it_lorenz_trajectory(trajectory_idx: int):
 
-    ts = lorenz_trajectory(dt = 0.01, time_points = 10000, target_l = T)
+    ts = lorenz_trajectory(dt = 0.01, time_points = 1000, target_l = T)
 
     ts = ts.sum(axis = 0)
 

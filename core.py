@@ -43,6 +43,9 @@ from scipy.stats import linregress
 # Power spetrum of time series (Uses FFT)
 from scipy.signal import periodogram
 
+# Find peaks in data
+from scipy.signal import find_peaks
+
 
 ### UTILITY FUNCTIONS ###
 
@@ -134,6 +137,14 @@ def obs_data(obs_path: str, obs_name: str, compound_error: bool):
         M = np.load(obs_path + 'correxp.npy')
         x = variables['embeddings']
         y = variables['log_r']
+
+        X = [x,y]
+
+    elif obs_name == 'peaks':
+
+        M = np.load(obs_path + 'peaks.npy')
+        x = variables['embeddings']
+        y = np.load(obs_path + 'peaks_r.npy')
 
         X = [x,y]
 
@@ -843,6 +854,66 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
     lyap_e = fit.stderr
 
     return lyap, lyap_e, x, y, fit
+
+# Find peaks in Correlation Exponent sub-wise results
+def ce_peaks(sub_CE: np.ndarray, log_r: list):
+
+    a = sub_CE[0]
+    a_ = sub_CE[1]
+
+    # Initzialize results array
+    D2 = []
+    D2e = []
+    D2r = []
+    P = []
+    Pe = []
+    Pr = []
+    for a1, a1_ in zip(a,a_):
+        for a2, a2_ in zip(a1,a1_):
+            for a3, a3_ in zip(a2,a2_):
+
+
+                # Search for the plateau(Needs polishing)
+                peaks = find_peaks(-a3, distance = 5)
+
+                d2s = []
+                r = []
+                e = []
+                for i in peaks[0]:
+                    #if log_r[i] < 0: #THIS IS ARBITRAY
+                    d2s.append(a3[i])
+                    e.append(a3_[i])
+                    r.append(log_r[i])
+
+                D2.append(np.asarray(d2s).mean())
+                D2e.append(np.asarray(d2s).std() + np.asarray(e).mean())
+                D2r.append(np.asarray(r).mean())
+
+                # Search for the last peak
+                peaks = find_peaks(a3, distance = 30, height = (1, 7), prominence = (0.5,None), width = (5,None))
+
+                if len(peaks[0]) != 0:
+                    P.append(a3[peaks[0][-1]])
+                    Pe.append(a3_[peaks[0][-1]])
+                    Pr.append(log_r[peaks[0][-1]])
+                else:
+                    P.append(np.nan)
+                    Pe.append(np.nan)
+                    Pr.append(np.nan)
+
+    D2 = np.asarray(D2).reshape(a.shape[:-1])
+    D2e = np.asarray(D2e).reshape(a.shape[:-1])
+    D2 = np.concatenate((D2[np.newaxis], D2e[np.newaxis]), axis = 0)
+
+    D2r = np.asarray(D2r).reshape(a.shape[:-1])
+
+    P = np.asarray(P).reshape(a.shape[:-1])
+    Pe = np.asarray(Pe).reshape(a.shape[:-1])
+    P = np.concatenate((P[np.newaxis], Pe[np.newaxis]), axis = 0)
+
+    Pr = np.asarray(Pr).reshape(a.shape[:-1])
+
+    return D2, D2r, P, Pr
 
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
