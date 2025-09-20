@@ -33,7 +33,7 @@ avg_trials = True
 
 # Labels for load results files
 clust_lb = 'mCFPOdense'
-calc_lb = '5noavg'
+calc_lb = '3gauss'
 
 # Correlation Exponent saved results directory
 path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_lb, calc_lb = calc_lb, avg_trials = avg_trials)

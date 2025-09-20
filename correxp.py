@@ -38,10 +38,10 @@ exp_name = 'zbmasking'
 avg_trials = True
 
 # Label for load results files
-clust_lb = 'mCFPOVANdense'
+clust_lb = 'mCFPOdense'
 
 # Label for saved results files
-sv_lb = '5noavg'
+sv_lb = '3gauss'
 
 # Correlation Sum results directory
 path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = clust_lb, avg_trials = avg_trials)
@@ -51,11 +51,18 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_l
 
 ### SCRIPT PARAMETERS ###
 
-# Average Correlation Sum over electrodes
-avg = False
+# Number of points in moving average for derivative computation
+n_points = 3
 
-# Number of points in moving average
-n_points = 5
+# Apply gaussian filter to results for smoothing
+gauss_filter = True
+# Parameters of the gaussian filter
+scale = 0.05
+cutoff = 10
+
+if gauss_filter == False:
+    scale = None
+    cutoff = None
 
 # Get log_r for initzialization
 with open(path + 'variables.json', 'r') as f:
@@ -68,7 +75,9 @@ log_r = variables['log_r']
 # Build iterable function
 def it_correlation_exponent(sub_log_CS: np.ndarray):
 
-    CE, E_CE = correlation_exponent(sub_log_CS = sub_log_CS, avg_trials = avg_trials, n_points = n_points, log_r = log_r)
+    CE, E_CE = correlation_exponent(sub_log_CS = sub_log_CS, avg_trials = avg_trials,
+                                    n_points = n_points, gauss_filter = gauss_filter,
+                                    scale = scale, cutoff = cutoff, log_r = log_r)
 
     return CE, E_CE
 
@@ -78,7 +87,7 @@ def mp_correlation_exponent():
     print('\nPreparing Correlation Sum results for computation')
 
     # Build iterable over subject
-    log_CS_iters, variables = correxp_getcorrsum(path = path, avg = avg, compound_error = False)
+    log_CS_iters, variables = correxp_getcorrsum(path = path, compound_error = not(avg_trials))
 
     # Check if mobile average leaves more than three cooridnates
     rlen = len(log_r) - n_points + 1
@@ -126,8 +135,13 @@ def mp_correlation_exponent():
     np.save(sv_path + 'correxp.npy', CE)
 
     variables['log_r'] = r_log_r
-    variables['avg'] = avg
     variables['n_points'] = n_points
+
+    variables['gauss'] = gauss_filter
+
+    if gauss_filter == True:
+        variables['scale'] = scale
+        variables['cutoff'] = cutoff
 
     with open(sv_path + 'variables.json', 'w') as f:
         json.dump(variables, f)

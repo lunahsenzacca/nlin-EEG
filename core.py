@@ -460,21 +460,12 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
     return RES
 
 # Prepare corrsum.py results for correxp.py script
-def correxp_getcorrsum(path: str, avg: bool, compound_error: bool):
+def correxp_getcorrsum(path: str, compound_error: bool):
 
     # Load correlation sum results
     CS, E_CS, X, variables = obs_data(obs_path = path, obs_name = 'corrsum', compound_error = compound_error)
 
     clst = variables['clustered']
-
-    # Deny average method when corrsum results come from clustered pois
-    if clst == True:
-        avg = False
-        print('\nClustered input: \'avg\' variable bypassed to \'False\'')
-
-    if avg == True:
-        CS = CS.mean(axis = 2)[:,:,np.newaxis,:,:]
-        E_CS = E_CS + CS.std(axis = 2)[:,:,np.newaxis,:,:]
 
     # Get log values
     CS = np.concatenate((CS[np.newaxis],E_CS[np.newaxis]), axis = 0)
@@ -665,6 +656,37 @@ def zscore(trials_array: np.ndarray, keep_relations = False):
 
     return z_trials_array
 
+# 1-D function Adymensional Gaussian kernel convolution
+def gauss_kernel(function: np.array, x: np.array, scale: float, cutoff: int, order: int):
+
+    i_len = len(function)
+
+    # Create convoluted array
+    c_function = np.copy(function)
+    c_x = np.copy(x)
+
+    # Create redundant head and tails
+    f_tail = np.array([function[0] for i in range(0,cutoff)])
+    f_head = np.array([function[-1] for i in range(0,cutoff)])
+
+    x_tail = np.array([x[0]  for i in range(0,cutoff)])
+    x_head = np.array([x[-1] for i in range(0,cutoff)])
+
+    function = np.concatenate((f_tail, function, f_head))
+    x = np.concatenate((x_tail, x, x_head))
+
+    for i in range(0,i_len):
+
+        vals = np.array([function[j] for j in range(i, 2*cutoff + i + 1)])
+        if order == 0:
+            ker = np.array([np.exp((x[j]-c_x[i])**2)/(2*(scale**2)) for j in range(i, 2*cutoff + i + 1)])
+        elif order == 1:
+            print('Order 1 kernel Not yet implemented')
+            return
+
+        c_function[i] = np.sum(vals*ker)/np.sum(ker)
+
+    return c_function
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
 # Time-delay embedding of a single time series
@@ -718,25 +740,38 @@ def corr_sum(emb_ts, r: float, m_norm = False, m = None):
     return csum
 
 # Correlation Exponent computation
-def corr_exp(log_csum: list, log_r: list, n_points: int):
+def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, scale = None, cutoff = None):
 
     rlen = len(log_r) - n_points + 1
 
     ce =  []
+    e_ce = []
     n_log_r = []
     for i in range(0,rlen):
 
         m = np.array([(log_csum[i+j+1] - log_csum[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
 
-        rs = [log_r[i+j] for j in range(0,n_points)]
+        # Get value for error of slope
+        with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                results = linregress(x = np.asarray(log_r)[i:i + n_points], y = log_csum[i:i + n_points], nan_policy = 'omit')
 
         ce.append(np.asarray(m).mean())
-        n_log_r.append(np.asarray(rs).mean())
+        e_ce.append(results.stderr)
+
+        n_log_r.append(np.mean(np.asarray(log_r)[i:i + n_points]))
 
     ce = np.asarray(ce)
+    e_ce = np.asarray(e_ce)
+
     n_log_r = np.asarray(n_log_r)
 
-    return  ce, n_log_r
+    # Apply Gaussian filtering for smoothing
+    if gauss_filter == True:
+        ce = gauss_kernel(function = ce, x = n_log_r, scale = scale, cutoff = cutoff, order = 0)
+        e_ce = gauss_kernel(function = e_ce, x = n_log_r, scale = scale, cutoff = cutoff, order = 0)
+
+    return  ce, e_ce
 
 # Information Dimension for a single embedded time series with 2NN-estimation [Krakovská-Chvosteková]
 def idim(emb_ts: np.ndarray, m_period: int):
@@ -890,7 +925,7 @@ def ce_peaks(sub_CE: np.ndarray, log_r: list):
                 D2r.append(np.asarray(r).mean())
 
                 # Search for the last peak
-                peaks = find_peaks(a3, distance = 30, height = (1, 7), prominence = (0.5,None), width = (5,None))
+                peaks = find_peaks(a3, distance = 40, height = (1, 7), prominence = (None,None), width = (6,None))
 
                 if len(peaks[0]) != 0:
                     P.append(a3[peaks[0][-1]])
@@ -1113,7 +1148,8 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
     return ly, ly_e
 
 # Sub-wise function for correlation exponent computation
-def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_r: list):
+def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_r: list,
+                         gauss_filter: None, scale: None, cutoff = None):
 
     # Reduced rvals lenght for mobile average
     rlen = len(log_r) - n_points + 1
@@ -1128,29 +1164,10 @@ def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_
         for ab, ab_ in zip(abc, abc_):
             for a, a_ in zip(ab, ab_):
 
-                for i in range(0,rlen):
+                ce, e_ce = corr_exp(log_csum = a, log_r = log_r, n_points = n_points, gauss_filter = gauss_filter, scale = scale, cutoff = cutoff)
 
-                    # Get slope of three points
-                    with warnings.catch_warnings():
-                            warnings.simplefilter('ignore')
-                            results = linregress(x = np.asarray(log_r)[i:i + n_points], y = a[i:i + n_points], nan_policy = 'omit')
-
-                    CE.append(results.slope)
-
-                    # Check if we have non trivial errors for the correlation sum
-                    if np.nanmean(a_) != 0:
-
-                        # Get values for mobile average
-                        #m = np.array([(a[i+j+1] - a[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
-                        em = np.array([(np.sqrt(a_[i+j+1]**2 + a_[i+j]**2))/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
-
-                        #CE.append(m.mean())
-                        E_CE.append((np.sqrt(np.sum(em**2)))/(n_points-1) + results.stderr)
-                    
-                    # Otherwise append error from linear regression
-                    else:
-
-                        E_CE.append(results.stderr)
+                CE.append(ce)
+                E_CE.append(e_ce)
 
     CE = np.asarray(CE)
     E_CE = np.asarray(E_CE)

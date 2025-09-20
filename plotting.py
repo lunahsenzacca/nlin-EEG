@@ -87,18 +87,30 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
     else:
         ax_iter = axs.flat
 
+    n = 0
     for j, ax in zip(multi_idxs, ax_iter):
 
         for i, c in enumerate(label_idxs):
 
             color = cmap(norm(i))
 
-            if j == 0:
-                ax.plot(X, obs[j,c,:], style, markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
-            else:
-                ax.plot(X, obs[j,c,:], style, markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+            if style == 'curve':
             
-            #ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
+                if n == 0:
+                    ax.plot(X, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
+                else:
+                    ax.plot(X, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+
+                ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
+
+            if style == 'marker':
+
+                if n == 0:
+                    ax.errorbar(X, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
+                else:
+                    ax.errorbar(X, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+
+        n += 1
 
     plt.close()
 
@@ -327,6 +339,10 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
         
         for ax in ax_iter:
             ax.set_ylim(instructions['ylim'])
+
+            ylocs = ax.get_yticks()
+            ylabels = [f'{yloc: .1f}' for yloc in ylocs]
+            ax.set_yticks(ticks = ylocs, labels = ylabels, fontsize = instructions['textsz']/2)
 
             if instructions['showgrid'] != False:
                 ax.grid(instructions['showgrid'], linestyle = '--')

@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 3
+workers = 2
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -35,7 +35,7 @@ chunksize = 1
 exp_name = 'lorenz'
 
 # Label for results folder
-lb = 'm_znoisefree'
+lb = 'm_znoisefree1'
 
 # Get data averaged across trials
 avg_trials = True
@@ -63,7 +63,7 @@ ch_list = maind[exp_name]['pois']
 sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[1:2]
+sub_list = sub_list[2:3]
 #ch_list = ch_list[0:2]
 
 # Only averaged conditions
@@ -83,6 +83,7 @@ embeddings = [i for i in range(3,21)]
 
 # Time delay
 tau = maind[exp_name]['tau']
+tau = 1
 
 # Window of interest
 frc = [0, 1]

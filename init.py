@@ -184,7 +184,7 @@ LZ_paths = {
 }
 
 LZ_info = {
-    'T': 451,
+    'T': 1000,
     'pois': [0],
     'subIDs': ['000','100','200'],
     'conditions': LZ_conditions,
