@@ -22,7 +22,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking'
+exp_name = 'bmasking_dense'
 
 # Average across trials
 avg_trials = True

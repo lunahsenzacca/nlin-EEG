@@ -29,6 +29,8 @@ p_path = path + 'pics/'
 exp_lb = {
     'bmasking': 'BM',
     'zbmasking': 'ZBM',
+    'bmasking_dense': 'BMD',
+    'zbmasking_dense': 'ZBMD',
     'fsuppression' : 'FS',
     'lorenz': 'LZ',
     'noise': 'NZ'
@@ -101,7 +103,6 @@ BM_paths = {
     'avg_data': path + 'evoked/avg/' + exp_lb['bmasking'] + '/',
     'trl_data': path + 'evoked/trl/' + exp_lb['bmasking'] + '/',
     'subject': [d_path + exp_lb['bmasking'] + '/subj','_band_resample/'],
-    'ch_info': d_path +  exp_lb['bmasking'] + '/subj001_band_resample/channel.mat',
     'avg_results': r_path + 'avg/' + exp_lb['bmasking'] + '/',
     'trl_results': r_path + 'trl/' + exp_lb['bmasking'] + '/',
     'avg_pics': p_path +'avg/' + exp_lb['bmasking'] + '/',
@@ -112,7 +113,6 @@ BM_paths = {
 BM_info = {
     'T': 451,
     'f': 500,
-    'montage': 'standard_1020',
     'subIDs': BM_subids,
     'pois': BM_pois,
     'conditions': BM_conditions,
@@ -129,7 +129,6 @@ ZBM_paths = {
     'avg_data': path + 'evoked/avg/' + exp_lb['zbmasking'] + '/',
     'trl_data': path + 'evoked/trl/' + exp_lb['zbmasking'] + '/',
     'subject': [d_path + exp_lb['bmasking'] + '/subj','_band_resample/'],
-    'ch_info': d_path +  exp_lb['bmasking'] + '/subj001_band_resample/channel.mat',
     'avg_results': r_path + 'avg/' + exp_lb['zbmasking'] + '/',
     'trl_results': r_path + 'trl/' + exp_lb['zbmasking'] + '/',
     'avg_pics': p_path +'avg/' + exp_lb['zbmasking'] + '/',
@@ -139,7 +138,6 @@ ZBM_paths = {
 ZBM_info = {
     'T': 451,
     'f': 500,
-    'montage': 'standard_1020',
     'subIDs': BM_subids,
     'pois': BM_pois,
     'conditions': BM_conditions,
@@ -148,6 +146,63 @@ ZBM_info = {
     'Rth': 15,
     'tau': 20,
     'avT': 40
+}
+
+BMD_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 
+            'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 'Pz', 'FC1', 'FC2',
+            'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9', 'TP10', 'F1', 'F2',
+            'C1', 'C2', 'P1', 'P2', 'AF3', 'AF4', 'FC3', 'FC4', 'CP3', 'CP4', 'PO3', 'PO4',
+            'F5', 'F6', 'C5', 'C6', 'P5', 'P6', 'AF7', 'AF8', 'FT7', 'FT8', 'TP7', 'TP8',
+            'PO7', 'PO8', 'Fpz', 'CPz', 'POz', 'Oz']
+
+# Create similar dictionary for new preprocessing
+BMD_paths = {
+    'rw_data': d_path + exp_lb['bmasking_dense'] + '/',
+    'avg_data': path + 'evoked/avg/' + exp_lb['bmasking_dense'] + '/',
+    'trl_data': path + 'evoked/trl/' + exp_lb['bmasking_dense'] + '/',
+    'subject': [d_path + exp_lb['bmasking_dense'] + '/','/'],
+    'avg_results': r_path + 'avg/' + exp_lb['bmasking_dense'] + '/',
+    'trl_results': r_path + 'trl/' + exp_lb['bmasking_dense'] + '/',
+    'avg_pics': p_path +'avg/' + exp_lb['bmasking_dense'] + '/',
+    'trl_pics': p_path +'trl/' + exp_lb['bmasking_dense'] + '/'
+}
+
+BMD_info = {
+    'T': 901,
+    'f': 1000,
+    'subIDs': BM_subids,
+    'pois': BMD_pois,
+    'conditions': BM_conditions,
+    'directories': BMD_paths,
+    'k': 8,
+    'Rth': 15,
+    'tau': 40,
+    'avT': 80
+}
+
+# Create similar dictionary for new preprocessing
+ZBMD_paths = {
+    'rw_data': d_path + exp_lb['zbmasking_dense'] + '/',
+    'avg_data': path + 'evoked/avg/' + exp_lb['zbmasking_dense'] + '/',
+    'trl_data': path + 'evoked/trl/' + exp_lb['zbmasking_dense'] + '/',
+    'subject': [d_path + exp_lb['zbmasking_dense'] + '/','/'],
+    'avg_results': r_path + 'avg/' + exp_lb['zbmasking_dense'] + '/',
+    'trl_results': r_path + 'trl/' + exp_lb['zbmasking_dense'] + '/',
+    'avg_pics': p_path +'avg/' + exp_lb['zbmasking_dense'] + '/',
+    'trl_pics': p_path +'trl/' + exp_lb['zbmasking_dense'] + '/'
+}
+
+ZBMD_info = {
+    'T': 901,
+    'f': 1000,
+    'subIDs': BM_subids,
+    'pois': BMD_pois,
+    'conditions': BM_conditions,
+    'directories': ZBMD_paths,
+    'k': 8,
+    'Rth': 15,
+    'tau': 40,
+    'avT': 80
 }
 
 
@@ -224,6 +279,8 @@ maind = {
     'path': path,
     'bmasking': BM_info,
     'zbmasking': ZBM_info,
+    'bmasking_dense': BMD_info,
+    'zbmasking_dense': ZBMD_info,
     'fsuppression': FS_info,
     'lorenz': LZ_info,
     'noise': NZ_info,

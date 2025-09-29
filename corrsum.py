@@ -26,16 +26,16 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 2
+workers = 16
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'lorenz'
+exp_name = 'zbmasking_dense'
 
 # Label for results folder
-lb = 'm_znoisefree1'
+lb = 'mCFPOdense'
 
 # Get data averaged across trials
 avg_trials = True
@@ -63,14 +63,14 @@ ch_list = maind[exp_name]['pois']
 sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
-sub_list = sub_list[2:3]
+#sub_list = sub_list[2:3]
 #ch_list = ch_list[0:2]
 
 # Only averaged conditions
-#conditions = conditions[0:2]
+conditions = conditions[0:2]
 
 # Compare Frontal and Parieto-occipital clusters
-#ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,
@@ -79,11 +79,10 @@ sub_list = sub_list[2:3]
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(3,21)]
+embeddings = [i for i in range(3,7)]
 
 # Time delay
 tau = maind[exp_name]['tau']
-tau = 1
 
 # Window of interest
 frc = [0, 1]
@@ -91,7 +90,7 @@ frc = [0, 1]
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-1.7, 0.7, num = 150, base = 10)*2
+r = np.logspace(-1.8, 0.7, num = 150, base = 10)
 
 # Apply embedding normalization when computing distances
 m_norm = True

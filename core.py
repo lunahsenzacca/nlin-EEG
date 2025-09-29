@@ -173,15 +173,8 @@ def obs_data(obs_path: str, obs_name: str, compound_error: bool):
 # Convert channel names to appropriate .mat data index
 def name_toidx(names: list| tuple, exp_name: str):
 
-    # Load the .mat file (adjust the path)
-    mat_data = sio.loadmat(maind[exp_name]['directories']['ch_info'])
-
-    # Get list of electrodes names in .mat file
-    ch_list = []
-
-    ### THIS PROBABLY IS DATASET SPECIFIC, BE CAREFUL WITH NEW DATA
-    for m in mat_data['Channel'][0]:
-        ch_list.append(str(m[0][0]))
+    # Get list of electrodes names
+    ch_list = maind[exp_name]['pois']
 
     # Check if we are clustering electrodes with tuples
     if type(names) ==  tuple:
@@ -236,9 +229,6 @@ def raw_tolist(subID: str, exp_name: str):
     sub_folder = sub_path(subID, exp_name = exp_name)
     all_files = os.listdir(sub_folder)
 
-    # Load the .mat file (Some folders could be missing it)
-    mat_data = sio.loadmat(maind[exp_name]['directories']['ch_info'])
-
     # Get list of electrodes names in .mat file
     ch_list = maind[exp_name]['pois']
 
@@ -251,11 +241,9 @@ def raw_tolist(subID: str, exp_name: str):
     # Loop over conditions
     data_list = []
     for cond in conditions:
-        
-        # This depends on the raw data structure
-        if exp_name == 'bmasking':
-            my_cond_files = [f for f in all_files if cond in f ]
-        
+
+        my_cond_files = [f for f in all_files if cond in f ]
+
         # Get indexes of electrodes
         untup = name_toidx(ch_list, exp_name = exp_name)
 
@@ -269,10 +257,15 @@ def raw_tolist(subID: str, exp_name: str):
             if exp_name == 'bmasking':
                 mat_data = sio.loadmat(path)
                     
-                data = mat_data['F'][untup]
+                data = mat_data['F'][untup][np.newaxis]
 
-            all_trials = np.concatenate((all_trials, data[np.newaxis,:]), axis = 0)
-        
+            elif exp_name == 'bmasking_dense':
+                mne_data = mne.read_epochs(path, preload = True, verbose = False)
+
+                data = mne_data.get_data(picks = untup)
+
+            all_trials = np.concatenate((all_trials, data), axis = 0)
+
         data_list.append(all_trials)
 
     return data_list
@@ -289,7 +282,7 @@ def toinfo(exp_name: str, ch_type = 'eeg'):
     freq = maind[exp_name]['f']
 
     info = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
-    info.set_montage(maind[exp_name]['montage'])
+    #info.set_montage(maind[exp_name]['montage'])
 
     return info
 
@@ -924,8 +917,8 @@ def ce_peaks(sub_CE: np.ndarray, log_r: list):
                 D2e.append(np.asarray(d2s).std() + np.asarray(e).mean())
                 D2r.append(np.asarray(r).mean())
 
-                # Search for the last peak
-                peaks = find_peaks(a3, distance = 40, height = (1, 7), prominence = (None,None), width = (6,None))
+                # Search for the last peak #ADD THIS VARAIBLES TO peaks.py SCRIPT
+                peaks = find_peaks(a3, distance = 40, height = (0.5, 7), prominence = (None,None), width = (6,None))
 
                 if len(peaks[0]) != 0:
                     P.append(a3[peaks[0][-1]])

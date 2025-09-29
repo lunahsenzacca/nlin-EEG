@@ -26,14 +26,14 @@ chunksize = 1
 ### LOAD PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = 'zbmasking_dense'
 
 # Get data averaged across trials
 avg_trials = True
 
 # Labels for load results files
 clust_lb = 'mCFPOdense'
-calc_lb = '3gauss'
+calc_lb = '3nogauss'
 
 # Correlation Exponent saved results directory
 path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_lb, calc_lb = calc_lb, avg_trials = avg_trials)
