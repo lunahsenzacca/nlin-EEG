@@ -38,7 +38,7 @@ exp_name = 'zbmasking_dense'
 avg_trials = True
 
 # Label for load results files
-clust_lb = 'mCFPOdense'
+clust_lb = 'mCFPOVANdense'
 
 # Label for saved results files
 sv_lb = '3nogauss'
@@ -87,7 +87,7 @@ def mp_correlation_exponent():
     print('\nPreparing Correlation Sum results for computation')
 
     # Build iterable over subject
-    log_CS_iters, variables = correxp_getcorrsum(path = path, compound_error = not(avg_trials))
+    log_CS_iters, variables = correxp_getcorrsum(path = path, avg_trials = avg_trials)
 
     # Check if mobile average leaves more than three cooridnates
     rlen = len(log_r) - n_points + 1
@@ -118,21 +118,22 @@ def mp_correlation_exponent():
     CE = []
     E_CE = []
 
-    for r in results:
-        
-        CE.append(r[0])
-        E_CE.append(r[1])
-    
-    CE = np.asarray(CE)
-    E_CE = np.asarray(E_CE)
+    if avg_trials == True:
 
-    # Save value and error as one array
-    CE = np.concatenate((CE[np.newaxis], E_CE[np.newaxis]), axis = 0)
+        for r in results:
+            
+            CE.append(r[0])
+            E_CE.append(r[1])
+        
+        CE = np.asarray(CE)
+        E_CE = np.asarray(E_CE)
+
+        CE = np.concatenate((CE[np.newaxis],E_CE[np.newaxis]),axis = 0)
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_path + 'correxp.npy', CE)
+    np.savez(sv_path + 'correxp.npz', CE)
 
     variables['log_r'] = r_log_r
     variables['n_points'] = n_points

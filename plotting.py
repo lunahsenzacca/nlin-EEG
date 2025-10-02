@@ -174,7 +174,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
                        ) + instructions['avg'] + '/'
 
     # Load results for specific observable
-    OBS, E_OBS, X, variables = obs_data(obs_path = path, obs_name = info['obs_name'], compound_error = info['compound_error'])
+    OBS, E_OBS, X, variables = obs_data(obs_path = path, obs_name = info['obs_name'])
 
     if verbose == True:
         print(variables)

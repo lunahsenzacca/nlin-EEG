@@ -32,7 +32,7 @@ exp_name = 'zbmasking_dense'
 avg_trials = True
 
 # Labels for load results files
-clust_lb = 'mCFPOdense'
+clust_lb = 'mCFPOVANdense'
 calc_lb = '3nogauss'
 
 # Correlation Exponent saved results directory

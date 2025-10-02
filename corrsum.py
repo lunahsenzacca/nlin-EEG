@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 16
+workers = 10
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -35,10 +35,10 @@ chunksize = 1
 exp_name = 'zbmasking_dense'
 
 # Label for results folder
-lb = 'mCFPOdense'
+lb = 'TEST'
 
 # Get data averaged across trials
-avg_trials = True
+avg_trials = False
 
 if avg_trials == True:
     method = 'avg_data'
@@ -63,14 +63,14 @@ ch_list = maind[exp_name]['pois']
 sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[2:3]
+sub_list = sub_list[1:3]
 #ch_list = ch_list[0:2]
 
 # Only averaged conditions
 conditions = conditions[0:2]
 
 # Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+ch_list = ['Fp1'],['Fp2'],['Fpz']#,['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,
@@ -79,18 +79,18 @@ ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],[
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(3,7)]
+embeddings = [i for i in range(3,4)]
 
 # Time delay
 tau = maind[exp_name]['tau']
 
 # Window of interest
-frc = [0, 1]
+frc = [0.1, 0.3]
 
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-1.8, 0.7, num = 150, base = 10)
+r = np.logspace(-1.8, 0.7, num = 2, base = 10)
 
 # Apply embedding normalization when computing distances
 m_norm = True
@@ -194,15 +194,17 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_path + 'corrsum.npy', CS)
+    np.savez(sv_path + 'corrsum.npz', *CS)
 
-    variables['shape'] = CS.shape
     variables['log_r'] = list(np.log(r))
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
-    print('\nResults shape: ', CS.shape, '\n')
+    print('\nSubjects results shape\n')
+    
+    for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
+        print(f'{prod}: ', CS[c].shape)
 
     return
 

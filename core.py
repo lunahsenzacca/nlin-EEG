@@ -101,6 +101,7 @@ def obs_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc
 
     return path
 
+# Get pics path
 def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc_lb = None):
 
     if avg_trials == True:
@@ -118,7 +119,7 @@ def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, cal
     return path
 
 # Get observable data
-def obs_data(obs_path: str, obs_name: str, compound_error: bool):
+def obs_data(obs_path: str, obs_name: str, avg_trials: bool):
 
     # Load result variables
     with open(obs_path + 'variables.json', 'r') as f:
@@ -126,7 +127,7 @@ def obs_data(obs_path: str, obs_name: str, compound_error: bool):
 
     if obs_name == 'corrsum':
 
-        M = np.load(obs_path + 'corrsum.npy')
+        M = np.load(obs_path + 'corrsum.npz')
         x = variables['embeddings']
         y = variables['log_r']
 
@@ -134,7 +135,7 @@ def obs_data(obs_path: str, obs_name: str, compound_error: bool):
 
     elif obs_name == 'correxp':
 
-        M = np.load(obs_path + 'correxp.npy')
+        M = np.load(obs_path + 'correxp.npz')
         x = variables['embeddings']
         y = variables['log_r']
 
@@ -142,33 +143,29 @@ def obs_data(obs_path: str, obs_name: str, compound_error: bool):
 
     elif obs_name == 'peaks':
 
-        M = np.load(obs_path + 'peaks.npy')
+        M = np.load(obs_path + 'peaks.npz')
         x = variables['embeddings']
-        y = np.load(obs_path + 'peaks_r.npy')
 
-        X = [x,y]
+        # See if you want to implement it later
+        #y = np.load(obs_path + 'peaks_r.npz')
+
+        X = [x]
 
     elif obs_name == 'idim':
 
-        M = np.load(obs_path + 'idim.npy')
+        M = np.load(obs_path + 'idim.npz')
         x = variables['embeddings']
 
         X = [x]
 
     elif obs_name == 'llyap':
 
-        M = np.load(obs_path + 'llyap.npy')
+        M = np.load(obs_path + 'llyap.npz')
         x = variables['embeddings']
 
         X = [x]
 
-    OBS = M[0]
-    E_OBS = M[1]
-
-    if compound_error == True:
-        E_OBS = E_OBS + M[2]
-
-    return OBS, E_OBS, X, variables
+    return M, X, variables
 
 # Convert channel names to appropriate .mat data index
 def name_toidx(names: list| tuple, exp_name: str):
@@ -398,75 +395,89 @@ def flat_evokeds(evokeds: list):
 # Function for trials averaging and homogeneous array generation (works for already averaged trials as well)
 def collapse_trials(results: list, points: list, fshape: list, e_results = None):
 
-    if e_results != None:
-        print('\nObservable error in input, will be appended in results along trial error')
+    if e_results == None:
+        print('No observable error in input, zeros will be appended in results along trial error')
 
-    # Initzialize homogeneous arrays for results and standard deviations
+    # Initzialize list of homegenous arrays
     RES = []
-    RES_STD = []
 
     if e_results != None:
         OBS_STD = []
 
-    # Make the array homogeneous
+    # Make homogeneous arrays for each subject
     count = 0
     for s in range(0,fshape[0]):
         for c in range(0,fshape[1]):
 
+            shape = [len(results[count:count + points[s][c]])]
+
             trials = np.asarray(results[count:count + points[s][c]])
-
-            # Average across trial results
-            avg = np.mean(trials, axis = 0)
-            std = np.std(trials, axis = 0)
-
-            RES.append(avg)
-            RES_STD.append(std)
 
             # Get error from computation uncertainty
             if e_results != None:
 
                 e_trials = np.asarray(e_results[count:count + points[s][c]])
-                e_avg = np.sqrt(np.sum(e_trials**2, axis = 0))/len(e_trials)
 
-                OBS_STD.append(e_avg)
+            else:
+
+                e_trials = np.zeros(trials.shape)
+
+            [shape.append(i) for i in fshape[2:]]
+
+            trials = trials.reshape(shape)
+            e_trials = e_trials.reshape(shape)
+
+            trials = np.concatenate((trials[np.newaxis], e_trials[np.newaxis]), axis = 0)
 
             count = count + points[s][c]
-            
-    RES = np.asarray(RES)
-    RES = RES.reshape(fshape)
-    
-    RES_STD = np.asarray(RES_STD)
-    RES_STD = RES_STD.reshape(fshape)
 
-    if e_results != None:
-
-        OBS_STD = np.asarray(OBS_STD)
-        OBS_STD = OBS_STD.reshape(fshape)
-
-        # Create a single array to store value and errors
-        RES = np.concatenate((RES[np.newaxis],RES_STD[np.newaxis],OBS_STD[np.newaxis]), axis = 0)
-
-    else:
-        # Create a single array to store value and error
-        RES = np.concatenate((RES[np.newaxis],RES_STD[np.newaxis]), axis = 0)
+            RES.append(trials)
 
     return RES
 
 # Prepare corrsum.py results for correxp.py script
-def correxp_getcorrsum(path: str, compound_error: bool):
+def correxp_getcorrsum(path: str, avg_trials: bool):
 
     # Load correlation sum results
-    CS, E_CS, X, variables = obs_data(obs_path = path, obs_name = 'corrsum', compound_error = compound_error)
+    M, X, variables = obs_data(obs_path = path, obs_name = 'corrsum', avg_trials = avg_trials)
 
     clst = variables['clustered']
 
-    # Get log values
-    CS = np.concatenate((CS[np.newaxis],E_CS[np.newaxis]), axis = 0)
+    len_s = len(variables['subjects'])
+    len_c = len(variables['conditions'])
 
-    log_CS = to_log(CS)
+    i_shape = M[M.files[0]][0,0].shape
 
-    # Build sub-wise iterable
-    log_CS_iters = [[i, j] for i, j in zip(log_CS[0], log_CS[1])]
+    CS = []
+    E_CS = []
+    for s in range(0, len_s):
+        for c in range(0, len_c):
+
+            CS.append(M[M.files[s + c]][0])
+            E_CS.append(M[M.files[s + c]][1])
+                
+
+    # ACTUALLY FIX ALL OF THIS TO BETTER FIT THE DATA STRUCTURE WHEN avg_trials == False
+    if avg_trials == True:
+
+        shape = [len_s,len_c]
+
+        [shape.append(i) for i in i_shape]
+
+        CS = np.asarray(CS)
+        E_CS = np.asarray(E_CS)
+        CS = CS.reshape(shape)
+        E_CS = E_CS.reshape(shape)
+
+        # Get log values
+        CS = np.concatenate((CS[np.newaxis],E_CS[np.newaxis]), axis = 0)
+
+        log_CS = to_log(CS, verbose = True)
+
+        # Build sub-wise iterable
+        log_CS_iters = [[i, j] for i, j in zip(log_CS[0], log_CS[1])]
+
+    # ADD TRIAL WISE CASE (Gon be hard)
 
     return log_CS_iters, variables
 
@@ -484,7 +495,7 @@ def dist(x, y, m_norm = False, m = None):
     return d
 
 # Transform data in log scale (Useful for logarithmic fits)
-def to_log(OBS: np.ndarray):
+def to_log(OBS: np.ndarray, verbose: bool):
 
     # Initzialize results
     log_OBS = OBS[0].copy()
@@ -503,7 +514,8 @@ def to_log(OBS: np.ndarray):
     e_r = []
     for i, o in enumerate(tqdm(flat, total = len(flat), 
                                      desc = 'Getting log values and errors',
-                                     leave = False)):
+                                     leave = False,
+                                     disable = not(verbose))):
 
         if o == 0:
             c += 1
@@ -513,7 +525,8 @@ def to_log(OBS: np.ndarray):
             r.append(np.log(o))
             e_r.append(e_flat[i]/o)
 
-    print('Zero valued data points: ' + str(c))
+    if verbose == True:
+        print('Zero valued data points: ' + str(c))
             
     log_OBS = np.reshape(np.asarray(r), shp)
     e_log_OBS = np.reshape(np.asarray(e_r), shp)
