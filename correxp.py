@@ -19,6 +19,9 @@ from core import obs_path, obs_data
 # Sub-wise function for correlation exponent
 from core import correlation_exponent
 
+# Function for results formatting
+from core import collapse_trials
+
 # Our Very Big Dictionary
 from init import get_maind
 
@@ -38,7 +41,7 @@ exp_name = 'zbmasking_dense'
 avg_trials = True
 
 # Label for load results files
-clust_lb = 'mCFPOVANdense'
+clust_lb = 'mCFPOdense'
 
 # Label for saved results files
 sv_lb = '3nogauss'
@@ -68,14 +71,19 @@ if gauss_filter == False:
 with open(path + 'variables.json', 'r') as f:
     variables = json.load(f)
 
+sub_list = variables['subjects']
+conditions = variables['conditions']
+ch_list = variables['pois']
+embeddings = variables['embeddings']
 log_r = variables['log_r']
+
 
 ### SCRIPT FOR COMPUTATION ###
 
 # Build iterable function
 def it_correlation_exponent(sub_log_CS: np.ndarray):
 
-    CE, E_CE = correlation_exponent(sub_log_CS = sub_log_CS, avg_trials = avg_trials,
+    CE, E_CE = correlation_exponent(sub_log_CS = sub_log_CS,
                                     n_points = n_points, gauss_filter = gauss_filter,
                                     scale = scale, cutoff = cutoff, log_r = log_r)
 
@@ -87,7 +95,7 @@ def mp_correlation_exponent():
     print('\nPreparing Correlation Sum results for computation')
 
     # Build iterable over subject
-    log_CS_iters, variables = correxp_getcorrsum(path = path, avg_trials = avg_trials)
+    log_CS_iters, points, variables = correxp_getcorrsum(path = path)
 
     # Check if mobile average leaves more than three cooridnates
     rlen = len(log_r) - n_points + 1
@@ -107,7 +115,7 @@ def mp_correlation_exponent():
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_correlation_exponent, log_CS_iters), #chunksize = chunksize),
+        results_ = list(tqdm(p.imap(it_correlation_exponent, log_CS_iters), #chunksize = chunksize),
                        desc = 'Computing subjects ',
                        unit = 'sub',
                        total = len(log_CS_iters),
@@ -115,25 +123,24 @@ def mp_correlation_exponent():
                        dynamic_ncols = True)
                         )
 
-    CE = []
-    E_CE = []
+    results = []
+    e_results = []
+    for r in results_:
 
-    if avg_trials == True:
+        results.append(r[0])
+        e_results.append(r[1])
 
-        for r in results:
-            
-            CE.append(r[0])
-            E_CE.append(r[1])
-        
-        CE = np.asarray(CE)
-        E_CE = np.asarray(E_CE)
+    # Create homogeneous array averaging across trial results
+    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r_log_r)]
 
-        CE = np.concatenate((CE[np.newaxis],E_CE[np.newaxis]),axis = 0)
+    CE = collapse_trials(results = results, points = points, fshape = fshape, e_results = e_results)
+
+    print('\nDONE!')
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'correxp.npz', CE)
+    np.savez(sv_path + 'correxp.npz', *CE)
 
     variables['log_r'] = r_log_r
     variables['n_points'] = n_points
@@ -147,7 +154,16 @@ def mp_correlation_exponent():
     with open(sv_path + 'variables.json', 'w') as f:
         json.dump(variables, f)
 
-    print('\nResults shape: ', CE.shape, '\n')
+    print('\nResults common shape: ', CE[0].shape[1:])
+
+    if avg_trials == False:
+
+        print('\nTrials\n')
+    
+        for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
+            print(f'{prod}: ', CE[c].shape[0])
+
+    print('')
 
     return
 

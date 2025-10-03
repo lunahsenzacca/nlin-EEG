@@ -12,7 +12,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 
 # Utility functions for directories and data
-from core import pics_path, obs_path, obs_data
+from core import pics_path, obs_path, loadresults
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -174,7 +174,7 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
                        ) + instructions['avg'] + '/'
 
     # Load results for specific observable
-    OBS, E_OBS, X, variables = obs_data(obs_path = path, obs_name = info['obs_name'])
+    results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'])
 
     if verbose == True:
         print(variables)
@@ -184,6 +184,13 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
     conditions = variables['conditions']
 
     labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],variables['embeddings'],[instructions['e_title']]]
+
+    if info['avg_trials'] == True:
+
+        results = np.asarray(results)
+
+        OBS = results[:,:,0,0]
+        E_OBS = results[:,:,0,1]
 
     if clst == True:
         labels[2] = clust_dict[info['clust_lb']]

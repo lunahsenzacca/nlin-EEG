@@ -119,7 +119,7 @@ def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, cal
     return path
 
 # Get observable data
-def obs_data(obs_path: str, obs_name: str, avg_trials: bool):
+def obs_data(obs_path: str, obs_name: str):
 
     # Load result variables
     with open(obs_path + 'variables.json', 'r') as f:
@@ -289,6 +289,8 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
     # There are different number of trials for each condition,
     # so a simple ndarray is inconvenient. We use a list of ndarray instead
 
+    # The list index cycles faster around the conditions and slower around the subject
+
     # Create info file
     info = toinfo(exp_name = exp_name)
 
@@ -392,6 +394,37 @@ def flat_evokeds(evokeds: list):
 
     return flat, points
 
+# Open results .npz file and convert it to nested list structure
+def loadresults(obs_path: str, obs_name: str):
+
+    M, X, variables = obs_data(obs_path = obs_path, obs_name = obs_name)
+
+    len_s = len(variables['subjects'])
+    len_c = len(variables['conditions'])
+
+    results = []
+    for s in range(0, len_s):
+
+        c_results = []
+        for c in range(0, len_c):
+
+            c_results.append(M[M.files[len_c*s + c]])
+
+        results.append(c_results)
+
+    return results, X, variables
+
+# Create one dimensional list of results per subject per condition
+def flat_results(results: list):
+
+    # Flatten results nested list
+    flat = [x for xss in results for xs in xss for x in xs]
+
+    # Save separation coordinates for 'collapse_trials' functions
+    points = [[len(results[i][j]) for j in range(0,len(results[i]))] for i in range(0,len(results))]
+
+    return flat, points
+
 # Function for trials averaging and homogeneous array generation (works for already averaged trials as well)
 def collapse_trials(results: list, points: list, fshape: list, e_results = None):
 
@@ -427,7 +460,7 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
             trials = trials.reshape(shape)
             e_trials = e_trials.reshape(shape)
 
-            trials = np.concatenate((trials[np.newaxis], e_trials[np.newaxis]), axis = 0)
+            trials = np.concatenate((trials[:,np.newaxis], e_trials[:,np.newaxis]), axis = 1)
 
             count = count + points[s][c]
 
@@ -436,50 +469,23 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
     return RES
 
 # Prepare corrsum.py results for correxp.py script
-def correxp_getcorrsum(path: str, avg_trials: bool):
+def correxp_getcorrsum(path: str):
 
     # Load correlation sum results
-    M, X, variables = obs_data(obs_path = path, obs_name = 'corrsum', avg_trials = avg_trials)
+    CS, _, variables = loadresults(obs_path = path, obs_name = 'corrsum')
 
-    clst = variables['clustered']
+    flat_CS, points = flat_results(CS)
 
-    len_s = len(variables['subjects'])
-    len_c = len(variables['conditions'])
+    # Initzialize trial-wise iterable
+    log_CS_iters = []
+    for arr in flat_CS:
 
-    i_shape = M[M.files[0]][0,0].shape
+        log_CS = to_log(arr, verbose = False)
 
-    CS = []
-    E_CS = []
-    for s in range(0, len_s):
-        for c in range(0, len_c):
+        # Build trial-wise iterable
+        log_CS_iters.append([log_CS[0],log_CS[1]])
 
-            CS.append(M[M.files[s + c]][0])
-            E_CS.append(M[M.files[s + c]][1])
-                
-
-    # ACTUALLY FIX ALL OF THIS TO BETTER FIT THE DATA STRUCTURE WHEN avg_trials == False
-    if avg_trials == True:
-
-        shape = [len_s,len_c]
-
-        [shape.append(i) for i in i_shape]
-
-        CS = np.asarray(CS)
-        E_CS = np.asarray(E_CS)
-        CS = CS.reshape(shape)
-        E_CS = E_CS.reshape(shape)
-
-        # Get log values
-        CS = np.concatenate((CS[np.newaxis],E_CS[np.newaxis]), axis = 0)
-
-        log_CS = to_log(CS, verbose = True)
-
-        # Build sub-wise iterable
-        log_CS_iters = [[i, j] for i, j in zip(log_CS[0], log_CS[1])]
-
-    # ADD TRIAL WISE CASE (Gon be hard)
-
-    return log_CS_iters, variables
+    return log_CS_iters, points, variables
 
 ### HELPER FUNCTIONS ###
 
@@ -1154,7 +1160,7 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
     return ly, ly_e
 
 # Sub-wise function for correlation exponent computation
-def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_r: list,
+def correlation_exponent(sub_log_CS: list, n_points: int, log_r: list,
                          gauss_filter: None, scale: None, cutoff = None):
 
     # Reduced rvals lenght for mobile average
@@ -1164,16 +1170,15 @@ def correlation_exponent(sub_log_CS: list, avg_trials: bool, n_points: int, log_
     CE = []
     E_CE = []
 
-    abcd = sub_log_CS[0]
-    abcd_ = sub_log_CS[1]
-    for abc, abc_ in zip(abcd, abcd_):
-        for ab, ab_ in zip(abc, abc_):
-            for a, a_ in zip(ab, ab_):
+    abc = sub_log_CS[0]
+    abc_ = sub_log_CS[1]
+    for ab, ab_ in zip(abc, abc_):
+        for a, a_ in zip(ab, ab_):
 
-                ce, e_ce = corr_exp(log_csum = a, log_r = log_r, n_points = n_points, gauss_filter = gauss_filter, scale = scale, cutoff = cutoff)
+            ce, e_ce = corr_exp(log_csum = a, log_r = log_r, n_points = n_points, gauss_filter = gauss_filter, scale = scale, cutoff = cutoff)
 
-                CE.append(ce)
-                E_CE.append(e_ce)
+            CE.append(ce)
+            E_CE.append(e_ce)
 
     CE = np.asarray(CE)
     E_CE = np.asarray(E_CE)
