@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 12
+workers = 14
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -35,7 +35,7 @@ chunksize = 1
 exp_name = 'zbmasking_dense'
 
 # Label for results folder
-lb = 'mCFPOdense'
+lb = 'mCFPOVANdense'
 
 # Get data averaged across trials
 avg_trials = True
@@ -79,13 +79,13 @@ ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],[
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(3,8)]
+embeddings = [i for i in range(3,9)]
 
 # Time delay
 tau = maind[exp_name]['tau']
 
 # Window of interest
-frc = [0., 1.]
+frc = [0.1, 0.5]
 
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
@@ -160,7 +160,7 @@ def mp_loadevokeds():
 def mp_correlation_sum(evoks_iters: list, points: list):
 
     # Get absolute complexity of the script and estimated completion time
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)*((maind[exp_name]['T']**2)*(frc[1]-frc[0])**2)
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)*(((maind[exp_name]['T'])**2)*(frc[1]-frc[0])**2)
 
     velocity = 0.52/(451**2)
 
@@ -201,10 +201,16 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
-    print('\nSubjects results shape\n')
+    print('\nResults common shape: ', CS[0].shape[1:])
+
+    if avg_trials == False:
+
+        print('\nTrials\n')
     
-    for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
-        print(f'{prod}: ', CS[c].shape)
+        for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
+            print(f'{prod}: ', CS[c].shape[0])
+
+    print('')
 
     return
 

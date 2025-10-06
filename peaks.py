@@ -7,11 +7,17 @@ import numpy as np
 
 from tqdm import tqdm
 
+# Utility function for correxp.py results loading
+from core import peaks_getcorrexp
+
 # Utility function for observables directories and data
 from core import obs_path, obs_data
 
 # Sub-wise function for peaks and plateau detection
 from core import ce_peaks
+
+# Function for results formatting
+from core import collapse_trials
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -33,7 +39,7 @@ avg_trials = True
 
 # Labels for load results files
 clust_lb = 'mCFPOVANdense'
-calc_lb = '3nogauss'
+calc_lb = '3gauss'
 
 # Correlation Exponent saved results directory
 path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_lb, calc_lb = calc_lb, avg_trials = avg_trials)
@@ -41,20 +47,40 @@ path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_lb, 
 # Directory for saved results
 sv_path = obs_path(exp_name = exp_name, obs_name = 'peaks', clust_lb = clust_lb, calc_lb = calc_lb, avg_trials = avg_trials)
 
+### SCRIPT PARAMETERS ###
+
+# Distance of peak from other
+distance = None
+
+# Height boundaries of peaks
+height = (0.2,6)
+
+# Prominence boundaries of peaks
+prominence = (0.3,None)
+
+# Width boundaries of peaks
+width = (3,30)
+
 # Get log_r for initzialization
 with open(path + 'variables.json', 'r') as f:
     variables = json.load(f)
 
+sub_list = variables['subjects']
+conditions = variables['conditions']
+ch_list = variables['pois']
+embeddings = variables['embeddings']
 log_r = variables['log_r']
 
 ### SCRIPT FOR COMPUTATION ###
 
 # Build iterable function
-def it_ce_peaks(sub_CE: np.ndarray):
+def it_ce_peaks(trial_CE: np.ndarray):
 
-    __, __, P, Pr = ce_peaks(sub_CE = sub_CE, log_r = log_r)
+    P, Pe, Pr = ce_peaks(trial_CE = trial_CE, log_r = log_r,
+                         distance = distance, height = height,
+                         prominence = prominence, width = width)
 
-    return P, Pr
+    return P, Pe, Pr
 
 # Build multiprocessing function
 def mp_ce_peaks():
@@ -62,54 +88,60 @@ def mp_ce_peaks():
     print('\nFinding Correlation Exponent Peak')
     print('\nSpawning ' + str(workers) + ' processes...')
 
-    CE, E_CE, __, __ = obs_data(obs_path = path, obs_name = 'correxp', compound_error = not(avg_trials))
-
-    CE = np.concatenate((CE[np.newaxis], E_CE[np.newaxis]), axis = 0)
-
-    sub_CE_iters = [CE[:,i] for i in range(0,CE.shape[1])]
+    # Build iterable over subject
+    CE_iters, points, variables = peaks_getcorrexp(path = path)
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_ce_peaks, sub_CE_iters), #chunksize = chunksize),
+        results_ = list(tqdm(p.imap(it_ce_peaks, CE_iters), #chunksize = chunksize),
                        desc = 'Computing subjects ',
                        unit = 'sub',
-                       total = len(sub_CE_iters),
+                       total = len(CE_iters),
                        leave = True,
                        dynamic_ncols = True)
                         )
 
-    #D2 = []
-    #D2r = []
+    p_results = []
+    e_p_results = []
+    pr_results = []
+    for r in results_:
 
-    P = []
-    Pr = []
+        p_results.append(r[0])
+        e_p_results.append(r[1])
+        pr_results.append(r[2])
 
-    for r in results:
-        
-        #D2.append(r[0])
-        #D2r.append(r[1])
-        P.append(r[0])
-        Pr.append(r[1])
-    
-    #D2 = np.asarray(D2)
-    #D2r = np.asarray(D2r)
-    P = np.asarray(P)
-    Pr = np.asarray(Pr)
+    # Create homogeneous array averaging across trial results
+    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
 
-    P = np.swapaxes(P, 0, 1)
+    P = collapse_trials(results = p_results, points = points, fshape = fshape, e_results = e_p_results)
+    Pr = collapse_trials(results = pr_results, points = points, fshape = fshape, e_results = None)
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_path + 'peaks.npy', P)
-    np.save(sv_path + 'peaks_r.npy', Pr)
+    np.savez(sv_path + 'peaks.npz', *P)
+    np.savez(sv_path + 'peaks_r.npz', *Pr)
+
+    variables['distance'] = distance
+    variables['height'] = height
+    variables['prominence'] = prominence
+    variables['width'] = width
 
     with open(sv_path + 'variables.json', 'w') as f:
         json.dump(variables, f)
 
-    print('\nResults shape: ', P.shape, '\n')
+    print('\nResults common shape: ', P[0].shape[1:])
+
+    if avg_trials == False:
+
+        print('\nTrials\n')
+    
+        for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
+            print(f'{prod}: ', P[c].shape[0])
+
+    print('')
 
     return
 

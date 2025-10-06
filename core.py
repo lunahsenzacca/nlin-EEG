@@ -487,6 +487,23 @@ def correxp_getcorrsum(path: str):
 
     return log_CS_iters, points, variables
 
+# Prepare correxp.py results for peaks.py script
+def peaks_getcorrexp(path: str):
+
+    # Load correlation sum results
+    CE, _, variables = loadresults(obs_path = path, obs_name = 'correxp')
+
+    flat_CE, points = flat_results(CE)
+
+    # Initzialize trial-wise iterable
+    CE_iters = []
+    for arr in flat_CE:
+
+        # Build trial-wise iterable
+        CE_iters.append([arr[0],arr[1]])
+
+    return CE_iters, points, variables
+
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
@@ -731,7 +748,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
 # Correlation sum for a single embeddend time series [Grassberger-Procaccia]
-def corr_sum(emb_ts, r: float, m_norm = False, m = None):
+def corr_sum(emb_ts, r: float, tau: int, m_norm = False, m = None):
 
     N = emb_ts.shape[-1]
 
@@ -740,7 +757,7 @@ def corr_sum(emb_ts, r: float, m_norm = False, m = None):
     # Cycle through all different couples of points
     for i in range(0,N):
         for j in range(0,i):
-            
+
             dij = dist(emb_ts[:,i],emb_ts[:,j], m_norm = m_norm, m = m)
 
             # Get value of theta
@@ -902,11 +919,47 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
 
     return lyap, lyap_e, x, y, fit
 
-# Find peaks in Correlation Exponent sub-wise results
-def ce_peaks(sub_CE: np.ndarray, log_r: list):
+def ce_plateau():
 
-    a = sub_CE[0]
-    a_ = sub_CE[1]
+    a = trial_CE[0]
+    a_ = trial_CE[1]
+
+    # Initzialize results array
+    D2 = []
+    D2e = []
+    D2r = []
+    for a1, a1_ in zip(a,a_):
+        for a2, a2_ in zip(a1,a1_):
+
+            # Search for the plateau(Needs polishing)
+            peaks = find_peaks(-a2, distance = 5)
+
+            d2s = []
+            r = []
+            e = []
+            for i in peaks[0]:
+                #if log_r[i] < 0: #THIS IS ARBITRAY
+                d2s.append(a2[i])
+                e.append(a2_[i])
+                r.append(log_r[i])
+
+            D2.append(np.asarray(d2s).mean())
+            D2e.append(np.asarray(d2s).std() + np.asarray(e).mean())
+            D2r.append(np.asarray(r).mean())
+
+    D2 = np.asarray(D2).reshape(a.shape[:-1])
+    D2e = np.asarray(D2e).reshape(a.shape[:-1])
+    #D2 = np.concatenate((D2[np.newaxis], D2e[np.newaxis]), axis = 0)
+
+    D2r = np.asarray(D2r).reshape(a.shape[:-1])
+
+    return D2, D2e, D2r
+
+# Find peaks in Correlation Exponent trial-wise results
+def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, prominence: list, width: list):
+
+    a = trial_CE[0]
+    a_ = trial_CE[1]
 
     # Initzialize results array
     D2 = []
@@ -917,50 +970,26 @@ def ce_peaks(sub_CE: np.ndarray, log_r: list):
     Pr = []
     for a1, a1_ in zip(a,a_):
         for a2, a2_ in zip(a1,a1_):
-            for a3, a3_ in zip(a2,a2_):
 
+            # Search for the last peak
+            peaks = find_peaks(a2, distance = distance, height = height, prominence = prominence, width = width)
 
-                # Search for the plateau(Needs polishing)
-                peaks = find_peaks(-a3, distance = 5)
-
-                d2s = []
-                r = []
-                e = []
-                for i in peaks[0]:
-                    #if log_r[i] < 0: #THIS IS ARBITRAY
-                    d2s.append(a3[i])
-                    e.append(a3_[i])
-                    r.append(log_r[i])
-
-                D2.append(np.asarray(d2s).mean())
-                D2e.append(np.asarray(d2s).std() + np.asarray(e).mean())
-                D2r.append(np.asarray(r).mean())
-
-                # Search for the last peak #ADD THIS VARAIBLES TO peaks.py SCRIPT
-                peaks = find_peaks(a3, distance = 40, height = (0.5, 7), prominence = (None,None), width = (6,None))
-
-                if len(peaks[0]) != 0:
-                    P.append(a3[peaks[0][-1]])
-                    Pe.append(a3_[peaks[0][-1]])
-                    Pr.append(log_r[peaks[0][-1]])
-                else:
-                    P.append(np.nan)
-                    Pe.append(np.nan)
-                    Pr.append(np.nan)
-
-    D2 = np.asarray(D2).reshape(a.shape[:-1])
-    D2e = np.asarray(D2e).reshape(a.shape[:-1])
-    D2 = np.concatenate((D2[np.newaxis], D2e[np.newaxis]), axis = 0)
-
-    D2r = np.asarray(D2r).reshape(a.shape[:-1])
+            if len(peaks[0]) != 0:
+                P.append(a2[peaks[0][-1]])
+                Pe.append(a2_[peaks[0][-1]])
+                Pr.append(log_r[peaks[0][-1]])
+            else:
+                P.append(np.nan)
+                Pe.append(np.nan)
+                Pr.append(np.nan)
 
     P = np.asarray(P).reshape(a.shape[:-1])
     Pe = np.asarray(Pe).reshape(a.shape[:-1])
-    P = np.concatenate((P[np.newaxis], Pe[np.newaxis]), axis = 0)
+    #P = np.concatenate((P[np.newaxis], Pe[np.newaxis]), axis = 0)
 
     Pr = np.asarray(Pr).reshape(a.shape[:-1])
 
-    return D2, D2r, P, Pr
+    return P, Pe, Pr
 
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
@@ -1012,7 +1041,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
                 for r in rvals:
 
-                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(len(emb_ts))))
+                    CD.append(corr_sum(emb_ts, r = r, tau = tau, m_norm = m_norm, m = np.sqrt(len(emb_ts))))
 
     else:
 
@@ -1030,7 +1059,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
                 for r in rvals:
 
-                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(m)))
+                    CD.append(corr_sum(emb_ts, r = r, tau = tau, m_norm = m_norm, m = np.sqrt(m)))
 
     # Returns list in -C style ordering
 
