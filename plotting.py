@@ -55,7 +55,6 @@ cond_dict = {'S__': 'Conscious',
              'lorenz': 'Lorenz',
              'noise': 'Noise'}
 
-
 ### PLOTTING WRAPPERS ###
 
 def show_figure(fig):

@@ -35,16 +35,16 @@ chunksize = 1
 ### LOAD PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking_dense'
+exp_name = 'zbmasking'
 
 # Get data averaged across trials
 avg_trials = True
 
 # Label for load results files
-clust_lb = 'mCFPOVANdense'
+clust_lb = 'mCFPOdense'
 
 # Label for saved results files
-sv_lb = '3gauss'
+sv_lb = '3nogauss'
 
 # Correlation Sum results directory
 path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = clust_lb, avg_trials = avg_trials)
@@ -58,7 +58,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_l
 n_points = 3
 
 # Apply gaussian filter to results for smoothing
-gauss_filter = True
+gauss_filter = False
 # Parameters of the gaussian filter
 scale = 0.01
 cutoff = 5

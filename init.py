@@ -36,6 +36,7 @@ exp_lb = {
     'noise': 'NZ'
 }
 obs_lb = {
+    'delay': 'TAU',
     'corrsum': 'CS',
     'correxp': 'CE',
     'peaks': 'PK',

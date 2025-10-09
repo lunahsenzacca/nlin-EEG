@@ -26,6 +26,9 @@ from tqdm import tqdm
 # Autocorrelation time according to first minimum of Mutual Information (FMMI)
 from teaspoon.parameter_selection.MI_delay import MI_for_delay
 
+# Autocorrelation time according to first minimum of Mutual Information (FMMI)
+from teaspoon.parameter_selection.autocorrelation import autoCorrelation_tau
+
 # False Nearest Neighbour method
 from teaspoon.parameter_selection.FNN_n import FNN_n
 
@@ -748,7 +751,7 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
 # Correlation sum for a single embeddend time series [Grassberger-Procaccia]
-def corr_sum(emb_ts, r: float, tau: int, m_norm = False, m = None):
+def corr_sum(emb_ts, r: float, m_norm = False, m = None):
 
     N = emb_ts.shape[-1]
 
@@ -919,6 +922,7 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
 
     return lyap, lyap_e, x, y, fit
 
+#[IMPLEMENT BETTER]
 def ce_plateau():
 
     a = trial_CE[0]
@@ -992,6 +996,74 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
     return P, Pe, Pr
 
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
+
+# Delay time of channel time series of a specific trial
+def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
+               method: str, clst_method: str, fraction = [0,1]):
+
+    # Apply fraction to time series
+    times = evoked.times
+
+    # Trim time series according to fraction variable
+    tmin = times[int(fraction[0]*(len(times)-1))]
+    tmax = times[int(fraction[1]*(len(times)-1))]
+
+    evoked.crop(tmin = tmin, tmax = tmax)
+
+    # Initzialize result array
+    tau = []
+
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
+        
+
+        TS = []
+        for cl in ch_list:
+            
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            #ts = ts.mean(axis = 0)
+            
+            TS.append(ts)
+        
+        for ts in TS:
+
+            ctau = []
+
+            if method == 'mutual_information':
+
+                [ctau.append(MI_for_delay(t)) for t in ts]
+
+            elif method == 'autocorrelation':
+
+                [ctau.append(autoCorrelation_tau(t)) for t in ts]
+
+            if clst_method == 'avg':
+
+                tau.append(np.asarray(ctau).mean())
+
+            elif cmst_methd == 'max':
+
+                tau.append(np.asarray(ctau).max())
+
+    else:
+
+        TS = evoked.get_data(picks = ch_list)
+    
+        # Loop around pois time series
+        for ts in TS:
+
+            if method == 'mutual_information':
+
+                tau.append(MI_for_delay(ts))
+
+            elif method == 'autocorrelation':
+
+                tau.append(autoCorrelation_tau(ts))
+
+    # Returns list in -C style ordering
+
+    return tau
 
 # Correlation sum of channel time series of a specific trial
 def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,

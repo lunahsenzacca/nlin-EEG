@@ -53,7 +53,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'peaks', clust_lb = clust_lb,
 distance = None
 
 # Height boundaries of peaks
-height = (0.2,6)
+height = (0.8,6)
 
 # Prominence boundaries of peaks
 prominence = (0.3,None)
