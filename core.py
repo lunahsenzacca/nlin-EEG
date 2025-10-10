@@ -128,7 +128,14 @@ def obs_data(obs_path: str, obs_name: str):
     with open(obs_path + 'variables.json', 'r') as f:
         variables = json.load(f)
 
-    if obs_name == 'corrsum':
+    if obs_name == 'delay':
+
+        M = np.load(obs_path + 'delay.npz')
+        x = variables['pois']
+
+        X = [x]
+
+    elif obs_name == 'corrsum':
 
         M = np.load(obs_path + 'corrsum.npz')
         x = variables['embeddings']
