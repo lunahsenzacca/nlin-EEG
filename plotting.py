@@ -21,11 +21,14 @@ maind = get_maind()
 
 ### Extra DICTIONARIES (Eventually put in init.py)###
 
-avg = {'pois': 2,
+avg = {
+       'pois': 2,
        'sub_pois': (0,2),
-       'sub': 0,}
+       'sub': 0
+       }
 
-clust_dict = {'G': ['Global'],
+clust_dict = {
+              'G': ['Global'],
               'Gavg': ['Global Average'],
               'mG': ['Global (m)'],
               'mGavg': ['Global Average (m)'],
@@ -42,18 +45,69 @@ clust_dict = {'G': ['Global'],
               'm_gnoise': ['Gaussian Noise (m)'],
               'mCFPOVANdense':[ i + ' (m, VAN)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System']],
               'mCFPOdense':['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],
-              'test': ['test']}
+              'test': ['test']
+              }
 
-obs_dict = {'corrsum': '$C_{m}(r)$ ',
+obs_dict = {
+            'delay': '$\\tau$',
+            'corrsum': '$C_{m}(r)$ ',
             'correxp': '$\\nu_{m}(r)$ ',
             'peaks': '$\\nu_{max}$ ',
             'idim': '$D_{2}(m)$ ',
-            'llyap': '$\\lambda(m)$ '}
+            'llyap': '$\\lambda(m)$ '
+            }
 
-cond_dict = {'S__': 'Conscious',
+cond_dict = {
+             'S__': 'Conscious',
              'S_1': 'Unconscious',
              'lorenz': 'Lorenz',
-             'noise': 'Noise'}
+             'noise': 'Noise'
+             }
+
+basic_instructions = {
+                     'dim_m': 1,
+                     'reduce_multi': None,
+                     'reduce_legend': None,#[i for i in range(0,10)],
+                     'markersize': 10,
+                     'linewidth': 2,
+                     'alpha_m': 0.6,
+                     'grid': (6,6),
+                     'showgrid': True,
+                     'figsize': (16,11),
+                     'textsz': 20,
+                     'e_title': None#'Lorenz Attractor (w/o embedding normalization)'
+                      }
+
+correxp_instructions = {
+                        'figure': 'pois',
+                        'multiplot': 'subjects',
+                        'legend': 'embeddings',
+                        'axis': 'log_r',
+                        'avg': 'none',
+                        'reduce_method': 'product',
+                        'ylabel': '$\\nu_{m}(r)$',
+                        'ylim': (0,7),
+                        'style': 'curve',
+                        'legend_t': 'Embedding\ndimension',
+                        }
+
+peaks_instructions = {
+                      'figure': 'conditions',
+                      'multiplot': 'subjects',  
+                      'legend': 'embeddings',
+                      'axis': 'pois',
+                      'avg': 'none',
+                      'reduce_method': 'trivial',
+                      'ylabel': '$\\nu_{max}$',
+                      'ylim': (1,4),
+                      'style': 'marker',
+                      'legend_t': 'Embedding\ndimension',
+                     }
+
+obs_instructions = {
+                    'correxp': correxp_instructions,
+                    'peaks': peaks_instructions,
+}
 
 ### PLOTTING WRAPPERS ###
 
@@ -117,7 +171,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
 
 # Main wrapper for function over pois
-def plot_observable(info: dict, instructions: dict, show = True, save = False, verbose = True):
+def plot_observable(info: dict, extra_instructions = None, show = True, save = False, verbose = True):
 
     # Legend
 
@@ -148,13 +202,29 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
 
     # Value of the array is y(x) or e_y(x)
 
+    # Construct standard instructions arrays
+    instructions = basic_instructions | obs_instructions[info['obs_name']]
+
+    # Override standard instructions with provided ones
+    if extra_instructions != None:
+
+        for key in extra_instructions.keys():
+
+            instructions[key] = extra_instructions[key]
+
     # Check for confliction instructions
     check_conflict = [instructions['figure'], instructions['multiplot'], instructions['legend'], instructions['axis']]
     if len(set(check_conflict)) != len(check_conflict):
         print('Conflicting instructions,\'figure\', \'multiplot\', \'legend\' and \'axis\', should all be different')
         return
 
-    # Get observable file path
+    # Apply dimension multiplier
+    resizable = ['markersize','linewidth','textsz']
+
+    for key in resizable:
+
+        instructions[key] = instructions['dim_m']*instructions[key]
+
     # Get relevant paths
     path = obs_path(
                        exp_name = info['exp_name'],
@@ -349,6 +419,10 @@ def plot_observable(info: dict, instructions: dict, show = True, save = False, v
             ylocs = ax.get_yticks()
             ylabels = [f'{yloc: .1f}' for yloc in ylocs]
             ax.set_yticks(ticks = ylocs, labels = ylabels, fontsize = instructions['textsz']/2)
+
+            xlocs = ax.get_xticks()
+            xlabels = [f'{xloc: .1f}' for xloc in xlocs]
+            ax.set_xticks(ticks = xlocs, labels = xlabels, fontsize = instructions['textsz']/2)
 
             if instructions['showgrid'] != False:
                 ax.grid(instructions['showgrid'], linestyle = '--')

@@ -35,10 +35,10 @@ chunksize = 1
 exp_name = 'zbmasking_dense'
 
 # Label for results folder
-lb = ''
+lb = 'G'
 
 # Get data averaged across trials
-avg_trials = True
+avg_trials = False
 
 if avg_trials == True:
     method = 'avg_data'
@@ -70,7 +70,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'delay', clust_lb = lb, avg_t
 conditions = conditions[0:2]
 
 # Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+#ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,
