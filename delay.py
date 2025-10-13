@@ -34,8 +34,11 @@ chunksize = 1
 # Dataset name
 exp_name = 'zbmasking'
 
-# Label for results folder
-lb = 'mCFPOdense'
+# Cluster label
+clust_lb = 'CFPO'
+
+# Calcultation parameters label
+calc_lb = 'MI'
 
 # Get data averaged across trials
 avg_trials = True
@@ -60,7 +63,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'delay', clust_lb = lb, avg_trials = avg_trials)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'delay', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[1:3]

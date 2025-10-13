@@ -753,7 +753,9 @@ def td_embedding(ts, embedding: int, tau: int, fraction = None):
     idxs = np.repeat([np.arange(embedding)*tau], m, axis = 0)
     idxs += np.arange(m).reshape((m, 1))
 
-    return ts[idxs]
+    emb_ts = ts[idxs]
+
+    return emb_ts
 
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
@@ -1074,7 +1076,7 @@ def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
 
 # Correlation sum of channel time series of a specific trial
 def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
-                    embeddings: list, tau: int, rvals: list, 
+                    embeddings: list, tau: str|int, rvals: list, 
                     m_norm: bool, fraction = [0,1]):
 
     # Apply fraction to time series
@@ -1104,12 +1106,37 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
         
         for ts in TS:
 
+            # Compile delay time list for each component
+            tau_ = []
+            for t in ts:
+                
+                if tau == 'mutual_information':
+
+                    tau_.append(MI_for_delay(t))
+
+                elif tau == 'autocorrelation':
+
+                    tau_.append(autoCorrelation_tau(t))
+
+                elif type(tau) == int:
+
+                    tau_.append(tau)
+
             for m in embeddings:
                 
                 emb_ts = []
-                for t in ts:
+                emb_lenghts = []
+                for i, t in enumerate(ts):
 
-                    emb_ts.append(td_embedding(t, embedding = m, tau = tau))
+                    emb_t = td_embedding(t, embedding = m, tau = tau_[i])
+
+                    l = len(emb_t)
+
+                    emb_ts.append(emb_t)
+                    emb_lenghts.append(l)
+
+                # Set embedded time series to same lenght for array transformation
+                emb_ts = [emb_t[0:np.asarray(emb_lenghts).min()] for emb_t in emb_ts]
 
                 emb_ts = np.asarray(emb_ts)
 
@@ -1120,7 +1147,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
                 for r in rvals:
 
-                    CD.append(corr_sum(emb_ts, r = r, tau = tau, m_norm = m_norm, m = np.sqrt(len(emb_ts))))
+                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(len(emb_ts))))
 
     else:
 
@@ -1128,9 +1155,21 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     
         # Loop around pois time series
         for ts in TS:
+                
+            if tau == 'mutual_information':
+
+                tau_ = MI_for_delay(ts)
+
+            elif tau == 'autocorrelation':
+
+                tau_ = autoCorrelation_tau(ts)
+
+            elif type(tau) == int:
+
+                tau_ = tau
             
             for m in embeddings:
-                emb_ts = td_embedding(ts, embedding = m, tau = tau)
+                emb_ts = td_embedding(ts, embedding = m, tau = tau_)
 
                 emb_ts = np.asarray(emb_ts)
 

@@ -35,22 +35,28 @@ chunksize = 1
 ### LOAD PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = 'zbmasking_dense'
 
 # Get data averaged across trials
 avg_trials = True
 
-# Label for load results files
-clust_lb = 'mCFPOdense'
+# Cluster label
+clust_lb = 'CFPO'
 
-# Label for saved results files
-sv_lb = '3nogauss'
+# Calculation parameters label for load results
+calc_lb = 'm_dense_F'
+
+# Calculation parameters label for saved results
+sv_calc_lb = '3nogauss'
+
+# Make explicit reference to previus calculation parameters
+sv_calc_lb = '[' + calc_lb + ']' + sv_calc_lb
 
 # Correlation Sum results directory
-path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = clust_lb, avg_trials = avg_trials)
+path = obs_path(exp_name = exp_name, obs_name = 'corrsum', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
 
 # Correlation Exponent saved results directory
-sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_lb, calc_lb = sv_lb, avg_trials = avg_trials)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = sv_calc_lb)
 
 ### SCRIPT PARAMETERS ###
 

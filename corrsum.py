@@ -34,8 +34,11 @@ chunksize = 1
 # Dataset name
 exp_name = 'zbmasking_dense'
 
-# Label for results folder
-lb = 'mCFPOVANdense'
+# Cluster label
+clust_lb = 'CFPO'
+
+# Calcultation parameters label
+calc_lb = 'm_dense_MI'
 
 # Get data averaged across trials
 avg_trials = True
@@ -60,7 +63,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = lb, avg_trials = avg_trials)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[1:3]
@@ -79,13 +82,15 @@ ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],[
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(3,9)]
+embeddings = [i for i in range(3,8)]
 
-# Time delay
-tau = maind[exp_name]['tau']
+# Set different time delay for each time series
+tau = 'mutual_information'
+# Or set a global value
+#tau = maind[exp_name]['tau']
 
 # Window of interest
-frc = [0.1, 0.5]
+frc = [0., 1.]
 
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
