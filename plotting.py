@@ -53,6 +53,7 @@ obs_dict = {
             'corrsum': '$C_{m}(r)$ ',
             'correxp': '$\\nu_{m}(r)$ ',
             'peaks': '$\\nu_{max}$ ',
+            'plateaus': '$\\nu_{p}$ ',
             'idim': '$D_{2}(m)$ ',
             'llyap': '$\\lambda(m)$ '
             }
@@ -75,6 +76,7 @@ basic_instructions = {
                      'showgrid': True,
                      'figsize': (16,11),
                      'textsz': 25,
+                     'xlim': (None,None),
                      'e_title': None#'Lorenz Attractor (w/o embedding normalization)'
                       }
 
@@ -99,7 +101,7 @@ correxp_instructions = {
                         'avg': 'none',
                         'reduce_method': 'product',
                         'ylabel': '$\\nu_{m}(r)$',
-                        'ylim': (0,7),
+                        'ylim': (0,6),
                         'style': 'curve',
                         'legend_t': 'Embedding\ndimension',
                         }
@@ -117,10 +119,24 @@ peaks_instructions = {
                       'legend_t': 'Embedding\ndimension',
                      }
 
+plateaus_instructions = {
+                      'figure': 'conditions',
+                      'multiplot': 'subjects',  
+                      'legend': 'embeddings',
+                      'axis': 'pois',
+                      'avg': 'none',
+                      'reduce_method': 'trivial',
+                      'ylabel': '$\\nu_{p}$',
+                      'ylim': (0.8,2.1),
+                      'style': 'marker',
+                      'legend_t': 'Embedding\ndimension',
+                     }
+
 obs_instructions = {
                     'delay': delay_instructions,
                     'correxp': correxp_instructions,
                     'peaks': peaks_instructions,
+                    'plateaus': plateaus_instructions
                    }
 
 ### PLOTTING WRAPPERS ###
@@ -134,7 +150,7 @@ def show_figure(fig):
 
     return
 
-def transform_data(info:dict, instructions: dict, verbose: bool):
+def transform_data(info:dict, instructions: dict, verbose: bool, X_transform: None):
 
     # Get relevant paths
     path = obs_path(
@@ -146,7 +162,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
                        )
 
     # Load results for specific observable
-    results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'])
+    results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = X_transform)
 
     if verbose == True:
         print(variables)
@@ -155,7 +171,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
 
     conditions = variables['conditions']
 
-    if info['obs_name'] in ['corrsum','correxp','peaks']:
+    if info['obs_name'] in ['corrsum','correxp','peaks','plateaus']:
 
         # Initzialize list of labels for data
         labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],variables['embeddings'],[instructions['e_title']]]
@@ -177,6 +193,12 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
 
         OBS = results[:,:,0,0]
         E_OBS = results[:,:,0,1]
+
+        if X_transform != None:
+
+            X_results = np.asarray(X[X_transform])
+
+            X_results = X_results[:,:,0,0]
 
     if clst == True:
         labels[2] = clust_dict[info['clust_lb']]
@@ -249,7 +271,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
 
         rearrange[-1] = 3
 
-        X = X[0]
+        x = X[0]
 
         instructions['xlabel'] = '$m$'
 
@@ -257,7 +279,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
 
         rearrange[-1] = 4
 
-        X = X[1]
+        x = X[1]
 
         instructions['xlabel'] = '$\\log(r)$'
 
@@ -265,7 +287,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
 
         rearrange[-1] = 2
 
-        X = np.asarray([i for i in range(0,len(labels[2]))])
+        x = np.asarray([i for i in range(0,len(labels[2]))])
 
         instructions['xlabel'] = 'POIs'
 
@@ -297,22 +319,24 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
     # Rearrange arrays
     obs = np.permute_dims(OBS, rearrange)
     e_obs = np.permute_dims(E_OBS, rearrange)
+
+    if X_transform != None:
+
+        x_res = np.permute_dims(X_results, rearrange)
     
     # Reduce extra axis
     if instructions['reduce_method'] == 'product':
 
         title_l = [str(i) + '; ' + str(j) for i in labels[rearrange[0]] for j in title_l]
-    '''
-    if info['obs_name'] in ['corrsum','correxp','peaks']:
 
-        obs = [i for ob in obs for i in ob]
-        e_obs = [i for e_ob in e_obs for i in e_ob]
-
-    '''
     obs = [i for ob in obs for i in ob]
     e_obs = [i for e_ob in e_obs for i in e_ob]
 
-    print(np.asarray(obs).shape)
+    if X_transform != None:
+
+        x_res = [i for res in x_res for i in res]
+
+        X[X_transform] = x_res
 
     # Create dictionary for labels titles and reduced plotting
     l_dict = {
@@ -325,7 +349,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool):
         'multi_idxs': multi_idxs
     }
 
-    return obs, e_obs, X, l_dict
+    return obs, e_obs, X, x, l_dict
 
 def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: list, label: list, label_idxs: list, alpha_m: float, grid: list, figsize: list, style: str, markersize: str, linewidth: str):
 
@@ -335,8 +359,6 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
     obs = OBS[:,:,:]
     e_obs = E_OBS[:,:,:]
-
-    print(obs.shape)
 
     cmap = cm.viridis
 
@@ -444,7 +466,7 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
                        ) + instructions['avg'] + '/'
 
     # Get data and transform it for adequate plotting
-    obs, e_obs, X, l_dict = transform_data(info = info, instructions = instructions, verbose = verbose)
+    obs, e_obs, X, x, l_dict = transform_data(info = info, instructions = instructions, verbose = verbose, X_transform = None)
 
     # Extract new instructions
     instructions = l_dict['instructions']
@@ -459,7 +481,7 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
     for i in range(0, len(obs)):
     
         # Initialize figures
-        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = X, multi_idxs = l_dict['multi_idxs'], label = l_dict['legend_l'], label_idxs = l_dict['label_idxs'],
+        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = x, multi_idxs = l_dict['multi_idxs'], label = l_dict['legend_l'], label_idxs = l_dict['label_idxs'],
                                     alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'],
                                     style = instructions['style'],
                                     markersize = instructions['markersize'], linewidth = instructions['linewidth'])
@@ -478,6 +500,7 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
             ax_iter = axs.flat
         
         for ax in ax_iter:
+
             ax.set_ylim(instructions['ylim'])
 
             ylocs = ax.get_yticks()
@@ -493,6 +516,8 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
 
             if instructions['axis'] == 'pois':
                 ax.set_xticks(ticks = X, labels = l_dict['labels'][2], rotation = 90, fontsize = instructions['textsz']/2)
+
+            ax.set_xlim(instructions['xlim'])
 
     for i, fig in enumerate(figs):
 
@@ -522,4 +547,4 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
 
         plt.close()
 
-    return
+    return figs, axes, instructions

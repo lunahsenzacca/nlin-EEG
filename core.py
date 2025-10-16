@@ -161,6 +161,17 @@ def obs_data(obs_path: str, obs_name: str):
 
         X = [x]
 
+    elif obs_name == 'plateaus':
+
+        M = np.load(obs_path + 'plateaus.npz')
+        x = variables['embeddings']
+        y = variables['log_r']
+
+        # See if you want to implement it later
+        z = np.load(obs_path + 'plateaus_r.npz')
+
+        X = [x,y,z]
+
     elif obs_name == 'idim':
 
         M = np.load(obs_path + 'idim.npz')
@@ -405,7 +416,7 @@ def flat_evokeds(evokeds: list):
     return flat, points
 
 # Open results .npz file and convert it to nested list structure
-def loadresults(obs_path: str, obs_name: str):
+def loadresults(obs_path: str, obs_name: str, X_transform: None):
 
     M, X, variables = obs_data(obs_path = obs_path, obs_name = obs_name)
 
@@ -421,6 +432,21 @@ def loadresults(obs_path: str, obs_name: str):
             c_results.append(M[M.files[len_c*s + c]])
 
         results.append(c_results)
+
+    if X_transform != None:
+
+        N = X[X_transform]
+        X_results = []
+        for s in range(0, len_s):
+
+            c_results = []
+            for c in range(0, len_c):
+
+                c_results.append(N[N.files[len_c*s + c]])
+
+            X_results.append(c_results)
+
+        X[X_transform] = X_results
 
     return results, X, variables
 
@@ -498,10 +524,10 @@ def correxp_getcorrsum(path: str):
     return log_CS_iters, points, variables
 
 # Prepare correxp.py results for peaks.py script
-def peaks_getcorrexp(path: str):
+def pp_getcorrexp(path: str):
 
     # Load correlation sum results
-    CE, _, variables = loadresults(obs_path = path, obs_name = 'correxp')
+    CE, _, variables = loadresults(obs_path = path, obs_name = 'correxp', X_transform = None)
 
     flat_CE, points = flat_results(CE)
 
@@ -814,60 +840,6 @@ def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, sca
 
     return  ce, e_ce
 
-# Information Dimension for a single embedded time series with 2NN-estimation [Krakovská-Chvosteková]
-def idim(emb_ts: np.ndarray, m_period: int):
-
-    N = len(emb_ts)
-
-    #Initzialize distances array
-    ds = np.zeros((N,N), dtype = np.float64)
-    for i in range(0,N):
-        for j in range(0,N):
-            dij = dist(emb_ts[i],emb_ts[j])
-
-            ds[i,j] = dij
-            ds[j,i] = dij
-
-    #Initzialize reults array
-    ls = []
-    for i in range(0,N):
-        di = ds[i]
-        
-        sorted_di_idx = np.argsort(di)
-
-        # Store first two non-zero smallest distances (far away on the trajectory)
-        r_idx = [0,0]
-        c = 0
-        m = i
-        for d in sorted_di_idx:
-            if di[d] != 0 and abs(i - d) > m_period and abs(m - d) > m_period:
-                r_idx[c] = d
-                m = d
-                c += 1
-            if c == 2:
-                break
-
-        r1 = di[r_idx[0]]
-        r2 = di[r_idx[1]]
-
-        r12 = ds[r_idx[0],r_idx[1]]
-
-        # Get one of three possible values for the estimator
-        if r12 <= r1:
-            l = np.log(3/2)/np.log(r2/r1)
-        elif r12 > r1 and r12 <= r2:
-            l = np.log(3)/np.log(r2/r1)
-        elif r12 > r2:
-            l = np.log(2)/np.log(r2/r1)
-
-        ls.append(l)
-
-    idim = np.median(np.asarray(ls))
-    e_idim = np.std(np.asarray(ls))
-
-    return idim, e_idim
-        
-
 # Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
 def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = False):
 
@@ -931,42 +903,91 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
 
     return lyap, lyap_e, x, y, fit
 
-#[IMPLEMENT BETTER]
-def ce_plateau():
+# Search for first plateau in Correlation Exponent
+def ce_plateaus(trial_CE: np.ndarray, log_r: list, n_points: int, max_points: int, m_threshold: float):
 
     a = trial_CE[0]
     a_ = trial_CE[1]
 
     # Initzialize results array
-    D2 = []
-    D2e = []
-    D2r = []
+    P = []
+    Pe = []
+    Pr = []
     for a1, a1_ in zip(a,a_):
         for a2, a2_ in zip(a1,a1_):
+            
+            s = []
+            for i in range(0,n_points - 1):
 
-            # Search for the plateau(Needs polishing)
-            peaks = find_peaks(-a2, distance = 5)
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
 
-            d2s = []
-            r = []
-            e = []
-            for i in peaks[0]:
-                #if log_r[i] < 0: #THIS IS ARBITRAY
-                d2s.append(a2[i])
-                e.append(a2_[i])
-                r.append(log_r[i])
+                    fit = linregress(x = log_r[i:n_points], y = a2[i:n_points], nan_policy = 'omit')
 
-            D2.append(np.asarray(d2s).mean())
-            D2e.append(np.asarray(d2s).std() + np.asarray(e).mean())
-            D2r.append(np.asarray(r).mean())
+                s.append(abs(fit.slope))
 
-    D2 = np.asarray(D2).reshape(a.shape[:-1])
-    D2e = np.asarray(D2e).reshape(a.shape[:-1])
-    #D2 = np.concatenate((D2[np.newaxis], D2e[np.newaxis]), axis = 0)
+            start = np.argmin(s)
 
-    D2r = np.asarray(D2r).reshape(a.shape[:-1])
+            # Make longer fits
+            n = 3
+            fits = []
+            finish = start + max_points
 
-    return D2, D2e, D2r
+            sf_points = [i for i in range(start,finish)]
+
+            intervals = []
+            for f in sf_points:
+                for s in range(0,f):
+                    if abs(s - f) > 4:
+                        intervals.append([s,f])
+
+            for point in intervals:
+
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
+
+                    fit = linregress(x = log_r[point[0]:point[1]], y = a2[point[0]:point[1]], nan_policy = 'omit')
+
+                fits.append(fit)
+
+            std_slope = [fit.stderr for fit in fits]
+
+            rvalues = [abs(fit.rvalue) for fit in fits]
+            
+            t_idxs = []
+            for i, r in enumerate(std_slope):
+
+                if abs(r) < m_threshold:
+
+                    t_idxs.append(i)
+            
+            if len(t_idxs) != 0:
+                t_rvalues = [rvalues[i] for i in t_idxs]
+
+                best_idx = t_idxs[np.argmin(t_rvalues)]
+
+                mean = np.mean(a2[intervals[best_idx][0]:intervals[best_idx][1]])
+                std = np.std(a2[intervals[best_idx][0]:intervals[best_idx][1]])
+
+                Pr.append([intervals[best_idx][0],intervals[best_idx][1]])
+
+            else:
+
+                mean = np.nan
+                std = np.nan
+
+                Pr.append([np.nan,np.nan])
+
+            P.append(mean)
+            Pe.append(std)
+
+    P = np.asarray(P).reshape(a.shape[:-1])
+    Pe = np.asarray(Pe).reshape(a.shape[:-1])
+
+    shape = [*a.shape[:-1], 2]
+    Pr = np.asarray(Pr).reshape(shape)
+
+    return P, Pe, Pr
 
 # Find peaks in Correlation Exponent trial-wise results
 def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, prominence: list, width: list):
@@ -975,9 +996,6 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
     a_ = trial_CE[1]
 
     # Initzialize results array
-    D2 = []
-    D2e = []
-    D2r = []
     P = []
     Pe = []
     Pr = []
@@ -1761,3 +1779,58 @@ def core(subID: str, conditions: list, channels_idx: list | tuple):
 
     #Remebrer the hierarchy! If it applies
     return results
+
+# OLD FUNCTIONS I DON'T NEED NOW
+
+# Information Dimension for a single embedded time series with 2NN-estimation [Krakovská-Chvosteková]
+def idim_old(emb_ts: np.ndarray, m_period: int):
+
+    N = len(emb_ts)
+
+    #Initzialize distances array
+    ds = np.zeros((N,N), dtype = np.float64)
+    for i in range(0,N):
+        for j in range(0,N):
+            dij = dist(emb_ts[i],emb_ts[j])
+
+            ds[i,j] = dij
+            ds[j,i] = dij
+
+    #Initzialize reults array
+    ls = []
+    for i in range(0,N):
+        di = ds[i]
+        
+        sorted_di_idx = np.argsort(di)
+
+        # Store first two non-zero smallest distances (far away on the trajectory)
+        r_idx = [0,0]
+        c = 0
+        m = i
+        for d in sorted_di_idx:
+            if di[d] != 0 and abs(i - d) > m_period and abs(m - d) > m_period:
+                r_idx[c] = d
+                m = d
+                c += 1
+            if c == 2:
+                break
+
+        r1 = di[r_idx[0]]
+        r2 = di[r_idx[1]]
+
+        r12 = ds[r_idx[0],r_idx[1]]
+
+        # Get one of three possible values for the estimator
+        if r12 <= r1:
+            l = np.log(3/2)/np.log(r2/r1)
+        elif r12 > r1 and r12 <= r2:
+            l = np.log(3)/np.log(r2/r1)
+        elif r12 > r2:
+            l = np.log(2)/np.log(r2/r1)
+
+        ls.append(l)
+
+    idim = np.median(np.asarray(ls))
+    e_idim = np.std(np.asarray(ls))
+
+    return idim, e_idim

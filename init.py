@@ -40,6 +40,7 @@ obs_lb = {
     'corrsum': 'CS',
     'correxp': 'CE',
     'peaks': 'PK',
+    'plateaus': 'PL',
     'idim': 'D2',
     'llyap': 'LLE'
 
