@@ -52,12 +52,12 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'plateaus', clust_lb = clust_
 ### SCRIPT PARAMETERS ###
 
 # Number of points for noise region detection
-n_points = 30
+start_points = 40
 
 # Maximum number of points for the scaling region
-max_points = 10
+max_points = 12
 
-# Maximum uncertainty accepted for slope
+# Maximum absolute value accepted for slope
 m_threshold = 0.1
 
 # Get log_r for initzialization
@@ -76,7 +76,7 @@ log_r = variables['log_r']
 def it_ce_plateaus(trial_CE: np.ndarray):
 
     P, Pe, Pr = ce_plateaus(trial_CE = trial_CE, log_r = log_r,
-                            n_points = n_points, max_points = max_points,
+                            start_points = start_points, max_points = max_points,
                             m_threshold = m_threshold)
 
     return P, Pe, Pr
@@ -123,7 +123,7 @@ def mp_ce_plateaus():
     np.savez(sv_path + 'plateaus.npz', *P)
     np.savez(sv_path + 'plateaus_r.npz', *Pr)
 
-    variables['n_points'] = n_points
+    variables['start_points'] = start_points
     variables['max_points'] = max_points
     variables['m_threshold'] = m_threshold
 

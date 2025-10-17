@@ -77,7 +77,11 @@ basic_instructions = {
                      'figsize': (16,11),
                      'textsz': 25,
                      'xlim': (None,None),
-                     'e_title': None#'Lorenz Attractor (w/o embedding normalization)'
+                     'e_title': None,#'Lorenz Attractor (w/o embedding normalization)'
+                     'colormap': cm.viridis,
+                     'legend_s': True,
+                     'legend_loc': 'lower left',
+                     'X_transform': None
                       }
 
 delay_instructions = {
@@ -139,7 +143,53 @@ obs_instructions = {
                     'plateaus': plateaus_instructions
                    }
 
-### PLOTTING WRAPPERS ###
+### MAIN PLOTTING WRAPPER ###
+
+# Simple plotting of one observable
+def simple_plot(info: dict, extra_instructions = None, show = True, save = False, verbose = True):
+
+    # Compile instructions dictionary
+    instructions = make_instructions(info = info, extra_instructions = extra_instructions)
+
+    # Make figures with appropriate data
+    figs, axes, l_dict = make_figures(info = info, instructions = instructions, verbose = verbose)
+
+    # Add axis labels and legend
+    figs, axes = set_figures(figs = figs, axes = axes, l_dict = l_dict)
+
+    show_figures(figs = figs, l_dict = l_dict, show = show, save = save)
+
+    return
+
+# Layered plotting of two observables
+def double_plot(info_1: dict, info_2: dict, extra_instructions_1 = None, extra_instructions_2 = None, show = True, save = False, verbose = True):
+
+    # Compile instructions dictionary
+    instructions_1 = make_instructions(info = info_1, extra_instructions = extra_instructions_1)
+    instructions_2 = make_instructions(info = info_2, extra_instructions = extra_instructions_2)
+
+    # Replicate first instructions for proper data trransformation
+    instructions_2['figure'] = instructions_1['figure']
+    instructions_2['multiplot'] = instructions_1['multiplot']
+    instructions_2['legend'] = instructions_1['legend']
+    instructions_2['axis'] = instructions_1['axis']
+    instructions_2['avg'] = instructions_1['avg']
+    instructions_2['reduce_method'] = instructions_1['reduce_method']
+
+    instructions_2['ylim'] = instructions_1['ylim']
+
+    # Make figures with appropriate data
+    figs, axes, l_dict_1 = make_figures(info = info_1, instructions = instructions_1, verbose = verbose)
+    figs, axes, l_dict_2 = make_figures(info = info_2, instructions = instructions_2, verbose = verbose, figs = figs, axes = axes)
+
+    # Add axis labels and legend
+    figs, axes = set_figures(figs = figs, axes = axes, l_dict = l_dict_2)
+
+    show_figures(figs = figs, l_dict = l_dict_2, show = show, save = save)
+
+    return
+
+### MODULES ###
 
 def show_figure(fig):
 
@@ -150,7 +200,43 @@ def show_figure(fig):
 
     return
 
-def transform_data(info:dict, instructions: dict, verbose: bool, X_transform: None):
+# Compile instructions dictionary with standard options and extra overrides
+def make_instructions(info: dict, extra_instructions: dict):
+    # Construct standard instructions arrays
+    instructions = basic_instructions | obs_instructions[info['obs_name']]
+
+    # Get save path
+    instructions['sv_path'] = pics_path(
+                        exp_name = info['exp_name'],
+                       avg_trials = info['avg_trials'],
+                       obs_name = info['obs_name'],
+                       clust_lb = info['clust_lb'],
+                       calc_lb = info['calc_lb']
+                       ) + instructions['avg'] + '/'
+
+    # Override standard instructions with provided ones
+    if extra_instructions != None:
+
+        for key in extra_instructions.keys():
+
+            instructions[key] = extra_instructions[key]
+
+    # Check for confliction instructions
+    check_conflict = [instructions['figure'], instructions['multiplot'], instructions['legend'], instructions['axis']]
+    if len(set(check_conflict)) != len(check_conflict):
+        print('Conflicting instructions,\'figure\', \'multiplot\', \'legend\' and \'axis\', should all be different')
+        return
+
+    # Apply dimension multiplier
+    resizable = ['markersize','linewidth','textsz']
+
+    for key in resizable:
+
+        instructions[key] = instructions['dim_m']*instructions[key]
+
+    return instructions
+
+def transform_data(info: dict, instructions: dict, verbose: bool):
 
     # Get relevant paths
     path = obs_path(
@@ -162,7 +248,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool, X_transform: No
                        )
 
     # Load results for specific observable
-    results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = X_transform)
+    results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = instructions['X_transform'])
 
     if verbose == True:
         print(variables)
@@ -194,9 +280,9 @@ def transform_data(info:dict, instructions: dict, verbose: bool, X_transform: No
         OBS = results[:,:,0,0]
         E_OBS = results[:,:,0,1]
 
-        if X_transform != None:
+        if instructions['X_transform'] != None:
 
-            X_results = np.asarray(X[X_transform])
+            X_results = np.asarray(X[instructions['X_transform']])
 
             X_results = X_results[:,:,0,0]
 
@@ -320,7 +406,7 @@ def transform_data(info:dict, instructions: dict, verbose: bool, X_transform: No
     obs = np.permute_dims(OBS, rearrange)
     e_obs = np.permute_dims(E_OBS, rearrange)
 
-    if X_transform != None:
+    if instructions['X_transform'] != None:
 
         x_res = np.permute_dims(X_results, rearrange)
     
@@ -332,26 +418,38 @@ def transform_data(info:dict, instructions: dict, verbose: bool, X_transform: No
     obs = [i for ob in obs for i in ob]
     e_obs = [i for e_ob in e_obs for i in e_ob]
 
-    if X_transform != None:
+    if instructions['X_transform'] != None:
 
         x_res = [i for res in x_res for i in res]
 
-        X[X_transform] = x_res
+        x_ = x_res
+
+    else:
+
+        x_ = [None for i in range(0,len(obs))]
+
+    # Create iteration around figures
+    OBS = [i for i in obs]
+    E_OBS = [i for i in e_obs]
+
+    x_list = [[x,i] for i in x_]
 
     # Create dictionary for labels titles and reduced plotting
     l_dict = {
+        'info': info,
         'instructions': instructions,
         'labels': labels,
         'title_l': title_l,
         'plot_l': plot_l,
         'legend_l': legend_l,
         'label_idxs': label_idxs,
-        'multi_idxs': multi_idxs
+        'multi_idxs': multi_idxs,
+        'x': x
     }
 
-    return obs, e_obs, X, x, l_dict
+    return OBS, E_OBS, x_list, l_dict
 
-def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: list, label: list, label_idxs: list, alpha_m: float, grid: list, figsize: list, style: str, markersize: str, linewidth: str):
+def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: list, label: list, label_idxs: list, alpha_m: float, colormap, grid: list, figsize: list, style: str, markersize: str, linewidth: str, legend_s: bool, fig = None, axs = None):
 
     # Axis 0 = Multiplot
     # Axis 1 = Legend
@@ -360,11 +458,56 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
     obs = OBS[:,:,:]
     e_obs = E_OBS[:,:,:]
 
-    cmap = cm.viridis
+    # Fixed x
+    x_full = X[0]
 
-    norm = mcolors.Normalize(vmin = 0, vmax = len(label_idxs) - 1)
+    # Ranges
+    x_rng = X[1]
 
-    fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
+    if x_rng is not None:
+
+        obs = np.zeros([*OBS.shape[:-1],len(x_full)])
+        e_obs = np.zeros([*E_OBS.shape[:-1],len(x_full)])
+
+        for i in range(0,x_rng.shape[0]):
+            for j in range(0,x_rng.shape[1]):
+
+                l_b = x_rng[i,j,0]
+                u_b = x_rng[i,j,1]
+
+                if np.isnan(l_b) == False:
+
+                    o = OBS[i,j,0]
+                    e_o = E_OBS[i,j,0]
+
+                    for k in range(0,len(x_full)):
+
+                        if k >= l_b and k < u_b:
+
+                            obs[i,j,k] = o
+                            e_obs[i,j,k] = e_o
+
+                        else:
+                            
+                            obs[i,j,k] = np.nan
+                            e_obs[i,j,k] = np.nan
+
+                else:
+
+                    for k in range(0,x_rng.shape[2]):
+
+                        obs[i,j,k] = np.nan
+                        e_obs[i,j,k] = np.nan
+
+    if type(colormap) != str:
+
+        cmap = colormap
+
+        norm = mcolors.Normalize(vmin = 0, vmax = len(label_idxs) - 1)
+
+    if fig == None:
+
+        fig, axs = plt.subplots(grid[0], grid[1], figsize = figsize, sharex = True, sharey = True)
 
     if len(multi_idxs) == 1 or grid[0]*grid[1] == 1:
         ax_iter = [axs]
@@ -376,23 +519,29 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
         for i, c in enumerate(label_idxs):
 
-            color = cmap(norm(i))
+            if type(colormap) != str:
+
+                color = cmap(norm(i))
+
+            else:
+
+                color = colormap
 
             if style == 'curve':
             
-                if n == 0:
-                    ax.plot(X, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
+                if n == 0 and legend_s == True:
+                    ax.plot(x_full, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
                 else:
-                    ax.plot(X, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+                    ax.plot(x_full, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
 
-                ax.fill_between(X, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
+                ax.fill_between(x_full, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
 
             if style == 'marker':
 
-                if n == 0:
-                    ax.errorbar(X, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
+                if n == 0 and legend_s == True:
+                    ax.errorbar(x_full, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
                 else:
-                    ax.errorbar(X, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+                    ax.errorbar(x_full, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
 
         n += 1
 
@@ -400,98 +549,47 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
     return fig, axs
 
-
-# Main wrapper for function over pois
-def plot_observable(info: dict, extra_instructions = None, show = True, save = False, verbose = True):
-
-    # Legend
-
-    # Info
-    #
-    #'exp_name'
-    #'avg_trials'
-    #'obs_name'
-    #'clust_lb'
-    #'calc_lb'
-
-    # Instructions
-    #
-    # 'avg'
-    # 'confront'
-    # 'grid'
-    # 'figsize'
-    # 'titlesz'
-    # 'sv_name'
-
-    # Scalar value 4/5-dimensional array
-
-    # Axis 0 = Subjects
-    # Axis 1 = Conditions
-    # Axis 2 = Electrodes/Clusters
-    # Axis 3 = X value
-    # Axis 4 = Y value
-
-    # Value of the array is y(x) or e_y(x)
-
-    # Construct standard instructions arrays
-    instructions = basic_instructions | obs_instructions[info['obs_name']]
-
-    # Override standard instructions with provided ones
-    if extra_instructions != None:
-
-        for key in extra_instructions.keys():
-
-            instructions[key] = extra_instructions[key]
-
-    # Check for confliction instructions
-    check_conflict = [instructions['figure'], instructions['multiplot'], instructions['legend'], instructions['axis']]
-    if len(set(check_conflict)) != len(check_conflict):
-        print('Conflicting instructions,\'figure\', \'multiplot\', \'legend\' and \'axis\', should all be different')
-        return
-
-    # Apply dimension multiplier
-    resizable = ['markersize','linewidth','textsz']
-
-    for key in resizable:
-
-        instructions[key] = instructions['dim_m']*instructions[key]
-
-    # Get save path
-    sv_path = pics_path(
-                        exp_name = info['exp_name'],
-                       avg_trials = info['avg_trials'],
-                       obs_name = info['obs_name'],
-                       clust_lb = info['clust_lb'],
-                       calc_lb = info['calc_lb']
-                       ) + instructions['avg'] + '/'
+def make_figures(info: dict, instructions: dict, verbose: bool, figs = None, axes = None):
 
     # Get data and transform it for adequate plotting
-    obs, e_obs, X, x, l_dict = transform_data(info = info, instructions = instructions, verbose = verbose, X_transform = None)
+    OBS, E_OBS, x_list, l_dict = transform_data(info = info, instructions = instructions, verbose = verbose)
 
     # Extract new instructions
     instructions = l_dict['instructions']
 
-    # Create iteration around figures
-    OBS = [i for i in obs]
-    E_OBS = [i for i in e_obs]
+    # Create dummy list of figs and axes
+    if figs == None:
 
-    # Initzialize lists for figures and axes
-    figs = []
-    axes = []
-    for i in range(0, len(obs)):
+        figs = [None for i in range(0,len(OBS))]
+        axes = [None for i in range(0,len(OBS))]
+
+    # Initzialize new lists for figures and axes
+    figs_ = []
+    axes_ = []
+    for i in range(0, len(OBS)):
     
         # Initialize figures
-        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = x, multi_idxs = l_dict['multi_idxs'], label = l_dict['legend_l'], label_idxs = l_dict['label_idxs'],
+        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = x_list[i], multi_idxs = l_dict['multi_idxs'], label = l_dict['legend_l'], label_idxs = l_dict['label_idxs'],
                                     alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'],
-                                    style = instructions['style'],
-                                    markersize = instructions['markersize'], linewidth = instructions['linewidth'])
+                                    style = instructions['style'], colormap = instructions['colormap'],
+                                    markersize = instructions['markersize'], linewidth = instructions['linewidth'], legend_s = instructions['legend_s'],
+                                    fig = figs[i], axs = axes[i])
 
-        figs.append(fig)
-        axes.append(axis)
+        figs_.append(fig)
+        axes_.append(axis)
+
+    figs = figs_
+    axes = axes_
+
+    return figs, axes, l_dict
+
+def set_figures(figs: list, axes: list, l_dict: dict):
+
+    info = l_dict['info']
+
+    instructions = l_dict['instructions']
 
     # Cycle around axis and figures to add informations
-
-    grid = instructions['grid']
     # Check if we have multiple axes and initialize proper iterable
     for axs in axes:
         if len(l_dict['multi_idxs']) == 1 or instructions['grid'][0]*instructions['grid'][1] == 1:
@@ -515,7 +613,7 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
                 ax.grid(instructions['showgrid'], linestyle = '--')
 
             if instructions['axis'] == 'pois':
-                ax.set_xticks(ticks = X, labels = l_dict['labels'][2], rotation = 90, fontsize = instructions['textsz']/2)
+                ax.set_xticks(ticks = l_dict['x'], labels = l_dict['labels'][2], rotation = 90, fontsize = instructions['textsz']/2)
 
             ax.set_xlim(instructions['xlim'])
 
@@ -530,9 +628,23 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
         fig.suptitle(title, size = instructions['textsz'])
         fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
         fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
-        fig.legend(loc = 'lower left', title = instructions['legend_t'], fontsize = instructions['textsz']*0.7)
+
+        if instructions['legend_s'] == True:
+            fig.legend(loc = instructions['legend_loc'], title = instructions['legend_t'], fontsize = instructions['textsz']*0.7)
         
         fig.tight_layout()
+
+        show_figure(fig)
+
+        plt.close()
+
+    return figs, axes
+
+def show_figures(figs: list, l_dict: dict, show = True, save = False):
+
+    sv_path = l_dict['instructions']['sv_path']
+
+    for i, fig in enumerate(figs):
 
         show_figure(fig)
 
@@ -547,4 +659,4 @@ def plot_observable(info: dict, extra_instructions = None, show = True, save = F
 
         plt.close()
 
-    return figs, axes, instructions
+    return

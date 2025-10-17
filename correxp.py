@@ -47,7 +47,7 @@ clust_lb = 'CFPO'
 calc_lb = 'm_dense_MI'
 
 # Calculation parameters label for saved results
-sv_calc_lb = '3gauss'
+sv_calc_lb = '3nogauss'
 
 # Make explicit reference to previus calculation parameters
 sv_calc_lb = '[' + calc_lb + ']' + sv_calc_lb
@@ -64,7 +64,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', avg_trials = avg_t
 n_points = 3
 
 # Apply gaussian filter to results for smoothing
-gauss_filter = True
+gauss_filter = False
 # Parameters of the gaussian filter
 scale = 0.01
 cutoff = 5

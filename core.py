@@ -416,7 +416,7 @@ def flat_evokeds(evokeds: list):
     return flat, points
 
 # Open results .npz file and convert it to nested list structure
-def loadresults(obs_path: str, obs_name: str, X_transform: None):
+def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
     M, X, variables = obs_data(obs_path = obs_path, obs_name = obs_name)
 
@@ -508,7 +508,7 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
 def correxp_getcorrsum(path: str):
 
     # Load correlation sum results
-    CS, _, variables = loadresults(obs_path = path, obs_name = 'corrsum')
+    CS, _, variables = loadresults(obs_path = path, obs_name = 'corrsum', X_transform = None)
 
     flat_CS, points = flat_results(CS)
 
@@ -904,7 +904,7 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
     return lyap, lyap_e, x, y, fit
 
 # Search for first plateau in Correlation Exponent
-def ce_plateaus(trial_CE: np.ndarray, log_r: list, n_points: int, max_points: int, m_threshold: float):
+def ce_plateaus(trial_CE: np.ndarray, log_r: list, start_points: int, max_points: int, m_threshold: float):
 
     a = trial_CE[0]
     a_ = trial_CE[1]
@@ -917,12 +917,12 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, n_points: int, max_points: in
         for a2, a2_ in zip(a1,a1_):
             
             s = []
-            for i in range(0,n_points - 1):
+            for i in range(0,start_points - 1):
 
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
 
-                    fit = linregress(x = log_r[i:n_points], y = a2[i:n_points], nan_policy = 'omit')
+                    fit = linregress(x = log_r[i:start_points], y = a2[i:start_points], nan_policy = 'omit')
 
                 s.append(abs(fit.slope))
 
@@ -950,42 +950,45 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, n_points: int, max_points: in
 
                 fits.append(fit)
 
-            std_slope = [fit.stderr for fit in fits]
+            slope = [fit.slope for fit in fits]
 
             rvalues = [abs(fit.rvalue) for fit in fits]
             
             t_idxs = []
-            for i, r in enumerate(std_slope):
+            for i, r in enumerate(slope):
 
                 if abs(r) < m_threshold:
 
                     t_idxs.append(i)
             
             if len(t_idxs) != 0:
+
                 t_rvalues = [rvalues[i] for i in t_idxs]
 
                 best_idx = t_idxs[np.argmin(t_rvalues)]
 
-                mean = np.mean(a2[intervals[best_idx][0]:intervals[best_idx][1]])
-                std = np.std(a2[intervals[best_idx][0]:intervals[best_idx][1]])
+                bounds = intervals[best_idx]
 
-                Pr.append([intervals[best_idx][0],intervals[best_idx][1]])
+                mean = np.mean(a2[bounds[0]:bounds[1]])
+                std = np.std(a2[bounds[0]:bounds[1]])
+
+                rs = [bounds[0],bounds[1]]
 
             else:
 
                 mean = np.nan
                 std = np.nan
 
-                Pr.append([np.nan,np.nan])
+                rs = [np.nan,np.nan]
 
             P.append(mean)
             Pe.append(std)
+            Pr.append(rs)
 
     P = np.asarray(P).reshape(a.shape[:-1])
     Pe = np.asarray(Pe).reshape(a.shape[:-1])
 
-    shape = [*a.shape[:-1], 2]
-    Pr = np.asarray(Pr).reshape(shape)
+    Pr = np.asarray(Pr).reshape([*a.shape[:-1],2])
 
     return P, Pe, Pr
 
