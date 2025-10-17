@@ -752,6 +752,8 @@ def gauss_kernel(function: np.array, x: np.array, scale: float, cutoff: int, ord
         c_function[i] = np.sum(vals*ker)/np.sum(ker)
 
     return c_function
+
+
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
 # Time-delay embedding of a single time series
@@ -904,7 +906,7 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
     return lyap, lyap_e, x, y, fit
 
 # Search for first plateau in Correlation Exponent
-def ce_plateaus(trial_CE: np.ndarray, log_r: list, start_points: int, max_points: int, m_threshold: float):
+def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, reference: list, max_points: int, m_threshold: float):
 
     a = trial_CE[0]
     a_ = trial_CE[1]
@@ -916,17 +918,39 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, start_points: int, max_points
     for a1, a1_ in zip(a,a_):
         for a2, a2_ in zip(a1,a1_):
             
+            c = 0
+            nan_corr = 0
+            for i, a_ in enumerate(a2):
+
+                if np.isnan(a_) == False:
+
+                    c += 1
+
+                else:
+
+                    c = 0
+
+                if c == 4:
+
+                    nan_corr = i - 3
+
+                    break
+
             s = []
-            for i in range(0,start_points - 1):
+            for i in range(nan_corr, nan_corr + screen_points):
 
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
 
-                    fit = linregress(x = log_r[i:start_points], y = a2[i:start_points], nan_policy = 'omit')
+                    x = [*log_r[i:i+4], log_r[i+reference[0]]]
+
+                    y = [*a2[i:i+4], reference[1]]
+
+                    fit = linregress(x = x, y = y, nan_policy = 'omit')
 
                 s.append(abs(fit.slope))
 
-            start = np.argmin(s)
+            start = np.argmin(s) + nan_corr
 
             # Make longer fits
             n = 3
@@ -938,7 +962,7 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, start_points: int, max_points
             intervals = []
             for f in sf_points:
                 for s in range(0,f):
-                    if abs(s - f) > 4:
+                    if abs(s - f) > 3:
                         intervals.append([s,f])
 
             for point in intervals:
