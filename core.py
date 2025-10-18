@@ -906,7 +906,7 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
     return lyap, lyap_e, x, y, fit
 
 # Search for first plateau in Correlation Exponent
-def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, reference: list, max_points: int, m_threshold: float):
+def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, resolution: int, backsteps: int, max_points: int):
 
     a = trial_CE[0]
     a_ = trial_CE[1]
@@ -930,30 +930,33 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, reference
 
                     c = 0
 
-                if c == 4:
+                if c == int(len(a2)/2):
 
-                    nan_corr = i - 3
+                    nan_corr = i - int(len(a2)/2) + 1
 
                     break
 
-            s = []
+            means = []
             for i in range(nan_corr, nan_corr + screen_points):
 
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
 
-                    x = [*log_r[i:i+4], log_r[i+reference[0]]]
+                    m = np.mean(a2[i : i + resolution + 1])
 
-                    y = [*a2[i:i+4], reference[1]]
+                means.append(m)
 
-                    fit = linregress(x = x, y = y, nan_policy = 'omit')
+            start = np.argmin(means) + nan_corr
 
-                s.append(abs(fit.slope))
+            if start > backsteps:
 
-            start = np.argmin(s) + nan_corr
+                start = start - backsteps
+
+            else:
+
+                start = 0
 
             # Make longer fits
-            n = 3
             fits = []
             finish = start + max_points
 
@@ -961,22 +964,40 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, reference
 
             intervals = []
             for f in sf_points:
-                for s in range(0,f):
-                    if abs(s - f) > 3:
+                for s in range(start,f):
+                    if abs(s - f) > resolution:
                         intervals.append([s,f])
 
+            likelyhoods = []
+            for point in intervals:
+
+                ml = np.sum((a2[point[0]:point[1]] - np.mean(a2[point[0]:point[1]]))/(a2_[point[0]:point[1]]**2))
+
+                likelyhoods.append(ml)
+
+            best_idx = np.argmin(likelyhoods)
+
+            bounds = intervals[best_idx]
+
+            mean = np.mean(a2[bounds[0]:bounds[1]])
+            std = np.std(a2[bounds[0]:bounds[1]])
+
+            rs = [bounds[0],bounds[1]]
+
+            '''
+            # Old method based on R-Value of fit :P VERY INEFFICIENT
             for point in intervals:
 
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
 
                     fit = linregress(x = log_r[point[0]:point[1]], y = a2[point[0]:point[1]], nan_policy = 'omit')
-
+                
                 fits.append(fit)
 
             slope = [fit.slope for fit in fits]
 
-            rvalues = [abs(fit.rvalue) for fit in fits]
+            #rvalues = [abs(fit.rvalue) for fit in fits]
             
             t_idxs = []
             for i, r in enumerate(slope):
@@ -997,14 +1018,35 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, reference
                 std = np.std(a2[bounds[0]:bounds[1]])
 
                 rs = [bounds[0],bounds[1]]
+                
 
+                # Initzialize weighted likelyhood list
+                likelyhoods = []
+                for i in t_idxs:
+
+                    point = intervals[i]
+
+                    ml = np.sum((a2[point[0]:point[1]] - np.mean(a2[point[0]:point[1]]))/(a2_[point[0]:point[1]]**2))
+
+                    likelyhoods.append(ml)
+
+                best_idx = t_idxs[np.argmin(likelyhoods)]
+
+                bounds = intervals[best_idx]
+
+                mean = np.mean(a2[bounds[0]:bounds[1]])
+                std = np.std(a2[bounds[0]:bounds[1]])
+
+                rs = [bounds[0],bounds[1]]
+                
             else:
 
                 mean = np.nan
                 std = np.nan
 
                 rs = [np.nan,np.nan]
-
+            
+            '''
             P.append(mean)
             Pe.append(std)
             Pr.append(rs)

@@ -130,7 +130,7 @@ def mp_ce_peaks():
     variables['width'] = width
 
     with open(sv_path + 'variables.json', 'w') as f:
-        json.dump(variables, f)
+        json.dump(variables, f, indent = 3)
 
     print('\nResults common shape: ', P[0].shape[1:])
 

@@ -204,7 +204,7 @@ def mp_correlation_sum(evoks_iters: list, points: list):
     variables['log_r'] = list(np.log(r))
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables, f, indent = 3)
 
     print('\nResults common shape: ', CS[0].shape[1:])
 

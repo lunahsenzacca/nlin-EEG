@@ -65,6 +65,7 @@ n_points = 3
 
 # Apply gaussian filter to results for smoothing
 gauss_filter = False
+
 # Parameters of the gaussian filter
 scale = 0.01
 cutoff = 5
@@ -157,7 +158,7 @@ def mp_correlation_exponent():
         variables['cutoff'] = cutoff
 
     with open(sv_path + 'variables.json', 'w') as f:
-        json.dump(variables, f)
+        json.dump(variables, f, indent = 3)
 
     print('\nResults common shape: ', CE[0].shape[1:])
 

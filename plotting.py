@@ -3,6 +3,10 @@ import os
 import json
 import warnings
 
+from tqdm import tqdm
+
+from pprint import pp
+
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -18,6 +22,11 @@ from core import pics_path, obs_path, loadresults
 from init import get_maind
 
 maind = get_maind()
+
+### MULTIPROCESSING PARAMETERS ###
+
+workers = 8
+chunksize = 1
 
 ### Extra DICTIONARIES (Eventually put in init.py)###
 
@@ -251,7 +260,9 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
     results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = instructions['X_transform'])
 
     if verbose == True:
-        print(variables)
+        print(f'### {info['obs_name']}.py script parameters ###\n')
+        pp(variables, depth = 1, width = 60)
+        print('')
 
     clst = variables['clustered']
 
@@ -480,13 +491,14 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
                     o = OBS[i,j,0]
                     e_o = E_OBS[i,j,0]
 
+                    count = 0
                     for k in range(0,len(x_full)):
 
                         if k >= l_b and k < u_b:
 
                             obs[i,j,k] = o
                             e_obs[i,j,k] = e_o
-
+                            count += 1
                         else:
                             
                             obs[i,j,k] = np.nan
@@ -549,13 +561,28 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
     return fig, axs
 
+# Define iterable function for multiprocessing
+def it_plot_1d_function(iterable: list):
+
+    l_dict = iterable[0]
+
+    instructions = l_dict['instructions']
+
+    fig, axis = plot_1dfunction(OBS = iterable[1], E_OBS = iterable[2], X = iterable[3], multi_idxs = l_dict['multi_idxs'], label = l_dict['legend_l'], label_idxs = l_dict['label_idxs'],
+                                alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'],
+                                style = instructions['style'], colormap = instructions['colormap'],
+                                markersize = instructions['markersize'], linewidth = instructions['linewidth'], legend_s = instructions['legend_s'],
+                                fig = iterable[4], axs = iterable[5])
+
+    return fig, axis
+
 def make_figures(info: dict, instructions: dict, verbose: bool, figs = None, axes = None):
 
     # Get data and transform it for adequate plotting
     OBS, E_OBS, x_list, l_dict = transform_data(info = info, instructions = instructions, verbose = verbose)
 
     # Extract new instructions
-    instructions = l_dict['instructions']
+    #instructions = l_dict['instructions']
 
     # Create dummy list of figs and axes
     if figs == None:
@@ -563,6 +590,35 @@ def make_figures(info: dict, instructions: dict, verbose: bool, figs = None, axe
         figs = [None for i in range(0,len(OBS))]
         axes = [None for i in range(0,len(OBS))]
 
+    # Create iterable
+    iterable = [[l_dict, OBS[i], E_OBS[i], x_list[i], figs[i], axes[i]] for i in range(0,len(OBS))]
+
+    # Launch Pool multiprocessing
+    from multiprocessing import Pool
+    with Pool(workers) as p:
+        
+        figsandaxes = list(tqdm(p.imap(it_plot_1d_function, iterable), #chunksize = chunksize),
+                       desc = 'Graphics in progress',
+                       unit = 'pic',
+                       total = len(iterable),
+                       leave = False,
+                       dynamic_ncols = True,
+                       disable = not verbose)
+                        )
+
+    figs_ = []
+    axes_ = []
+
+    for fa in figsandaxes:
+
+        figs_.append(fa[0])
+        axes_.append(fa[1])
+
+    figs = figs_
+    axes = axes_
+
+    '''
+    # Old single process method (Can get really slow)
     # Initzialize new lists for figures and axes
     figs_ = []
     axes_ = []
@@ -580,7 +636,8 @@ def make_figures(info: dict, instructions: dict, verbose: bool, figs = None, axe
 
     figs = figs_
     axes = axes_
-
+    '''
+    
     return figs, axes, l_dict
 
 def set_figures(figs: list, axes: list, l_dict: dict):
