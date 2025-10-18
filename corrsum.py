@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 14
+workers = 12
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -35,7 +35,7 @@ chunksize = 1
 exp_name = 'zbmasking_dense'
 
 # Cluster label
-clust_lb = 'CFPO'
+clust_lb = 'G'
 
 # Calcultation parameters label
 calc_lb = 'm_dense_MI'
@@ -73,7 +73,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', avg_trials = avg_t
 conditions = conditions[0:2]
 
 # Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+#ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,
@@ -95,7 +95,7 @@ frc = [0., 1.]
 # Distances for sampling the dependance
 #r = np.logspace(0, 4.38, num = 27, base = 10)
 #r = r/1e9
-r = np.logspace(-1.9, 0.7, num = 100, base = 10)
+r = np.logspace(-2.2, 0.7, num = 50, base = 10)
 
 # Apply embedding normalization when computing distances
 m_norm = True

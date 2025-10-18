@@ -1264,7 +1264,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
                 for r in rvals:
 
-                    CD.append(corr_sum(emb_ts, r = r, tau = tau, m_norm = m_norm, m = np.sqrt(m)))
+                    CD.append(corr_sum(emb_ts, r = r, m_norm = m_norm, m = np.sqrt(m)))
 
     # Returns list in -C style ordering
 
