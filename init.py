@@ -144,10 +144,7 @@ ZBM_info = {
     'pois': BM_pois,
     'conditions': BM_conditions,
     'directories': ZBM_paths,
-    'k': 5,
-    'Rth': 15,
-    'tau': 20,
-    'avT': 40
+    'tau': 15
 }
 
 BMD_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 
@@ -176,10 +173,7 @@ BMD_info = {
     'pois': BMD_pois,
     'conditions': BM_conditions,
     'directories': BMD_paths,
-    'k': 8,
-    'Rth': 15,
-    'tau': 40,
-    'avT': 80
+    'tau': 35,
 }
 
 # Create similar dictionary for new preprocessing
@@ -201,10 +195,8 @@ ZBMD_info = {
     'pois': BMD_pois,
     'conditions': BM_conditions,
     'directories': ZBMD_paths,
-    'k': 8,
-    'Rth': 15,
-    'tau': 40,
-    'avT': 80
+    'tau': 35,
+
 }
 
 
