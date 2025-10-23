@@ -101,7 +101,7 @@ tau = 'mutual_information'
 frc = [0., 1.]
 
 # Distances for sampling the dependance
-log_span = [-2.5, 1, 100, 10]
+log_span = [-2.5, 1, 30, 10]
 
 r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
 

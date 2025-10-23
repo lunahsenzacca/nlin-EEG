@@ -814,7 +814,7 @@ def rec_plt(emb_ts: np.ndarray, r: float, T: int, m_norm = None, m = None):
 
     counter = 0
 
-    rplt = np.full((T,T), -1, dtype = np.int8)
+    rplt = np.full((T,T), 0, dtype = np.int8)
 
     # Cycle through all different couples of points
     for i in range(0,N):
@@ -828,11 +828,6 @@ def rec_plt(emb_ts: np.ndarray, r: float, T: int, m_norm = None, m = None):
                 rplt[i,j] = 1
                 rplt[j,i] = 1
 
-            else:
-
-                rplt[i,j] = 0
-                rplt[j,i] = 0
-
     return rplt
 
 # Correlation Sum from a Recurrence Plot
@@ -843,7 +838,7 @@ def corr_sum(recurrence_plot: np.ndarray, w = None):
     # Get actual shape
     for i in range(0,M):
 
-        if recurrence_plot[i,i] == -1:
+        if recurrence_plot[i,i] == 0:
 
             N = i
 
@@ -1272,7 +1267,7 @@ def cython_compile(setup_name: str, verbose: bool):
 
             warnings.simplefilter('ignore')
 
-        os.system(f'python ./cython_modules/{setup_name}.py build_ext -b ./cython_modules/ -t ./build/')
+        os.system(f'python ./cython_modules/{setup_name}.py build_ext -b ./cython_modules/ -t ./cython_modules/build/')
 
     return
 
