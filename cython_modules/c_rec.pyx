@@ -41,11 +41,11 @@ def dist(cnp.ndarray[DTYPEfloat_t, ndim = 1] x, cnp.ndarray[DTYPEfloat_t, ndim =
 # Recurrence Plot for a single embeddend time series
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def rec_plt(cnp.ndarray[DTYPEfloat_t, ndim = 2] emb_ts, float r, int T, bint m_norm, int m):
+def rec_plt(cnp.ndarray[DTYPEfloat_t, ndim = 2] emb_ts, DTYPEfloat_t r, int T, bint m_norm, int m):
 
     cdef int N = emb_ts.shape[1]
 
-    cdef cnp.ndarray[DTYPEint_t, ndim = 2] rplt = np.full((T,T), -1, dtype = DTYPEint)
+    cdef cnp.ndarray[DTYPEint_t, ndim = 2] rplt = np.full((T,T), 0, dtype = DTYPEint)
 
     cdef int i, j
 
@@ -62,10 +62,5 @@ def rec_plt(cnp.ndarray[DTYPEfloat_t, ndim = 2] emb_ts, float r, int T, bint m_n
 
                     rplt[i,j] = 1
                     rplt[j,i] = 1
-
-                else:
-
-                    rplt[i,j] = 0
-                    rplt[j,i] = 0
 
     return rplt
