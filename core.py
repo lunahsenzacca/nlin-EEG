@@ -1272,7 +1272,7 @@ def cython_compile(setup_name: str, verbose: bool):
 
             warnings.simplefilter('ignore')
 
-        os.system(f'python ./cython_modules/{setup_name}.py build_ext -b ./cython_modules/ -t ./cython_modules/')
+        os.system(f'python ./cython_modules/{setup_name}.py build_ext -b ./cython_modules/ -t ./build/')
 
     return
 
