@@ -44,7 +44,7 @@ clust_dict = {
               'Gsystem': ['Global System'],
               'mGsystem': ['Global System (m)'],
               'PO': ['Parieto-Occipital'],
-              'F': ['Frontal'],
+              'F': ['Fp1', 'Fp2', 'Fpz'],
               'CFPO': ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],
               'mCFPO': [ i + ' (m)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital', 'Fronto-Parieto-Occipital System']],
               'znoisefree': ['Lorenz'],

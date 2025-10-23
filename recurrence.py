@@ -2,10 +2,14 @@
 import os
 import json
 import mne
+import warnings
 
 import numpy as np
 
 from tqdm import tqdm
+
+# Cython file compile wrapper
+from core import cython_compile
 
 # Sub-wise function for evoked file loading
 from core import loadevokeds
@@ -26,10 +30,14 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 10
+workers = 12
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
+
+# Cython implementation of the script
+cython = True
+cython_verbose = False
 
 # Dataset name
 exp_name = 'zbmasking_dense'
@@ -63,17 +71,17 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'recurrence', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
 
 ### FOR QUICKER EXECUTION ###
-sub_list = sub_list[1:4]
-ch_list = ch_list[0:2]
+#sub_list = sub_list[1:4]
+#ch_list = ch_list[0:2]
 
 # Only averaged conditions
 conditions = conditions[0:2]
 
 # Compare Frontal and Parieto-occipital clusters
-#ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,
@@ -93,7 +101,7 @@ tau = 'mutual_information'
 frc = [0., 1.]
 
 # Distances for sampling the dependance
-log_span = [-2.2, 0.7, 10, 10]
+log_span = [-2.5, 1, 100, 10]
 
 r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
 
@@ -135,7 +143,7 @@ def it_recurrence_plot(evoked: mne.Evoked):
 
     RP = recurrence_plot(evoked = evoked, ch_list = ch_list,
                          embeddings = embeddings, tau = tau, fraction = frc,
-                         rvals = r, m_norm = m_norm)
+                         rvals = r, m_norm = m_norm, cython = cython)
 
     return RP
 
@@ -191,13 +199,13 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
                             dynamic_ncols = True)
                         )
 
-    lenght = int(maind[exp_name]['T']*frc[1]) - int(maind[exp_name]['T']*frc[0])
+    lenght = int(frc[1]*maind[exp_name]['T']) - int(frc[0]*maind[exp_name]['T']) - 1
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r),lenght,lenght]
 
-    RP = collapse_trials(results = results, points = points, fshape = fshape)
-    
+    RP = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.int8)
+
     print('\nDONE!')
 
     # Save results to local
@@ -221,10 +229,14 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
 
     return
 
-# Launch script with 'python -m corrsum' in appropriate conda enviroment
+# Launch script with 'python -m recurrence' in appropriate conda enviroment
 if __name__ == '__main__':
 
     print('\n    RECURRENCE PLOT SCRIPT')
+
+    if cython == True:
+
+        cython_compile(setup_name = 'recurrence_setup', verbose = cython_verbose)
 
     evoks_iters, points = mp_loadevokeds()
 

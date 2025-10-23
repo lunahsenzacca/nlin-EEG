@@ -135,6 +135,14 @@ def obs_data(obs_path: str, obs_name: str):
 
         X = [x]
 
+    elif obs_name == 'recurrence':
+
+        M = np.load(obs_path + 'recurrence.npz')
+        x = variables['embeddings']
+        y = variables['log_r']
+
+        X = [x,y]
+
     elif obs_name == 'corrsum':
 
         M = np.load(obs_path + 'corrsum.npz')
@@ -462,7 +470,7 @@ def flat_results(results: list):
     return flat, points
 
 # Function for trials averaging and homogeneous array generation (works for already averaged trials as well)
-def collapse_trials(results: list, points: list, fshape: list, e_results = None):
+def collapse_trials(results: list, points: list, fshape: list, e_results = None, dtype = np.float64):
 
     if e_results == None:
         print('\nNo observable error in input, zeros will be appended in results along trial error')
@@ -480,16 +488,16 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None)
 
             shape = [len(results[count:count + points[s][c]])]
 
-            trials = np.asarray(results[count:count + points[s][c]])
+            trials = np.asarray(results[count:count + points[s][c]], dtype = dtype)
 
             # Get error from computation uncertainty
             if e_results != None:
 
-                e_trials = np.asarray(e_results[count:count + points[s][c]])
+                e_trials = np.asarray(e_results[count:count + points[s][c]], dtype = dtype)
 
             else:
 
-                e_trials = np.zeros(trials.shape)
+                e_trials = np.zeros(trials.shape, dtype = dtype)
 
             [shape.append(i) for i in fshape[2:]]
 
@@ -540,10 +548,27 @@ def pp_getcorrexp(path: str):
 
     return CE_iters, points, variables
 
+# Prepare recurrence.py results for corrsum.py script
+def corrsum_getrecurrence(path: str):
+
+    # Load correlation sum results
+    RP, _, variables = loadresults(obs_path = path, obs_name = 'recurrence', X_transform = None)
+
+    flat_RP, points = flat_results(RP)
+
+    # Initzialize trial-wise iterable
+    RP_iters = []
+    for arr in flat_RP:
+
+        # Build trial-wise iterable
+        RP_iters.append([arr[0],arr[1]])
+
+    return RP_iters, points, variables
+
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
-def dist(x, y, m_norm = False, m = None):
+def dist(x: np.array, y: np.array, m_norm = False, m = None):
 
     d = np.sqrt(np.sum((x - y)**2, axis = 0))
 
@@ -776,20 +801,20 @@ def td_embedding(ts: np.array, embedding: int, tau: int):
 
     emb_ts = ts[idxs]
 
+    emb_ts = np.asarray(emb_ts, dtype = np.float64)
+
     return emb_ts
 
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
 # Recurrence Plot for a single embeddend time series
-def rec_plt(emb_ts: np.array, r: float, T: int, m_norm = None, m = None):
+def rec_plt(emb_ts: np.ndarray, r: float, T: int, m_norm = None, m = None):
 
     N = emb_ts.shape[-1]
 
     counter = 0
 
-    rplt = np.empty((T,T))
-
-    rplt[:,:] = np.nan
+    rplt = np.full((T,T), -1, dtype = np.int8)
 
     # Cycle through all different couples of points
     for i in range(0,N):
@@ -803,6 +828,11 @@ def rec_plt(emb_ts: np.array, r: float, T: int, m_norm = None, m = None):
                 rplt[i,j] = 1
                 rplt[j,i] = 1
 
+            else:
+
+                rplt[i,j] = 0
+                rplt[j,i] = 0
+
     return rplt
 
 # Correlation Sum from a Recurrence Plot
@@ -813,7 +843,7 @@ def corr_sum(recurrence_plot: np.ndarray, w = None):
     # Get actual shape
     for i in range(0,M):
 
-        if np.isnan(recurrence_plot[i,i]) == True:
+        if recurrence_plot[i,i] == -1:
 
             N = i
 
@@ -944,6 +974,34 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
     lyap_e = fit.stderr
 
     return lyap, lyap_e, x, y, fit
+
+# Trial-wise function for correlation exponent computation
+def correlation_sum(trial_RP: list, log_r: list, w = None):
+
+    # Initzialize results arrays
+    CS = []
+    E_CS = []
+
+    abcd = trial_RP[0]
+    abcd_ = trial_RP[1]
+    for abc, abc_ in zip(abcd, abcd_):
+        for ab, ab_ in zip(abc, abc_):
+            for a, a_ in zip(ab, ab_):
+
+                cs = corr_sum(recurrence_plot = a, w = w)
+
+                CS.append(cs)
+                E_CS.append(0)
+
+    CS = np.asarray(CS)
+    E_CS = np.asarray(E_CS)
+
+    rshp = list(trial_RP[0].shape)[0:-2]
+
+    CS = CS.reshape(rshp)
+    E_CS = E_CS.reshape(rshp)
+
+    return CS, E_CS
 
 # Search for first plateau in Correlation Exponent
 def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, resolution: int, backsteps: int, max_points: int):
@@ -1140,11 +1198,14 @@ def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
     # Apply fraction to time series
     times = evoked.times
 
-    # Trim time series according to fraction variable
-    tmin = times[int(fraction[0]*(len(times)-1))]
-    tmax = times[int(fraction[1]*(len(times)-1))]
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
 
-    evoked.crop(tmin = tmin, tmax = tmax)
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+    
+    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
 
     # Initzialize result array
     tau = []
@@ -1201,24 +1262,45 @@ def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
 
     return tau
 
+def cython_compile(setup_name: str, verbose: bool):
+
+    print('\nCompiling cython file...')
+
+    with warnings.catch_warnings():
+
+        if verbose == True:
+
+            warnings.simplefilter('ignore')
+
+        os.system(f'python ./cython_modules/{setup_name}.py build_ext -b ./cython_modules/ -t ./cython_modules/')
+
+    return
+
 # Recurrence Plot of channel time series of a specific trial
 def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: str|int, rvals: list, 
-                    m_norm: bool, fraction = [0,1]):
+                    m_norm: bool, fraction = [0,1], cython = False):
 
     # Apply fraction to time series
     times = evoked.times
 
-    # Trim time series according to fraction variable
-    tmin = times[int(fraction[0]*(len(times)-1))]
-    tmax = times[int(fraction[1]*(len(times)-1))]
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
 
-    evoked.crop(tmin = tmin, tmax = tmax)
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+
+    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
 
     T = len(evoked.times)
 
     # Initzialize result array
     RP = []
+
+    if cython == True:
+
+        from cython_modules import c_rec
 
     # Check if we are clustering electrodes
     if type(ch_list) == tuple:
@@ -1271,11 +1353,19 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
                 emb_ts = np.swapaxes(emb_ts, 1, 2)
                 emb_ts = np.swapaxes(emb_ts, 0, 1)
 
-                emb_ts = np.asarray([emb_ts[i,j] for j in range(0,emb_ts.shape[1]) for i in range(0,emb_ts.shape[0])])
+                emb_ts = np.asarray([emb_ts[i,j] for j in range(0,emb_ts.shape[1]) for i in range(0,emb_ts.shape[0])], dtype = np.float64)
 
                 for r in rvals:
 
-                    RP.append(rec_plt(emb_ts, r = r, T = T, m_norm = m_norm, m = np.sqrt(len(emb_ts))))
+                    if cython == False:
+
+                        rp = rec_plt(emb_ts = emb_ts, r = r, T = T, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    else:
+
+                        rp = c_rec.rec_plt(emb_ts = emb_ts, r = r, T = T, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    RP.append(rp)
 
     else:
 
@@ -1306,7 +1396,15 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
 
                 for r in rvals:
 
-                    RP.append(rec_plt(emb_ts, r = r, T = T, m_norm = m_norm, m = np.sqrt(m)))
+                    if cython == False:
+
+                        rp = rec_plt(emb_ts = emb_ts, r = r, T = T, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    else:
+
+                        rp = c_rec.rec_plt(emb_ts = emb_ts, r = r, T = T, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    RP.append(rp)
 
     # Returns list in -C style ordering
 
@@ -1894,7 +1992,7 @@ def core(subID: str, conditions: list, channels_idx: list | tuple):
 # OLD FUNCTIONS I DON'T NEED NOW
 
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
-def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
+def old_correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: str|int, rvals: list, 
                     m_norm: bool, fraction = [0,1]):
 

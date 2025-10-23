@@ -37,6 +37,7 @@ exp_lb = {
 }
 obs_lb = {
     'delay': 'TAU',
+    'recurrence': 'RP',
     'corrsum': 'CS',
     'correxp': 'CE',
     'peaks': 'PK',
@@ -119,10 +120,7 @@ BM_info = {
     'pois': BM_pois,
     'conditions': BM_conditions,
     'directories': BM_paths,
-    'k': 5,
-    'Rth': 15,
     'tau': 20,
-    'avT': 40
 }
 
 # Create similar dictionary for zscored results
