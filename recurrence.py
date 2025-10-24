@@ -138,7 +138,7 @@ def it_loadevokeds(subID: str):
 
     return evokeds
 
-# Build Correlation Sum iterable function
+# Build Recurrence Plot iterable function
 def it_recurrence_plot(evoked: mne.Evoked):
 
     RP = recurrence_plot(evoked = evoked, ch_list = ch_list,
@@ -171,7 +171,7 @@ def mp_loadevokeds():
 
     return evoks_iters, points
 
-# Build Correlation Sum multiprocessing function
+# Build Recurrence Plot multiprocessing function
 def mp_recurrence_plot(evoks_iters: list, points: list):
 
     # Get absolute complexity of the script and estimated completion time

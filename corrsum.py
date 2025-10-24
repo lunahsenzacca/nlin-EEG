@@ -1,125 +1,222 @@
 # Usual suspects
 import os
 import json
+import mne
 import warnings
 
 import numpy as np
 
 from tqdm import tqdm
 
-# Utility function for reurrence.py results loading
-from core import corrsum_getrecurrence
+# Cython file compile wrapper
+from core import cython_compile
 
-# Utility function for observables directories and data
-from core import obs_path, obs_data
+# Sub-wise function for evoked file loading
+from core import loadevokeds
 
-# Trial-wise function for Correlation Sum computation
+# Evoked-wise function for Correlation Sum (CS) computation
 from core import correlation_sum
 
-# Function for results formatting
-from core import collapse_trials
+# Utility function for observables directories
+from core import obs_path
 
-# Our Very Big Dictionary
+# Utility functions for trial data averaging
+from core import flat_evokeds, collapse_trials
+
+#Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
 
-### MULTIPROCESSIN PARAMETERS ###
+### MULTIPROCESSING PARAMETERS ###
 
-workers = 14
+workers = 10
 chunksize = 1
 
-### LOAD PARAMETERS ###
+### SCRIPT PARAMETERS ###
+
+# Cython implementation of the script
+cython = True
+cython_verbose = False
 
 # Dataset name
 exp_name = 'zbmasking_dense'
 
+# Cluster label
+clust_lb = 'CFPO'
+
+# Calcultation parameters label
+calc_lb = '[m_dense_MI]w_None'
+
 # Get data averaged across trials
 avg_trials = True
 
-# Cluster label
-clust_lb = 'F'
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
 
-# Calculation parameters label for load results
-calc_lb = 'test'
+### LOAD DATASET DIRECTORIES AND INFOS ###
 
-# Calculation parameters label for saved results
-sv_calc_lb = 'w_0'
+# Evoked folder paths
+path = maind[exp_name]['directories'][method]
 
-# Make explicit reference to previus calculation parameters
-sv_calc_lb = '[' + calc_lb + ']' + sv_calc_lb
+# List of ALL subject IDs
+sub_list = maind[exp_name]['subIDs']
 
-# Correlation Exponent saved results directory
-path = obs_path(exp_name = exp_name, obs_name = 'recurrence', clust_lb = clust_lb, calc_lb = calc_lb, avg_trials = avg_trials)
+# List of ALL conditions
+conditions = list(maind[exp_name]['conditions'].values())
+
+# List of ALL electrodes
+ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', clust_lb = clust_lb, calc_lb = sv_calc_lb, avg_trials = avg_trials)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
 
-### SCRIPT PARAMETERS ###
+### FOR QUICKER EXECUTION ###
+#sub_list = sub_list[1:4]
+#ch_list = ch_list[0:2]
+
+# Only averaged conditions
+conditions = conditions[0:2]
+
+# Compare Frontal and Parieto-occipital clusters
+ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+
+# Crazy stupid all electrodes average
+#ch_list =  ch_list,
+###########################
+
+### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
+
+# Embedding dimensions
+embeddings = [i for i in range(5,8)]
+
+# Set different time delay for each time series
+tau = 'mutual_information'
+# Or set a global value
+#tau = maind[exp_name]['tau']
 
 # Theiler window
 w = None
 
-# Get log_r for initzialization
-with open(path + 'variables.json', 'r') as f:
-    variables = json.load(f)
+# Window of interest
+frc = [0., 1.]
 
-sub_list = variables['subjects']
-conditions = variables['conditions']
-ch_list = variables['pois']
-embeddings = variables['embeddings']
-log_r = variables['log_r']
+# Distances for sampling the dependance
+log_span = [-2.5, 1, 100, 10]
 
-### SCRIPT FOR COMPUTATION ###
+r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
 
-# Build iterable function
-def it_correlation_sum(trial_RP: np.ndarray):
+# Apply embedding normalization when computing distances
+m_norm = True
 
-    CS, E_CS = correlation_sum(trial_RP = trial_RP, log_r = log_r, w = w)
+# Check if we are clustering electrodes
+if type(ch_list) == tuple:
+    clt = True
+else:
+    clt = False
 
-    return CS, E_CS
+# Dictionary for computation variables
+variables = {   
+                'tau' : tau,
+                'w': w,
+                'window' : frc,
+                'm_norm': m_norm,
+                'clustered' : clt,
+                'subjects' : sub_list,
+                'conditions' : conditions,
+                'pois' : ch_list,
+                'embeddings' : embeddings,
+                'log_span': log_span,
+                'log_r': list(np.log(r))
+            }
 
-# Build multiprocessing function
-def mp_correlation_sum():
+### COMPUTATION ###
 
-    print('\nComputing Correlation Sum from Recurrence Plots')
+# Build evokeds loading iterable function
+def it_loadevokeds(subID: str):
+
+    evokeds = loadevokeds(subID = subID, exp_name = exp_name,
+                          avg_trials = avg_trials, conditions = conditions)
+
+    return evokeds
+
+# Build Correlation Sum iterable function
+def it_correlation_sum(evoked: mne.Evoked):
+
+    CS = correlation_sum(evoked = evoked, ch_list = ch_list,
+                         embeddings = embeddings, tau = tau, w = w, fraction = frc,
+                         rvals = r, m_norm = m_norm, cython = cython)
+
+    return CS
+
+# Build evoked loading multiprocessing function
+def mp_loadevokeds():
+
+    print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
+
+    # Launch Pool multiprocessing
+    from multiprocessing import Pool
+    with Pool(workers) as p:
+
+        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list),#, chunksize = chunksize),
+                       desc = 'Loading subjects ',
+                       unit = 'sub',
+                       total = len(sub_list),
+                       leave = False,
+                       dynamic_ncols = True)
+                       )
+
+    # Create flat iterable list of evokeds images
+    evoks_iters, points = flat_evokeds(evokeds = evokeds)
+
+    print('\nDONE!')
+
+    return evoks_iters, points
+
+# Build Correlation Sum multiprocessing function
+def mp_correlation_sum(evoks_iters: list, points: list):
+
+    # Get absolute complexity of the script and estimated completion time
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)*(((maind[exp_name]['T'])**2)*(frc[1]-frc[0])**2)
+
+    velocity = 26e-7
+
+    import datetime
+    eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
+
+    print('\nComputing Correlation Sum over each trial')
+    print('\nNumber of single computations: ' + str(int(complexity)))
+    print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
-
-    # Build iterable over subject
-    RP_iters, points, variables = corrsum_getrecurrence(path = path)
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results_ = list(tqdm(p.imap(it_correlation_sum, RP_iters), #chunksize = chunksize),
-                       desc = 'Computing trials ',
-                       unit = 'trl',
-                       total = len(RP_iters),
-                       leave = True,
-                       dynamic_ncols = True)
+        results = list(tqdm(p.imap(it_correlation_sum, evoks_iters, chunksize = chunksize),
+                            desc = 'Computing channels time series',
+                            unit = 'trl',
+                            total = len(evoks_iters),
+                            leave = True,
+                            dynamic_ncols = True)
                         )
 
-    cs_results = []
-    e_cs_results = []
-    for r in results_:
-
-        cs_results.append(r[0])
-        e_cs_results.append(r[1])
-
     # Create homogeneous array averaging across trial results
-    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(log_r)]
+    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r)]
 
-    CS = collapse_trials(results = cs_results, points = points, fshape = fshape, e_results = e_cs_results)
+    CS = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.float64)
+
+    print('\nDONE!')
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
     np.savez(sv_path + 'corrsum.npz', *CS)
 
-    variables['Theiler window'] = w
-    with open(sv_path + 'variables.json', 'w') as f:
-        json.dump(variables, f, indent = 3)
+    with open(sv_path + 'variables.json','w') as f:
+        json.dump(variables,f)
 
     print('\nResults common shape: ', CS[0].shape[1:])
 
@@ -134,9 +231,16 @@ def mp_correlation_sum():
 
     return
 
-# Launch script with 'python -m idim' in appropriate conda enviroment
+# Launch script with 'python -m corrsum' in appropriate conda enviroment
 if __name__ == '__main__':
 
-    print('\n    CORRELATION SUM SCRIPT')
+    print('\n    CORRELATION SUM PLOT SCRIPT')
 
-    mp_correlation_sum()
+    if cython == True:
+
+        cython_compile(setup_name = 'cython_setup', verbose = cython_verbose)
+
+    evoks_iters, points = mp_loadevokeds()
+
+    mp_correlation_sum(evoks_iters = evoks_iters, points = points)
+
