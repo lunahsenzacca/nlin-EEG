@@ -37,6 +37,10 @@ Data can be saved using two methods:
 
 After data conversion the following observables can be computed running a ```.py``` script in the appropriate conda enviroment:
 
+*  $R(m,r|i,j)$: Recurrence Plot for different embedding dimensions $m$ and scales $r$;
+
+$\rightarrow$ ```python -m recurrence```
+
 *  $C(m,r)$: Correlation Sum for different embedding dimensions $m$ and scales $r$;
 
 $\rightarrow$ ```python -m corrsum```
@@ -44,10 +48,6 @@ $\rightarrow$ ```python -m corrsum```
 *  $\nu(m,r)$: Correlation Exponent for different embedding dimensions $m$ and scales $r$ deriving results from $C(m,r)$;
 
 $\rightarrow$ ```python -m correxp```
-
-*  $D_{2}(m)$: Information Dimension for different embedding dimensions $m$;
-
-$\rightarrow$ ```python -m idim```
 
 *  $\lambda(m)$: Largest Lyapunov Exponent for different embedding dimensions $m$.
 
