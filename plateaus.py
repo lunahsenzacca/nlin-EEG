@@ -41,7 +41,7 @@ avg_trials = True
 clust_lb = 'CFPO'
 
 # Calculation parameters label for load results
-calc_lb = '[m_dense_MI]3nogauss'
+calc_lb = '[[m_dense_MI]w_None]3nogauss'
 
 # Correlation Exponent saved results directory
 path = obs_path(exp_name = exp_name, obs_name = 'correxp', clust_lb = clust_lb, calc_lb = calc_lb, avg_trials = avg_trials)
@@ -52,16 +52,16 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'plateaus', clust_lb = clust_
 ### SCRIPT PARAMETERS ###
 
 # Number of points to consider for noise region detection
-screen_points = 50
+screen_points = 70
 
 # Resolution used for noise scaling breakoff
-resolution = 5
+resolution = 10
 
 # Number of points to subtract from noise region start
-backsteps = 3
+backsteps = 5
 
 # Maximum number of points in the plateau
-max_points = 16
+max_points = 50
 
 # Get log_r for initzialization
 with open(path + 'variables.json', 'r') as f:

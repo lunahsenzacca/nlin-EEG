@@ -38,6 +38,7 @@ exp_lb = {
 obs_lb = {
     'delay': 'TAU',
     'recurrence': 'RP',
+    'separation': 'SP',
     'corrsum': 'CS',
     'correxp': 'CE',
     'peaks': 'PK',

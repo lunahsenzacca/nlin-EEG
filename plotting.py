@@ -59,6 +59,7 @@ clust_dict = {
 
 obs_dict = {
             'delay': '$\\tau$',
+            'separation': 'Spacetime Separation ',
             'corrsum': '$C_{m}(r)$ ',
             'correxp': '$\\nu_{m}(r)$ ',
             'peaks': '$\\nu_{max}$ ',
@@ -85,7 +86,6 @@ basic_instructions = {
                      'showgrid': True,
                      'figsize': (16,11),
                      'textsz': 25,
-                     'xlim': (None,None),
                      'e_title': None,#'Lorenz Attractor (w/o embedding normalization)'
                      'colormap': cm.viridis,
                      'legend_s': True,
@@ -97,23 +97,42 @@ delay_instructions = {
                         'figure': 'one',
                         'multiplot': 'subjects',
                         'legend': 'conditions',
+                        'isolines': None,
                         'axis': 'pois',
                         'avg': 'none',
                         'reduce_method': 'trivial',
                         'ylabel': '$\\tau$',
+                        'xlim': (0,None),
                         'ylim': (12,45),
                         'style': 'marker',
                         'legend_t': 'Condition',
+                        }
+
+separation_instructions = {
+                        'figure': 'pois',
+                        'multiplot': 'subjects',
+                        'legend': 'embeddings',
+                        'isolines': 'percentiles',
+                        'axis': 'dt',
+                        'avg': 'none',
+                        'reduce_method': 'product',
+                        'ylabel': '$p_{m}(\\Delta | \\delta t)$',
+                        'xlim': (0,None),
+                        'ylim': (0,6),
+                        'style': 'curve',
+                        'legend_t': 'Embedding\ndimension',
                         }
 
 correxp_instructions = {
                         'figure': 'pois',
                         'multiplot': 'subjects',
                         'legend': 'embeddings',
+                        'isolines': None,
                         'axis': 'log_r',
                         'avg': 'none',
                         'reduce_method': 'product',
                         'ylabel': '$\\nu_{m}(r)$',
+                        'xlim': (None,None),
                         'ylim': (0,6),
                         'style': 'curve',
                         'legend_t': 'Embedding\ndimension',
@@ -123,10 +142,12 @@ peaks_instructions = {
                       'figure': 'conditions',
                       'multiplot': 'subjects',  
                       'legend': 'embeddings',
+                      'isolines': None,
                       'axis': 'pois',
                       'avg': 'none',
                       'reduce_method': 'trivial',
                       'ylabel': '$\\nu_{max}$',
+                      'xlim': (None,None),
                       'ylim': (1,4),
                       'style': 'marker',
                       'legend_t': 'Embedding\ndimension',
@@ -136,10 +157,12 @@ plateaus_instructions = {
                       'figure': 'conditions',
                       'multiplot': 'subjects',  
                       'legend': 'embeddings',
+                      'isolines': None,
                       'axis': 'pois',
                       'avg': 'none',
                       'reduce_method': 'trivial',
                       'ylabel': '$\\nu_{p}$',
+                      'xlim': (None,None),
                       'ylim': (0.8,2.1),
                       'style': 'marker',
                       'legend_t': 'Embedding\ndimension',
@@ -147,6 +170,7 @@ plateaus_instructions = {
 
 obs_instructions = {
                     'delay': delay_instructions,
+                    'separation': separation_instructions,
                     'correxp': correxp_instructions,
                     'peaks': peaks_instructions,
                     'plateaus': plateaus_instructions
@@ -184,8 +208,6 @@ def double_plot(info_1: dict, info_2: dict, extra_instructions_1 = None, extra_i
     instructions_2['axis'] = instructions_1['axis']
     instructions_2['avg'] = instructions_1['avg']
     instructions_2['reduce_method'] = instructions_1['reduce_method']
-
-    instructions_2['ylim'] = instructions_1['ylim']
 
     # Make figures with appropriate data
     figs, axes, l_dict_1 = make_figures(info = info_1, instructions = instructions_1, verbose = verbose)
@@ -276,6 +298,14 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         # Initzialize list for array rearranging
         rearrange = [0,0,0,0,0]
 
+    elif info['obs_name'] in ['separation']:
+
+        # Initzialize list of labels for data
+        labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],variables['embeddings'],variables['percentiles'],[instructions['e_title']]]
+
+        # Initzialize list for array rearranging
+        rearrange = [0,0,0,0,0,0]
+
     elif info['obs_name'] in ['delay']: 
 
         # Initzialize list of labels for data
@@ -302,7 +332,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
     # Add extra dimension for consistency
     if len(OBS.shape) == 4:
-        
+
         OBS = np.expand_dims(OBS, axis = 4)
         E_OBS = np.expand_dims(E_OBS, axis = 4)
         
@@ -352,6 +382,10 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
         plot_l = labels[0]
 
+    if instructions['isolines'] == 'percentiles':
+
+        rearrange[-3] = 4
+
     if instructions['legend'] == 'conditions':
 
         rearrange[-2] = 1
@@ -379,6 +413,14 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         x = X[1]
 
         instructions['xlabel'] = '$\\log(r)$'
+
+    elif instructions['axis'] == 'dt':
+
+        rearrange[-1] = 5
+
+        x = X[1]
+
+        instructions['xlabel'] = '$\\delta t$'
 
     elif instructions['axis'] == 'pois':
 
@@ -455,7 +497,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         'legend_l': legend_l,
         'label_idxs': label_idxs,
         'multi_idxs': multi_idxs,
-        'x': x
+        'x': x,
     }
 
     return OBS, E_OBS, x_list, l_dict
@@ -526,7 +568,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
     else:
         ax_iter = axs.flat
 
-    n = 0
+    first = True
     for j, ax in zip(multi_idxs, ax_iter):
 
         for i, c in enumerate(label_idxs):
@@ -539,23 +581,38 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
                 color = colormap
 
-            if style == 'curve':
-            
-                if n == 0 and legend_s == True:
-                    ax.plot(x_full, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
-                else:
-                    ax.plot(x_full, obs[j,c,:], '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+            if len(obs[j,c].shape) == 1:
 
-                ax.fill_between(x_full, obs[j,c,:]-e_obs[j,c,:], obs[j,c,:]+e_obs[j,c,:], color = color, alpha = 0.4*alpha_m)
+                o = [obs[j,c]]
+                e_o = [e_obs[j,c]]
 
-            if style == 'marker':
+            else:
 
-                if n == 0 and legend_s == True:
-                    ax.errorbar(x_full, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
-                else:
-                    ax.errorbar(x_full, obs[j,c,:], yerr = e_obs[j,c,:], fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+                o = [obs[j,c,i] for i in range(0,obs.shape[-2])]
+                e_o = [e_obs[j,c,i] for i in range(0,e_obs.shape[-2])]
 
-        n += 1
+            second = True
+            for f, e_f in zip(o, e_o):
+
+                if style == 'curve':
+                
+                    if first == True and second == True and legend_s == True:
+                        ax.plot(x_full, f, '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
+                    else:
+                        ax.plot(x_full, f, '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+
+                    ax.fill_between(x_full, f - e_f, f + e_f, color = color, alpha = 0.4*alpha_m)
+
+                if style == 'marker':
+
+                    if first == True and second == True and legend_s == True:
+                        ax.errorbar(x_full, f, yerr = e_f, fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m, label = label[c])
+                    else:
+                        ax.errorbar(x_full, f, yerr = e_f, fmt = 'o', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
+
+                second = False
+
+        first = False
 
     plt.close()
 
@@ -663,7 +720,7 @@ def set_figures(figs: list, axes: list, l_dict: dict):
             ax.set_yticks(ticks = ylocs, labels = ylabels, fontsize = instructions['textsz']/2)
 
             xlocs = ax.get_xticks()
-            xlabels = [f'{xloc: .1f}' for xloc in xlocs]
+            xlabels = [f'{xloc: .0f}' for xloc in xlocs]
             ax.set_xticks(ticks = xlocs, labels = xlabels, fontsize = instructions['textsz']/2)
 
             if instructions['showgrid'] != False:
@@ -672,7 +729,8 @@ def set_figures(figs: list, axes: list, l_dict: dict):
             if instructions['axis'] == 'pois':
                 ax.set_xticks(ticks = l_dict['x'], labels = l_dict['labels'][2], rotation = 90, fontsize = instructions['textsz']/2)
 
-            ax.set_xlim(instructions['xlim'])
+            ax.set_xlim((l_dict['x'][0],l_dict['x'][-1]))
+            #ax.set_xlim(instructions['xlim'])
 
     for i, fig in enumerate(figs):
 

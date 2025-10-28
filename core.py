@@ -77,6 +77,21 @@ toevoked         : Concatenates taw_tolist and list_toevoke;
 loadevokeds       : Loads evoked files.
 '''
 
+# Cython modules compilation
+def cython_compile(verbose: bool, setup_name = 'cython_setup'):
+
+    print('\nCompiling cython file...')
+
+    with warnings.catch_warnings():
+
+        if verbose == True:
+
+            warnings.simplefilter('ignore')
+
+        os.system(f'python ./cython_modules/{setup_name}.py build_ext -b ./cython_modules/ -t ./cython_modules/build/')
+
+    return
+
 # Get subject path
 def sub_path(subID: str, exp_name: str):
 
@@ -140,6 +155,14 @@ def obs_data(obs_path: str, obs_name: str):
         M = np.load(obs_path + 'recurrence.npz')
         x = variables['embeddings']
         y = variables['log_r']
+
+        X = [x,y]
+
+    elif obs_name == 'separation':
+
+        M = np.load(obs_path + 'separation.npz')
+        x = variables['embeddings']
+        y = variables['dt']
 
         X = [x,y]
 
@@ -825,11 +848,11 @@ def distance_matrix(emb_ts: np.ndarray, m_norm = None, m = None):
     return dist_matrix
 
 # Correlation Sum from a Recurrence Plot
-def corr_sum(dist_matrix: np.ndarray, r: float, w = None):
+def corr_sum(dist_matrix: np.ndarray, r: float, w: int):
 
     N = dist_matrix.shape[0]
 
-    if w == None:
+    if w == 0:
 
         c = 0
         for i in range(0,N):
@@ -844,7 +867,6 @@ def corr_sum(dist_matrix: np.ndarray, r: float, w = None):
     else:
 
         c = 0
-        n = 0
         for i in range(0,N):
             for j in range(0,i):
 
@@ -852,20 +874,14 @@ def corr_sum(dist_matrix: np.ndarray, r: float, w = None):
 
                     c += 1
 
-                elif (i - j) <= w:
-
-                    n += 1
-
-        csum = (2/((N-n)*(N-n-1)))*c
+        csum = (2/((N-w)*(N-w-1)))*c
 
     return csum
 
 # Recurrence Plot for a single embeddend time series
 def rec_plt(dist_matrix: np.ndarray, r: float, T: int, m_norm = None, m = None):
 
-    N = emb_ts.shape[-1]
-
-    counter = 0
+    N = dist_matrix.shape[0]
 
     rplt = np.full((T,T), 0, dtype = np.int8)
 
@@ -881,8 +897,33 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int, m_norm = None, m = None):
 
     return rplt
 
+# Spacetime Separation Plot for a single embeddend time series
+def sep_plt(dist_matrix: np.ndarray, percentiles: np.array, T: int):
+
+    N = dist_matrix.shape[0]
+
+    n = percentiles.shape[0]
+
+    splt = np.full((n,T), 0, dtype = np.float64)
+
+    # Compose distribution of distances for each relative time distance
+    for i in range(0,N):
+
+        dist = []
+        for j in range(0, N - i):
+
+            dist.append(dist_matrix[j,i + j])
+
+        if (N - i) > 2*n:
+
+            perc = np.percentile(dist, percentiles)
+
+            splt[:,i] = perc
+
+    return splt
+
 # Correlation Sum from a Recurrence Plot
-def rec_corr_sum(recurrence_plot: np.ndarray, w = None):
+def rec_corr_sum(recurrence_plot: np.ndarray, w: int):
 
     M = recurrence_plot.shape[0]
 
@@ -895,7 +936,7 @@ def rec_corr_sum(recurrence_plot: np.ndarray, w = None):
 
             break
 
-    if w == None:
+    if w == 0:
 
         c = 0
         for i in range(0,N):
@@ -908,7 +949,6 @@ def rec_corr_sum(recurrence_plot: np.ndarray, w = None):
     else:
 
         c = 0
-        n = 0
         for i in range(0,N):
             for j in range(0,i):
 
@@ -916,11 +956,7 @@ def rec_corr_sum(recurrence_plot: np.ndarray, w = None):
 
                     c += recurrence_plot[i,j]
 
-                else:
-
-                    n += 1
-
-        csum = (2/((N-n)*(N-n-1)))*c
+        csum = (2/((N-w)*(N-w-1)))*c
 
     return csum
 
@@ -1063,7 +1099,6 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, resolutio
         for a2, a2_ in zip(a1,a1_):
             
             c = 0
-            nan_corr = 0
             for i, a_ in enumerate(a2):
 
                 if np.isnan(a_) == False:
@@ -1083,10 +1118,7 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, resolutio
             means = []
             for i in range(nan_corr, nan_corr + screen_points):
 
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-
-                    m = np.mean(a2[i : i + resolution + 1])
+                m = np.mean(a2[i : i + resolution + 1])
 
                 means.append(m)
 
@@ -1115,7 +1147,7 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, resolutio
             likelyhoods = []
             for point in intervals:
 
-                ml = np.sum((a2[point[0]:point[1]] - np.mean(a2[point[0]:point[1]]))/(a2_[point[0]:point[1]]**2))
+                ml = np.sum((a2[point[0]:point[1]] - np.nanmean(a2[point[0]:point[1]]))/(a2_[point[0]:point[1]]**2))/(point[1]-point[0])
 
                 likelyhoods.append(ml)
 
@@ -1308,20 +1340,6 @@ def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
 
     return tau
 
-def cython_compile(setup_name: str, verbose: bool):
-
-    print('\nCompiling cython file...')
-
-    with warnings.catch_warnings():
-
-        if verbose == True:
-
-            warnings.simplefilter('ignore')
-
-        os.system(f'python ./cython_modules/{setup_name}.py build_ext -b ./cython_modules/ -t ./cython_modules/build/')
-
-    return
-
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
 def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: str|int, w: int, rvals: list, 
@@ -1334,11 +1352,14 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     # Apply fraction to time series
     times = evoked.times
 
-    # Trim time series according to fraction variable
-    tmin = times[int(fraction[0]*(len(times)-1))]
-    tmax = times[int(fraction[1]*(len(times)-1))]
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
 
-    evoked.crop(tmin = tmin, tmax = tmax)
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+
+    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
 
     # Initzialize result array
     CD = []
@@ -1616,6 +1637,146 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
     # Returns list in -C style ordering
 
     return RP
+
+# Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
+def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
+                    embeddings: list, tau: str|int, percentiles: list,
+                    m_norm: bool, fraction = [0,1], cython = False):
+
+    if cython == True:
+
+        from cython_modules import c_core
+
+    # Apply fraction to time series
+    times = evoked.times
+
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
+
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+
+    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+
+    T = len(evoked.times)
+
+    percentiles = np.asarray(percentiles, dtype = np.int8)
+
+    # Initzialize result array
+    SP = []
+
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
+        
+
+        TS = []
+        for cl in ch_list:
+            
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            #ts = ts.mean(axis = 0)
+            
+            TS.append(ts)
+        
+        for ts in TS:
+
+            # Compile delay time list for each component
+            tau_ = []
+            for t in ts:
+                
+                if tau == 'mutual_information':
+
+                    tau_.append(MI_for_delay(t))
+
+                elif tau == 'autocorrelation':
+
+                    tau_.append(autoCorrelation_tau(t))
+
+                elif type(tau) == int:
+
+                    tau_.append(tau)
+
+            for m in embeddings:
+                
+                emb_ts = []
+                emb_lenghts = []
+                for i, t in enumerate(ts):
+
+                    emb_t = td_embedding(t, embedding = m, tau = tau_[i])
+
+                    l = len(emb_t)
+
+                    emb_ts.append(emb_t)
+                    emb_lenghts.append(l)
+
+                # Set embedded time series to same lenght for array transformation
+                emb_ts = [emb_t[0:np.asarray(emb_lenghts).min()] for emb_t in emb_ts]
+
+                emb_ts = np.asarray(emb_ts)
+
+                emb_ts = np.swapaxes(emb_ts, 1, 2)
+                emb_ts = np.swapaxes(emb_ts, 0, 1)
+
+                emb_ts = np.asarray([emb_ts[i,j] for j in range(0,emb_ts.shape[1]) for i in range(0,emb_ts.shape[0])], dtype = np.float64)
+
+                if cython == False:
+
+                    dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
+
+                else:
+
+                    dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
+
+                SP.append(sp)
+
+    else:
+
+        TS = evoked.get_data(picks = ch_list)
+    
+        # Loop around pois time series
+        for ts in TS:
+                
+            if tau == 'mutual_information':
+
+                tau_ = MI_for_delay(ts)
+
+            elif tau == 'autocorrelation':
+
+                tau_ = autoCorrelation_tau(ts)
+
+            elif type(tau) == int:
+
+                tau_ = tau
+            
+            for m in embeddings:
+                emb_ts = td_embedding(ts, embedding = m, tau = tau_)
+
+                emb_ts = np.asarray(emb_ts)
+
+                emb_ts = np.swapaxes(emb_ts, 0, 1)
+
+                if cython == False:
+
+                    dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
+
+                else:
+
+                    dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
+
+                SP.append(sp)
+
+    # Returns list in -C style ordering
+
+    return SP
 
 # Information dimension of channel time series of a specific trial
 def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,

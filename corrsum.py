@@ -46,7 +46,7 @@ exp_name = 'zbmasking_dense'
 clust_lb = 'CFPO'
 
 # Calcultation parameters label
-calc_lb = '[m_dense_MI]w_None'
+calc_lb = '[m_dense_MI]w_80'
 
 # Get data averaged across trials
 avg_trials = True
@@ -90,7 +90,7 @@ ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],[
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [i for i in range(5,8)]
+embeddings = [3, 6, 9, 12, 15]
 
 # Set different time delay for each time series
 tau = 'mutual_information'
@@ -98,13 +98,13 @@ tau = 'mutual_information'
 #tau = maind[exp_name]['tau']
 
 # Theiler window
-w = None
+w = 80
 
 # Window of interest
 frc = [0., 1.]
 
 # Distances for sampling the dependance
-log_span = [-2.5, 1, 100, 10]
+log_span = [-2.5, 1, 150, 10]
 
 r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
 
@@ -179,7 +179,7 @@ def mp_loadevokeds():
 def mp_correlation_sum(evoks_iters: list, points: list):
 
     # Get absolute complexity of the script and estimated completion time
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)*(((maind[exp_name]['T'])**2)*(frc[1]-frc[0])**2)
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*np.log(len(r))*(((maind[exp_name]['T'])**2)*(frc[1]-frc[0])**2)
 
     velocity = 26e-7
 
@@ -238,7 +238,7 @@ if __name__ == '__main__':
 
     if cython == True:
 
-        cython_compile(setup_name = 'cython_setup', verbose = cython_verbose)
+        cython_compile(verbose = cython_verbose)
 
     evoks_iters, points = mp_loadevokeds()
 

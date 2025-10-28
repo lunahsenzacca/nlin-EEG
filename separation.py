@@ -14,8 +14,8 @@ from core import cython_compile
 # Sub-wise function for evoked file loading
 from core import loadevokeds
 
-# Evoked-wise function for Recurrence Plot (RP) computation
-from core import recurrence_plot
+# Evoked-wise function for Spacetime Separation Plot (SP) computation
+from core import separation_plot
 
 # Utility function for observables directories
 from core import obs_path
@@ -37,10 +37,10 @@ chunksize = 1
 
 # Cython implementation of the script
 cython = True
-cython_verbose = False
+cython_verbose = True
 
 # Dataset name
-exp_name = 'zbmasking_dense'
+exp_name = 'zbmasking'
 
 # Cluster label
 clust_lb = 'CFPO'
@@ -71,7 +71,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'recurrence', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'separation', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[1:4]
@@ -100,10 +100,8 @@ tau = 'mutual_information'
 # Window of interest
 frc = [0., 1.]
 
-# Distances for sampling the dependance
-log_span = [-2, 1, 6, 10]
-
-r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
+# Set desired percentiles for percentage isolines
+percentiles = [10,25,50,75,90]
 
 # Apply embedding normalization when computing distances
 m_norm = True
@@ -124,8 +122,7 @@ variables = {
                 'conditions' : conditions,
                 'pois' : ch_list,
                 'embeddings' : embeddings,
-                'log_span': log_span,
-                'log_r': list(np.log(r))
+                'percentiles' : percentiles
             }
 
 ### COMPUTATION ###
@@ -138,14 +135,14 @@ def it_loadevokeds(subID: str):
 
     return evokeds
 
-# Build Recurrence Plot iterable function
-def it_recurrence_plot(evoked: mne.Evoked):
+# Build Spacetime Separation Plot iterable function
+def it_separation_plot(evoked: mne.Evoked):
 
-    RP = recurrence_plot(evoked = evoked, ch_list = ch_list,
+    SP = separation_plot(evoked = evoked, ch_list = ch_list,
                          embeddings = embeddings, tau = tau, fraction = frc,
-                         rvals = r, m_norm = m_norm, cython = cython)
+                         percentiles = percentiles, m_norm = m_norm, cython = cython)
 
-    return RP
+    return SP
 
 # Build evoked loading multiprocessing function
 def mp_loadevokeds():
@@ -171,18 +168,18 @@ def mp_loadevokeds():
 
     return evoks_iters, points
 
-# Build Recurrence Plot multiprocessing function
-def mp_recurrence_plot(evoks_iters: list, points: list):
+# Build Spacetime Separation Plot multiprocessing function
+def mp_separation_plot(evoks_iters: list, points: list):
 
     # Get absolute complexity of the script and estimated completion time
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*len(r)*(((maind[exp_name]['T'])**2)*(frc[1]-frc[0])**2)
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*(((maind[exp_name]['T'])**2)*(frc[1]-frc[0])**2)
 
     velocity = 26e-7
 
     import datetime
     eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
 
-    print('\nComputing Recurrence Plots over each trial')
+    print('\nComputing Spacetime Separation Plots over each trial')
     print('\nNumber of single computations: ' + str(int(complexity)))
     print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
@@ -191,7 +188,7 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_recurrence_plot, evoks_iters, chunksize = chunksize),
+        results = list(tqdm(p.imap(it_separation_plot, evoks_iters, chunksize = chunksize),
                             desc = 'Computing channels time series',
                             unit = 'trl',
                             total = len(evoks_iters),
@@ -202,28 +199,30 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
     lenght = int(frc[1]*maind[exp_name]['T']) - int(frc[0]*maind[exp_name]['T']) - 1
 
     # Create homogeneous array averaging across trial results
-    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r),lenght,lenght]
+    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(percentiles),lenght]
 
-    RP = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.int8)
+    SP = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.float64)
 
     print('\nDONE!')
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'recurrence.npz', *RP)
+    np.savez(sv_path + 'separation.npz', *SP)
+
+    variables['dt'] = [i for i in range(0,lenght)]
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
-    print('\nResults common shape: ', RP[0].shape[1:])
+    print('\nResults common shape: ', SP[0].shape[1:])
 
     if avg_trials == False:
 
         print('\nTrials\n')
     
         for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
-            print(f'{prod}: ', RP[c].shape[0])
+            print(f'{prod}: ', SP[c].shape[0])
 
     print('')
 
@@ -232,7 +231,7 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
 # Launch script with 'python -m recurrence' in appropriate conda enviroment
 if __name__ == '__main__':
 
-    print('\n    RECURRENCE PLOT SCRIPT')
+    print('\n    SPACETIME SEPARATION PLOT SCRIPT')
 
     if cython == True:
 
@@ -240,5 +239,5 @@ if __name__ == '__main__':
 
     evoks_iters, points = mp_loadevokeds()
 
-    mp_recurrence_plot(evoks_iters = evoks_iters, points = points)
+    mp_separation_plot(evoks_iters = evoks_iters, points = points)
 

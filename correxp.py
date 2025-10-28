@@ -41,10 +41,10 @@ exp_name = 'zbmasking_dense'
 avg_trials = True
 
 # Cluster label
-clust_lb = 'F'
+clust_lb = 'CFPO'
 
 # Calculation parameters label for load results
-calc_lb = '[test]w_0'
+calc_lb = '[m_dense_MI]w_80'
 
 # Calculation parameters label for saved results
 sv_calc_lb = '3nogauss'
