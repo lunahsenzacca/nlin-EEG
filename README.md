@@ -30,9 +30,9 @@ For use across different datasets the data has to be converted using the [toMNE.
 
 Data can be saved using two methods:
 
-```avg_trials = True``` : Save data averaged across repeated trials;
+```avg_trials = True``` : Average time series across same condition trials before computing observable;
 
-```avg_trials = False``` : Save data keeping each repeated trial.
+```avg_trials = False``` : Computer observable for each trial.
 
 ### **Compute observables**
 
