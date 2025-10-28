@@ -11,6 +11,7 @@ Install the required packages in a conda enviroment:
   -python = 3.12
   -matplotlib
   -scipy
+  -cython
   -tqdm
   -pip:
     -teaspoon
@@ -37,19 +38,24 @@ Data can be saved using two methods:
 
 After data conversion the following observables can be computed running a ```.py``` script in the appropriate conda enviroment:
 
-*  $R(m,r|i,j)$: Recurrence Plot for different embedding dimensions $m$ and scales $r$;
+
+*  $S_{m}\left(\Delta_{ij}||i-j| = \delta t\right)$ : Spacetime Separation Plot for different embedding dimensions $m$ and realtive times $\delta t$;
+
+$\rightarrow$ ```python -m separation```
+
+*  $R_{m}\left(r|\Delta_{ij}\right)$ : Recurrence Plot for different embedding dimensions $m$ and scales $r$;
 
 $\rightarrow$ ```python -m recurrence```
 
-*  $C(m,r)$: Correlation Sum for different embedding dimensions $m$ and scales $r$;
+*  $C_{m}(r)$ : Correlation Sum for different embedding dimensions $m$ and scales $r$;
 
 $\rightarrow$ ```python -m corrsum```
 
-*  $\nu(m,r)$: Correlation Exponent for different embedding dimensions $m$ and scales $r$ deriving results from $C(m,r)$;
+*  $\nu_{m}(r)$ : Correlation Exponent for different embedding dimensions $m$ and scales $r$ deriving results from $C(m,r)$;
 
 $\rightarrow$ ```python -m correxp```
 
-*  $\lambda(m)$: Largest Lyapunov Exponent for different embedding dimensions $m$.
+*  $\lambda_{m}$ : Largest Lyapunov Exponent for different embedding dimensions $m$.
 
 $\rightarrow\$ ```python -m llyap```
 
