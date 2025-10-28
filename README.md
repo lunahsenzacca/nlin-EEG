@@ -20,13 +20,13 @@ Install the required packages in a conda enviroment:
 
 ### **Dataset info and observables**
 
-Set dataset information and labels in [init.py][/init.py] file.
+Set dataset information and labels in [init.py](/init.py) file.
 
 This is a central hub for every string and information which is dataset specific. All of this info is stored in a dictionary called by other scripts with the ```get_maind()``` function.
 
 ### **Convert and save dataset to MNE evoked file format**
 
-For use across different datasets the data has to be converted using the [toMNE.py][/toMNE.py] script.
+For use across different datasets the data has to be converted using the [toMNE.py](/toMNE.py) script.
 
 Data can be saved using two methods:
 
