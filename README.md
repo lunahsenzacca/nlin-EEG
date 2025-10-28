@@ -30,7 +30,7 @@ For use across different datasets the data has to be converted using the [toMNE.
 
 Data can be saved using two methods:
 
-```avg_trials = True``` : Average time series across same condition trials;
+```avg_trials = True``` : Save time series averaged across same condition trials;
 
 ```avg_trials = False``` : Save time series for each trial.
 
