@@ -30,7 +30,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 10
+workers = 14
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###

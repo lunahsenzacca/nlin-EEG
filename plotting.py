@@ -271,12 +271,12 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
     # Get relevant paths
     path = obs_path(
-                       exp_name = info['exp_name'],
-                       avg_trials = info['avg_trials'],
-                       obs_name = info['obs_name'],
-                       clust_lb = info['clust_lb'],
-                       calc_lb = info['calc_lb']
-                       )
+                    exp_name = info['exp_name'],
+                    avg_trials = info['avg_trials'],
+                    obs_name = info['obs_name'],
+                    clust_lb = info['clust_lb'],
+                    calc_lb = info['calc_lb']
+                    )
 
     # Load results for specific observable
     results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = instructions['X_transform'])
