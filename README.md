@@ -43,7 +43,7 @@ After data conversion the following observables can be computed running a ```.py
 
 $\rightarrow$ ```python -m separation```
 
-*  $R_{m}\left(r|\Delta_{ij}\right)$ : Recurrence Plot for different embedding dimensions $m$ and scales $r$;
+*  $R_{m}\left(r|i,j\right)$ : Recurrence Plot for different embedding dimensions $m$ and scales $r$;
 
 $\rightarrow$ ```python -m recurrence```
 
