@@ -31,7 +31,11 @@ exp_lb = {
     'zbmasking': 'ZBM',
     'bmasking_dense': 'BMD',
     'zbmasking_dense': 'ZBMD',
-    'fsuppression' : 'FS',
+    'bmasking_dense_noICA': 'BMDnoICA',
+    'zbmasking_dense_noICA':'ZBMDnoICA',
+    'bmasking_dense_highICA': 'BMDhighICA',
+    'zbmasking_dense_highICA':'ZBMDhighICA',
+    'flash_suppression' : 'FS',
     'lorenz': 'LZ',
     'noise': 'NZ'
 }
@@ -47,6 +51,23 @@ obs_lb = {
     'llyap': 'LLE'
 
 }
+
+def paths(exp_name: str, old = False):
+
+    paths = {'rw_data': d_path + exp_lb[exp_name] + '/',
+    'avg_data': path + 'evoked/avg/' + exp_lb[exp_name] + '/',
+    'trl_data': path + 'evoked/trl/' + exp_lb[exp_name] + '/',
+    'subject': [d_path + exp_lb[exp_name] + '/','/'],
+    'avg_results': r_path + 'avg/' + exp_lb[exp_name] + '/',
+    'trl_results': r_path + 'trl/' + exp_lb[exp_name] + '/',
+    'avg_pics': p_path +'avg/' + exp_lb[exp_name] + '/',
+    'trl_pics': p_path +'trl/' + exp_lb[exp_name] + '/'}
+
+    if old == True:
+
+        paths['subject'] = [d_path + exp_lb[exp_name] + '/subj','_band_resample/']
+
+    return paths
 
 '''
 We summarize every dataset-specific information in a dictionary
@@ -102,16 +123,7 @@ BM_conditions = {'con_all':'S__',
                  'uncon_right_self': 'S_13',
                  'uncon_right_other': 'S_14',}
 
-BM_paths = {
-    'rw_data': d_path + exp_lb['bmasking'] + '/',
-    'avg_data': path + 'evoked/avg/' + exp_lb['bmasking'] + '/',
-    'trl_data': path + 'evoked/trl/' + exp_lb['bmasking'] + '/',
-    'subject': [d_path + exp_lb['bmasking'] + '/subj','_band_resample/'],
-    'avg_results': r_path + 'avg/' + exp_lb['bmasking'] + '/',
-    'trl_results': r_path + 'trl/' + exp_lb['bmasking'] + '/',
-    'avg_pics': p_path +'avg/' + exp_lb['bmasking'] + '/',
-    'trl_pics': p_path +'trl/' + exp_lb['bmasking'] + '/'
-}
+BM_paths = paths('bmasking', old = True)
 
 # Summarize in a dictionary
 BM_info = {
@@ -125,16 +137,7 @@ BM_info = {
 }
 
 # Create similar dictionary for zscored results
-ZBM_paths = {
-    'rw_data': d_path + exp_lb['zbmasking'] + '/',
-    'avg_data': path + 'evoked/avg/' + exp_lb['zbmasking'] + '/',
-    'trl_data': path + 'evoked/trl/' + exp_lb['zbmasking'] + '/',
-    'subject': [d_path + exp_lb['bmasking'] + '/subj','_band_resample/'],
-    'avg_results': r_path + 'avg/' + exp_lb['zbmasking'] + '/',
-    'trl_results': r_path + 'trl/' + exp_lb['zbmasking'] + '/',
-    'avg_pics': p_path +'avg/' + exp_lb['zbmasking'] + '/',
-    'trl_pics': p_path +'trl/' + exp_lb['zbmasking'] + '/'
-}
+ZBM_paths = paths('zbmasking', old = True)
 
 ZBM_info = {
     'T': 451,
@@ -154,16 +157,7 @@ BMD_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
             'PO7', 'PO8', 'Fpz', 'CPz', 'POz', 'Oz']
 
 # Create similar dictionary for new preprocessing
-BMD_paths = {
-    'rw_data': d_path + exp_lb['bmasking_dense'] + '/',
-    'avg_data': path + 'evoked/avg/' + exp_lb['bmasking_dense'] + '/',
-    'trl_data': path + 'evoked/trl/' + exp_lb['bmasking_dense'] + '/',
-    'subject': [d_path + exp_lb['bmasking_dense'] + '/','/'],
-    'avg_results': r_path + 'avg/' + exp_lb['bmasking_dense'] + '/',
-    'trl_results': r_path + 'trl/' + exp_lb['bmasking_dense'] + '/',
-    'avg_pics': p_path +'avg/' + exp_lb['bmasking_dense'] + '/',
-    'trl_pics': p_path +'trl/' + exp_lb['bmasking_dense'] + '/'
-}
+BMD_paths = paths('bmasking_dense')
 
 BMD_info = {
     'T': 901,
@@ -176,16 +170,7 @@ BMD_info = {
 }
 
 # Create similar dictionary for new preprocessing
-ZBMD_paths = {
-    'rw_data': d_path + exp_lb['zbmasking_dense'] + '/',
-    'avg_data': path + 'evoked/avg/' + exp_lb['zbmasking_dense'] + '/',
-    'trl_data': path + 'evoked/trl/' + exp_lb['zbmasking_dense'] + '/',
-    'subject': [d_path + exp_lb['zbmasking_dense'] + '/','/'],
-    'avg_results': r_path + 'avg/' + exp_lb['zbmasking_dense'] + '/',
-    'trl_results': r_path + 'trl/' + exp_lb['zbmasking_dense'] + '/',
-    'avg_pics': p_path +'avg/' + exp_lb['zbmasking_dense'] + '/',
-    'trl_pics': p_path +'trl/' + exp_lb['zbmasking_dense'] + '/'
-}
+ZBMD_paths = paths('zbmasking_dense')
 
 ZBMD_info = {
     'T': 901,
@@ -196,6 +181,58 @@ ZBMD_info = {
     'directories': ZBMD_paths,
     'tau': 35,
 
+}
+
+# Create similar dictionary for new preprocessing
+BMD_noICA_paths = paths('bmasking_dense_noICA')
+
+BMD_noICA_info = {
+    'T': 901,
+    'f': 1000,
+    'subIDs': BM_subids,
+    'pois': BMD_pois,
+    'conditions': BM_conditions,
+    'directories': BMD_noICA_paths,
+    'tau': 35,
+}
+
+# Create similar dictionary for new preprocessing
+ZBMD_noICA_paths = paths('zbmasking_dense_noICA')
+
+ZBMD_noICA_info = {
+    'T': 901,
+    'f': 1000,
+    'subIDs': BM_subids,
+    'pois': BMD_pois,
+    'conditions': BM_conditions,
+    'directories': ZBMD_noICA_paths,
+    'tau': 35,
+}
+
+# Create similar dictionary for new preprocessing
+BMD_highICA_paths = paths('bmasking_dense_highICA')
+
+BMD_highICA_info = {
+    'T': 901,
+    'f': 1000,
+    'subIDs': BM_subids,
+    'pois': BMD_pois,
+    'conditions': BM_conditions,
+    'directories': BMD_highICA_paths,
+    'tau': 35,
+}
+
+# Create similar dictionary for new preprocessing
+ZBMD_highICA_paths = paths('zbmasking_dense_highICA')
+
+ZBMD_highICA_info = {
+    'T': 901,
+    'f': 1000,
+    'subIDs': BM_subids,
+    'pois': BMD_pois,
+    'conditions': BM_conditions,
+    'directories': ZBMD_highICA_paths,
+    'tau': 35,
 }
 
 
@@ -210,26 +247,14 @@ FS_pois = {
 FS_conditions = {
 }
 
-FS_paths = {
-    'data': d_path + exp_lb['fsuppression'] + '/',
-    'subject': [d_path + exp_lb['fsuppression'] + '/',''],
-    'results': r_path + exp_lb['fsuppression'] + '/',
-    'pics': p_path + exp_lb['fsuppression'] + '/'
-}
+FS_paths = paths('flash_suppression')
 
 FS_info = {
 }
 
 LZ_conditions = {'lorenz':'lorenz'}
 
-LZ_paths = {
-    'avg_data': path + 'evoked/avg/' + exp_lb['lorenz'] + '/',
-    'trl_data': path + 'evoked/trl/' + exp_lb['lorenz'] + '/',
-    'avg_results': r_path + 'avg/' + exp_lb['lorenz'] + '/',
-    'trl_results': r_path + 'trl/' + exp_lb['lorenz'] + '/',
-    'avg_pics': p_path +'avg/' + exp_lb['lorenz'] + '/',
-    'trl_pics': p_path +'trl/' + exp_lb['lorenz'] + '/'
-}
+LZ_paths = paths('lorenz')
 
 LZ_info = {
     'T': 1000,
@@ -245,14 +270,7 @@ LZ_info = {
 
 NZ_conditions = {'noise':'noise'}
 
-NZ_paths = {
-    'avg_data': path + 'evoked/avg/' + exp_lb['noise'] + '/',
-    'trl_data': path + 'evoked/trl/' + exp_lb['noise'] + '/',
-    'avg_results': r_path + 'avg/' + exp_lb['noise'] + '/',
-    'trl_results': r_path + 'trl/' + exp_lb['noise'] + '/',
-    'avg_pics': p_path +'avg/' + exp_lb['noise'] + '/',
-    'trl_pics': p_path +'trl/' + exp_lb['noise'] + '/'
-}
+NZ_paths = paths('noise')
 
 NZ_info = {
     'T': 451,
@@ -274,6 +292,10 @@ maind = {
     'zbmasking': ZBM_info,
     'bmasking_dense': BMD_info,
     'zbmasking_dense': ZBMD_info,
+    'bmasking_dense_noICA': BMD_noICA_info,
+    'zbmasking_dense_noICA': ZBMD_noICA_info,
+    'bmasking_dense_highICA': BMD_highICA_info,
+    'zbmasking_dense_highICA': ZBMD_highICA_info,
     'fsuppression': FS_info,
     'lorenz': LZ_info,
     'noise': NZ_info,

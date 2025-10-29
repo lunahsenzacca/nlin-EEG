@@ -303,12 +303,13 @@ def raw_tolist(subID: str, exp_name: str):
             path = sub_folder + f
             
             # This also depends on raw data structure
-            if exp_name == 'bmasking':
+            if exp_name == 'bmasking' or exp_name == 'zbmasking':
                 mat_data = sio.loadmat(path)
                     
                 data = mat_data['F'][untup][np.newaxis]
 
-            elif exp_name == 'bmasking_dense':
+            else:
+
                 mne_data = mne.read_epochs(path, preload = True, verbose = False)
 
                 data = mne_data.get_data(picks = untup)
@@ -974,8 +975,8 @@ def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, sca
 
         # Get value for error of slope
         with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                results = linregress(x = np.asarray(log_r)[i:i + n_points], y = log_csum[i:i + n_points], nan_policy = 'omit')
+            warnings.simplefilter('ignore')
+            results = linregress(x = np.asarray(log_r)[i:i + n_points], y = log_csum[i:i + n_points], nan_policy = 'omit')
 
         ce.append(np.asarray(m).mean())
         e_ce.append(results.stderr)

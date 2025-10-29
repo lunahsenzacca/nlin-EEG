@@ -40,7 +40,7 @@ cython = True
 cython_verbose = True
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = 'zbmasking_dense_highICA'
 
 # Cluster label
 clust_lb = 'CFPO'

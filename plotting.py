@@ -116,7 +116,7 @@ separation_instructions = {
                         'axis': 'dt',
                         'avg': 'none',
                         'reduce_method': 'product',
-                        'ylabel': '$p_{m}(\\Delta | \\delta t)$',
+                        'ylabel': '$S_{m}(\\Delta_{ij} | \\left|i - j\\right| = \\delta t)$',
                         'xlim': (0,None),
                         'ylim': (0,6),
                         'style': 'curve',
@@ -271,12 +271,12 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
     # Get relevant paths
     path = obs_path(
-                    exp_name = info['exp_name'],
-                    avg_trials = info['avg_trials'],
-                    obs_name = info['obs_name'],
-                    clust_lb = info['clust_lb'],
-                    calc_lb = info['calc_lb']
-                    )
+                       exp_name = info['exp_name'],
+                       avg_trials = info['avg_trials'],
+                       obs_name = info['obs_name'],
+                       clust_lb = info['clust_lb'],
+                       calc_lb = info['calc_lb']
+                       )
 
     # Load results for specific observable
     results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = instructions['X_transform'])
@@ -384,17 +384,17 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
     if instructions['isolines'] == 'percentiles':
 
-        rearrange[-3] = 4
+        rearrange[-2] = 4
 
     if instructions['legend'] == 'conditions':
 
-        rearrange[-2] = 1
+        rearrange[3] = 1
 
         legend_l = labels[1]
 
     elif instructions['legend'] == 'embeddings':
 
-        rearrange[-2] = 3
+        rearrange[3] = 3
 
         legend_l = labels[3]
 
@@ -588,8 +588,8 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
             else:
 
-                o = [obs[j,c,i] for i in range(0,obs.shape[-2])]
-                e_o = [e_obs[j,c,i] for i in range(0,e_obs.shape[-2])]
+                o = [obs[j,c,i] for i in range(0,obs.shape[2])]
+                e_o = [e_obs[j,c,i] for i in range(0,e_obs.shape[2])]
 
             second = True
             for f, e_f in zip(o, e_o):

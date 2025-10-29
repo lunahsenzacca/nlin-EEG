@@ -29,7 +29,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 8
+workers = 10
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -47,7 +47,7 @@ clust_lb = 'CFPO'
 calc_lb = '[m_dense_MI]w_80'
 
 # Calculation parameters label for saved results
-sv_calc_lb = '3gauss'
+sv_calc_lb = '3nogauss'
 
 # Make explicit reference to previus calculation parameters
 sv_calc_lb = '[' + calc_lb + ']' + sv_calc_lb
@@ -64,11 +64,11 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', avg_trials = avg_t
 n_points = 3
 
 # Apply gaussian filter to results for smoothing
-gauss_filter = True
+gauss_filter = False
 
 # Parameters of the gaussian filter
 scale = 0.01
-cutoff = 7
+cutoff = 5
 
 if gauss_filter == False:
     scale = None

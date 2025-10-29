@@ -16,16 +16,16 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 3
+workers = 5
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking_dense'
+exp_name = 'bmasking_dense_highICA'
 
 # Average across trials
-avg_trials = False
+avg_trials = True
 
 # Subject IDs
 sub_list = maind[exp_name]['subIDs']
