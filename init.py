@@ -40,6 +40,7 @@ exp_lb = {
     'noise': 'NZ'
 }
 obs_lb = {
+    'epochs': 'EP',
     'delay': 'TAU',
     'recurrence': 'RP',
     'separation': 'SP',
@@ -262,10 +263,7 @@ LZ_info = {
     'subIDs': ['000','100','200'],
     'conditions': LZ_conditions,
     'directories': LZ_paths,
-    'k': 5,
-    'Rth': 15,
     'tau': 20,
-    'avT': 55
 }
 
 NZ_conditions = {'noise':'noise'}
@@ -278,10 +276,7 @@ NZ_info = {
     'subIDs': ['000'],
     'conditions': NZ_conditions,
     'directories': NZ_paths,
-    'k': 5,
-    'Rth': 15,
     'tau': 20,
-    'avT': 55
 }
 
 

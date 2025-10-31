@@ -58,6 +58,7 @@ clust_dict = {
               }
 
 obs_dict = {
+            'epochs': 'Epoch Time Series ',
             'delay': '$\\tau$',
             'separation': 'Spacetime Separation ',
             'corrsum': '$C_{m}(r)$ ',
@@ -87,11 +88,26 @@ basic_instructions = {
                      'figsize': (16,11),
                      'textsz': 25,
                      'e_title': None,#'Lorenz Attractor (w/o embedding normalization)'
-                     'colormap': cm.viridis,
                      'legend_s': True,
                      'legend_loc': 'lower left',
                      'X_transform': None
                       }
+
+epochs_instructions = {
+                        'figure': 'pois',
+                        'multiplot': 'subjects',
+                        'legend': 'conditions',
+                        'isolines': None,
+                        'axis': 't',
+                        'avg': 'none',
+                        'reduce_method': 'trivial',
+                        'ylabel': '$I(t)$',
+                        'xlim': (0,None),
+                        'ylim': (None,None),
+                        'style': 'curve',
+                        'legend_t': 'Condition',
+                        'colormap': cm.rainbow,
+                        }
 
 delay_instructions = {
                         'figure': 'one',
@@ -106,6 +122,7 @@ delay_instructions = {
                         'ylim': (12,45),
                         'style': 'marker',
                         'legend_t': 'Condition',
+                        'colormap': cm.viridis,
                         }
 
 separation_instructions = {
@@ -121,6 +138,7 @@ separation_instructions = {
                         'ylim': (0,6),
                         'style': 'curve',
                         'legend_t': 'Embedding\ndimension',
+                        'colormap': cm.viridis,
                         }
 
 correxp_instructions = {
@@ -136,6 +154,7 @@ correxp_instructions = {
                         'ylim': (0,6),
                         'style': 'curve',
                         'legend_t': 'Embedding\ndimension',
+                        'colormap': cm.viridis,
                         }
 
 peaks_instructions = {
@@ -151,6 +170,7 @@ peaks_instructions = {
                       'ylim': (1,4),
                       'style': 'marker',
                       'legend_t': 'Embedding\ndimension',
+                      'colormap': cm.viridis,
                      }
 
 plateaus_instructions = {
@@ -166,9 +186,11 @@ plateaus_instructions = {
                       'ylim': (0.8,2.1),
                       'style': 'marker',
                       'legend_t': 'Embedding\ndimension',
+                      'colormap': cm.viridis,
                      }
 
 obs_instructions = {
+                    'epochs': epochs_instructions,
                     'delay': delay_instructions,
                     'separation': separation_instructions,
                     'correxp': correxp_instructions,
@@ -306,7 +328,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         # Initzialize list for array rearranging
         rearrange = [0,0,0,0,0,0]
 
-    elif info['obs_name'] in ['delay']: 
+    elif info['obs_name'] in ['epochs', 'delay']: 
 
         # Initzialize list of labels for data
         labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],[instructions['e_title']]]
@@ -421,6 +443,14 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         x = X[1]
 
         instructions['xlabel'] = '$\\delta t$'
+
+    elif instructions['axis'] == 't':
+
+        rearrange[-1] = 3
+
+        x = X[0]
+
+        instructions['xlabel'] = '$t$'
 
     elif instructions['axis'] == 'pois':
 

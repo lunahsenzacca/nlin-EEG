@@ -16,7 +16,7 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 5
+workers = 10
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
@@ -76,9 +76,26 @@ def mp_toevoked():
     
     for i in range(0,len(evokeds)):
 
-        data = evokeds[i]
+        if avg_trials == False:
 
-        mne.write_evokeds(sv_path + sub_list[i] + '-ave.fif', data, overwrite = True, verbose = False)
+            data = []
+            for c_evoked in evokeds[i]:
+
+                data.append(c_evoked[0])
+
+            mne.write_evokeds(sv_path + sub_list[i] + '-ave.fif', data, overwrite = True, verbose = False)
+
+        else:
+
+            data = []
+            std = []
+            for c_evoked in evokeds[i]:
+
+                data.append(c_evoked[0])
+                std.append(c_evoked[1])
+
+            mne.write_evokeds(sv_path + sub_list[i] + '-ave.fif', data, overwrite = True, verbose = False)
+            mne.write_evokeds(sv_path + sub_list[i] + '_std-ave.fif', std, overwrite = True, verbose = False)
 
     print('\nDONE!\n')
     

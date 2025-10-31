@@ -143,6 +143,13 @@ def obs_data(obs_path: str, obs_name: str):
     with open(obs_path + 'variables.json', 'r') as f:
         variables = json.load(f)
 
+    if obs_name == 'epochs':
+
+        M = np.load(obs_path + 'epochs.npz')
+        x = variables['t']
+
+        X = [x]
+
     if obs_name == 'delay':
 
         M = np.load(obs_path + 'delay.npz')
@@ -360,33 +367,30 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
         # Axis 1 = Electrodes
         # Axis 2 = Time points
 
+        # Apply zscore normalization
+        if z_score == True:
+
+            array = zscore(array)
+
         # Average across same condition trials
         if avg_trials == True:
 
             n_trials = array.shape[0]
             avg = array.mean(axis = 0)
+            std = array.std(axis = 0)
 
-            # Apply Z-Score
-            if z_score == True:
+            ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i], kind = 'average')
+            s_ev = mne.EvokedArray(std, info, nave = n_trials, comment = conditions[i], kind = 'standard_error')
 
-                avg = zscore(avg[np.newaxis])
-                avg = avg[0]
-
-            ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i])
-            evokeds.append(ev)
+            evokeds.append([ev, s_ev])
 
         # Keep each individual trial
         else:
 
-            # Apply zscore normalization
-            if z_score == True:
-
-                array = zscore(array)
-
             for trl in array:
 
                 ev = mne.EvokedArray(trl, info, nave = 1, comment = conditions[i])
-                evokeds.append(ev)
+                evokeds.append([ev])
 
     # This is meant for testing in notebooks
     if alt_sv != None:
@@ -413,7 +417,7 @@ def toevoked(subID: str, exp_name: str, avg_trials: bool, z_score = False, alt_s
     return evokeds
 
 # Load evoked files of a specific subject
-def loadevokeds(exp_name: str, avg_trials: bool, subID: str, conditions: list):
+def loadevokeds(exp_name: str, avg_trials: bool, subID: str, conditions: list, std = False):
 
     # Select correct path for data
     if avg_trials == True:
@@ -421,7 +425,13 @@ def loadevokeds(exp_name: str, avg_trials: bool, subID: str, conditions: list):
     else:
         file_p = maind[exp_name]['directories']['trl_data']
 
-    evokeds = mne.read_evokeds(file_p + subID + '-ave.fif', verbose = False)
+    if std == False:
+
+        evokeds = mne.read_evokeds(file_p + subID + '-ave.fif', verbose = False)
+
+    else:
+
+        evokeds = mne.read_evokeds(file_p + subID + '_std-ave.fif', verbose = False)
 
     # Create evoked list
     full_evokeds = []
@@ -502,9 +512,6 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
     # Initzialize list of homegenous arrays
     RES = []
 
-    if e_results != None:
-        OBS_STD = []
-
     # Make homogeneous arrays for each subject
     count = 0
     for s in range(0,fshape[0]):
@@ -523,10 +530,10 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
 
                 e_trials = np.zeros(trials.shape, dtype = dtype)
 
-            [shape.append(i) for i in fshape[2:]]
+            shape_ = [*shape, *fshape[2:]]
 
-            trials = trials.reshape(shape)
-            e_trials = e_trials.reshape(shape)
+            trials = trials.reshape(shape_)
+            e_trials = e_trials.reshape(shape_)
 
             trials = np.concatenate((trials[:,np.newaxis], e_trials[:,np.newaxis]), axis = 1)
 
@@ -1270,6 +1277,62 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
 
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
+# Get epoched 
+def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fraction = [0,1]):
+
+    # Apply fraction to time series
+    times = evoked.times
+
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
+
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+    
+    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    s_evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+
+    # Initzialize result array
+    EP = []
+    E_EP = []
+
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
+
+        TS = []
+        E_TS = []
+        for cl in ch_list:
+            
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            e_ts = s_evoked.get_data(picks = cl)
+
+            ts = ts.mean(axis = 0)
+            e_ts = e_ts.mean(axis = 0)
+            
+            TS.append(ts)
+            E_TS.append(e_ts)
+
+        # Loop around pois time series
+        for ts, e_ts in zip(TS, E_TS):
+
+            EP.append(ts)
+            E_EP.append(e_ts)
+
+    else:
+
+        TS = evoked.get_data(picks = ch_list)
+        E_TS = s_evoked.get_data(picks = cl)
+
+        # Loop around pois time series
+        for ts, e_ts in zip(TS, E_TS):
+
+            EP.append(ts)
+            E_EP.append(e_ts)
+
+    return EP, E_EP
+
 # Delay time of channel time series of a specific trial
 def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
                method: str, clst_method: str, fraction = [0,1]):
@@ -1363,7 +1426,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
 
     # Initzialize result array
-    CD = []
+    CS = []
 
     # Check if we are clustering electrodes
     if type(ch_list) == tuple:
@@ -1437,7 +1500,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
                         cs = c_core.corr_sum(dist_matrix = dist_matrix, r = r, w = w)
 
-                    CD.append(cs)
+                    CS.append(cs)
 
     else:
 
@@ -1483,11 +1546,11 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
                         cs = c_core.corr_sum(dist_matrix = dist_matrix, r = r, w = w)
 
-                    CD.append(cs)
+                    CS.append(cs)
 
     # Returns list in -C style ordering
 
-    return CD
+    return CS
 
 # Recurrence Plot of channel time series of a specific trial
 def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
