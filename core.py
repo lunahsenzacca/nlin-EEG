@@ -753,7 +753,12 @@ def zscore(trials_array: np.ndarray, keep_relations = False):
 
     # Full electrode-wise Z-Score
     else:
+        # Faster and more memory efficient
+        M = np.broadcast_to(m[np.newaxis,:,np.newaxis], [trials_array.shape[0],len(m),trials_array.shape[2]])
+        S = np.broadcast_to(s[np.newaxis,:,np.newaxis], [trials_array.shape[0],len(s),trials_array.shape[2]])
 
+        '''
+        # Slower and less memory efficient
         m = m[np.newaxis,:,np.newaxis]
         s = s[np.newaxis,:,np.newaxis]
         
@@ -770,7 +775,7 @@ def zscore(trials_array: np.ndarray, keep_relations = False):
 
             M = np.concatenate((M,m),axis = 0)
             S = np.concatenate((S,s),axis = 0)
-
+        '''
 
         # Apply Z-Score
         z_trials_array = np.divide(trials_array - M, S)

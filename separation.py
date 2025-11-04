@@ -90,7 +90,7 @@ ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],[
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Embedding dimensions
-embeddings = [3, 6, 9, 12, 15]
+embeddings = [3, 6, 9]
 
 # Set different time delay for each time series
 tau = 'mutual_information'
@@ -101,7 +101,7 @@ tau = 'mutual_information'
 frc = [0., 1.]
 
 # Set desired percentiles for percentage isolines
-percentiles = [10,25,50,75,90]
+percentiles = [10,50,90]
 
 # Apply embedding normalization when computing distances
 m_norm = True

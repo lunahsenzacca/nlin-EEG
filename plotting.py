@@ -106,7 +106,7 @@ epochs_instructions = {
                         'ylim': (None,None),
                         'style': 'curve',
                         'legend_t': 'Condition',
-                        'colormap': cm.rainbow,
+                        'colormap': cm.Set2,
                         }
 
 delay_instructions = {
@@ -605,7 +605,13 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
             if type(colormap) != str:
 
-                color = cmap(norm(i))
+                if cmap == cm.Set2:
+
+                    color = cmap(i)
+
+                else:
+
+                    color = cmap(norm(i))
 
             else:
 
