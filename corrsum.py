@@ -81,7 +81,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'corrsum', avg_trials = avg_t
 conditions = conditions[0:2]
 
 # Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
+ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3'],['PO4'],['Oz'],['Fp1', 'Fp2', 'Fpz'],['PO3', 'PO4', 'Oz'],['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']
 
 # Crazy stupid all electrodes average
 #ch_list =  ch_list,

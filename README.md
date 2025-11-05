@@ -9,7 +9,9 @@ This allows several metrics to be calculated, that can be helpful to characteriz
 Install the required packages in a conda enviroment:
 ```
   -python = 3.12
+  -numpy
   -matplotlib
+  -pandas
   -scipy
   -cython
   -tqdm

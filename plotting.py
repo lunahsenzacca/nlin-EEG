@@ -72,6 +72,14 @@ obs_dict = {
 cond_dict = {
              'S__': 'Conscious',
              'S_1': 'Unconscious',
+             'S__1': 'C L Self',
+             'S__2': 'C L Other',
+             'S__3': 'C R Self',
+             'S__4': 'C R Other',
+             'S_11': 'U L Self',
+             'S_12': 'U L Other',
+             'S_13': 'U R Self',
+             'S_14': 'U R Other',
              'lorenz': 'Lorenz',
              'noise': 'Noise'
              }
