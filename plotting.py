@@ -45,7 +45,7 @@ clust_dict = {
               'mGsystem': ['Global System (m)'],
               'PO': ['Parieto-Occipital'],
               'F': ['Fp1', 'Fp2', 'Fpz'],
-              'CFPO': ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],
+              'CFPO': ['Fp1','Fp2','Fpz','O2','PO4','PO8','Frontal','Parieto-Occipital','Fronto-Parieto-Occipital System'],
               'mCFPO': [ i + ' (m)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital', 'Fronto-Parieto-Occipital System']],
               'znoisefree': ['Lorenz'],
               'm_znoisefree': ['Lorenz (m)'],
@@ -613,7 +613,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
             if type(colormap) != str:
 
-                if cmap == cm.Set2:
+                if cmap == cm.Set2 or cmap == cm.tab20c:
 
                     color = cmap(i)
 
@@ -645,7 +645,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
                     else:
                         ax.plot(x_full, f, '-', markersize = markersize, linewidth = linewidth, color = color, alpha = 1*alpha_m)
 
-                    ax.fill_between(x_full, f - e_f, f + e_f, color = color, alpha = 0.4*alpha_m)
+                    ax.fill_between(x_full, f - e_f, f + e_f, color = color, alpha = 0.2*alpha_m)
 
                 if style == 'marker':
 

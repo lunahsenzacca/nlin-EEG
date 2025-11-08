@@ -22,7 +22,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking_dense_highICA'
+exp_name = 'bmasking_dense'
 
 # Average across trials
 avg_trials = True
@@ -32,6 +32,9 @@ sub_list = maind[exp_name]['subIDs']
 
 # Apply Z-Score
 z_score = True
+
+# Apply whole trial baseline
+baseline = False
 
 if z_score == True:
     sv_name = 'z' + exp_name
@@ -47,7 +50,7 @@ else:
 # Build iterable function
 def it_toevoked(subID: str):
 
-    evokeds = toevoked(subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score)
+    evokeds = toevoked(subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, baseline = baseline)
 
     return evokeds
 

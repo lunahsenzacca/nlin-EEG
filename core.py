@@ -315,20 +315,25 @@ def raw_tolist(subID: str, exp_name: str):
                     
                 data = mat_data['F'][untup][np.newaxis]
 
+                # There is probably a way to fix this
+                montage = None
+
             else:
 
                 mne_data = mne.read_epochs(path, preload = True, verbose = False)
 
                 data = mne_data.get_data(picks = untup)
 
+                montage = mne_data.get_montage()
+
             all_trials = np.concatenate((all_trials, data), axis = 0)
 
         data_list.append(all_trials)
 
-    return data_list
+    return data_list, montage
 
 # Create info file for specific datased
-def toinfo(exp_name: str, ch_type = 'eeg'):
+def toinfo(exp_name: str, montage = None, ch_type = 'eeg'):
 
     # Get electrodes labels
     ch_list = maind[exp_name]['pois']
@@ -339,12 +344,14 @@ def toinfo(exp_name: str, ch_type = 'eeg'):
     freq = maind[exp_name]['f']
 
     info = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
-    #info.set_montage(maind[exp_name]['montage'])
+
+    if type(montage) != None:
+        info.set_montage(montage)
 
     return info
 
 # Function for subwise evoked conversion from list of arrays
-def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, z_score: bool, alt_sv: str):
+def list_toevoked(data_list: list, montage, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, alt_sv: str):
     
     # There are different number of trials for each condition,
     # so a simple ndarray is inconvenient. We use a list of ndarray instead
@@ -352,7 +359,7 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
     # The list index cycles faster around the conditions and slower around the subject
 
     # Create info file
-    info = toinfo(exp_name = exp_name)
+    info = toinfo(exp_name = exp_name, montage = montage)
 
     conditions = list(maind[exp_name]['conditions'].values())
 
@@ -367,17 +374,33 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
         # Axis 1 = Electrodes
         # Axis 2 = Time points
 
-        # Apply zscore normalization
-        if z_score == True:
+        # Check that we are not being dumb
+        if z_score == True and baseline == True:
 
-            array = zscore(array)
+            print('\nTrying to apply both baseline and zscore, not allowed!')
+
+            return
+
+        # Apply zscore normalization
+        elif z_score == True:
+
+            array_ = zscore(array)
+
+        # Apply dumb baseline correction 
+        elif baseline == True:
+
+            array_ = array.copy() - np.broadcast_to(array.mean(axis = 2)[:,:,np.newaxis], array.shape)
+
+        else:
+
+            array_ = array.copy()
 
         # Average across same condition trials
         if avg_trials == True:
 
             n_trials = array.shape[0]
-            avg = array.mean(axis = 0)
-            std = array.std(axis = 0)
+            avg = array_.mean(axis = 0)
+            std = array_.std(axis = 0)/np.sqrt(n_trials)
 
             ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i], kind = 'average')
             s_ev = mne.EvokedArray(std, info, nave = n_trials, comment = conditions[i], kind = 'standard_error')
@@ -387,7 +410,7 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
         # Keep each individual trial
         else:
 
-            for trl in array:
+            for trl in array_:
 
                 ev = mne.EvokedArray(trl, info, nave = 1, comment = conditions[i])
                 evokeds.append([ev])
@@ -406,13 +429,13 @@ def list_toevoked(data_list: list, subID: str, exp_name: str, avg_trials: bool, 
     return evokeds
 
 # Create evoked file straight from raw data
-def toevoked(subID: str, exp_name: str, avg_trials: bool, z_score = False, alt_sv = None):
+def toevoked(subID: str, exp_name: str, avg_trials: bool, z_score = False, baseline = False, alt_sv = None):
 
     # Create data list
-    data_list = raw_tolist(subID = subID, exp_name = exp_name)
+    data_list, montage = raw_tolist(subID = subID, exp_name = exp_name)
 
     # Generate evokeds
-    evokeds = list_toevoked(data_list = data_list, subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, alt_sv = alt_sv)
+    evokeds = list_toevoked(data_list = data_list, montage = montage, subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, baseline = baseline, alt_sv = alt_sv)
 
     return evokeds
 
@@ -1328,7 +1351,7 @@ def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fracti
     else:
 
         TS = evoked.get_data(picks = ch_list)
-        E_TS = s_evoked.get_data(picks = cl)
+        E_TS = s_evoked.get_data(picks = ch_list)
 
         # Loop around pois time series
         for ts, e_ts in zip(TS, E_TS):
