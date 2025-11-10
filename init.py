@@ -55,7 +55,7 @@ obs_lb = {
 
 def paths(exp_name: str, old = False):
 
-    paths = {'rw_data': d_path + exp_lb[exp_name] + '/',
+    paths = {'data': d_path + exp_lb[exp_name] + '/',
     'avg_data': path + 'evoked/avg/' + exp_lb[exp_name] + '/',
     'trl_data': path + 'evoked/trl/' + exp_lb[exp_name] + '/',
     'subject': [d_path + exp_lb[exp_name] + '/','/'],

@@ -40,13 +40,13 @@ cython = True
 cython_verbose = True
 
 # Dataset name
-exp_name = 'zbmasking_dense_highICA'
+exp_name = 'bmasking_dense'
 
 # Cluster label
 clust_lb = 'CFPO'
 
 # Calcultation parameters label
-calc_lb = 'm_MI'
+calc_lb = 'F'
 
 # Get data averaged across trials
 avg_trials = True
@@ -93,9 +93,9 @@ ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3
 embeddings = [3, 6, 9]
 
 # Set different time delay for each time series
-tau = 'mutual_information'
+#tau = 'mutual_information'
 # Or set a global value
-#tau = maind[exp_name]['tau']
+tau = maind[exp_name]['tau']
 
 # Window of interest
 frc = [0., 1.]
@@ -104,7 +104,7 @@ frc = [0., 1.]
 percentiles = [10,50,90]
 
 # Apply embedding normalization when computing distances
-m_norm = True
+m_norm = False
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:

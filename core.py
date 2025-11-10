@@ -395,11 +395,15 @@ def list_toevoked(data_list: list, montage, subID: str, exp_name: str, avg_trial
 
             array_ = array.copy()
 
-        # Average across same condition trials
+        # Compute average and standard error across trials
         if avg_trials == True:
 
             n_trials = array.shape[0]
+
+            # Just the average
             avg = array_.mean(axis = 0)
+
+            # Standard error not deviation!
             std = array_.std(axis = 0)/np.sqrt(n_trials)
 
             ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i], kind = 'average')
@@ -407,7 +411,7 @@ def list_toevoked(data_list: list, montage, subID: str, exp_name: str, avg_trial
 
             evokeds.append([ev, s_ev])
 
-        # Keep each individual trial
+        # Or keep each individual trial
         else:
 
             for trl in array_:

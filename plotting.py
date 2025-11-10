@@ -25,7 +25,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 8
+workers = 4
 chunksize = 1
 
 ### Extra DICTIONARIES (Eventually put in init.py)###
@@ -45,16 +45,12 @@ clust_dict = {
               'mGsystem': ['Global System (m)'],
               'PO': ['Parieto-Occipital'],
               'F': ['Fp1', 'Fp2', 'Fpz'],
-              'CFPO': ['Fp1','Fp2','Fpz','O2','PO4','PO8','Frontal','Parieto-Occipital','Fronto-Parieto-Occipital System'],
-              'mCFPO': [ i + ' (m)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital', 'Fronto-Parieto-Occipital System']],
+              'CFPO': ['Fp1','Fp2','Fpz','PO3','PO4','Oz'],
               'znoisefree': ['Lorenz'],
               'm_znoisefree': ['Lorenz (m)'],
               'm_znoisefree_dense': ['Lorenz (m)'],
               'gnoise': ['Gaussian Noise'],
               'm_gnoise': ['Gaussian Noise (m)'],
-              'mCFPOVANdense':[ i + ' (m, VAN)' for i in ['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System']],
-              'mCFPOdense':['Fp1','Fp2','Fpz','Frontal','O2','PO4','PO8','Parieto-Occipital','Fronto-Parieto-Occipital System'],
-              'test': ['test']
               }
 
 obs_dict = {
@@ -85,9 +81,11 @@ cond_dict = {
              }
 
 basic_instructions = {
+                     'avg': 'none',
                      'dim_m': 1,
                      'reduce_multi': None,
                      'reduce_legend': None,#[i for i in range(0,10)],
+                     'colormap': cm.viridis,
                      'markersize': 10,
                      'linewidth': 2,
                      'alpha_m': 0.6,
@@ -107,9 +105,10 @@ epochs_instructions = {
                         'legend': 'conditions',
                         'isolines': None,
                         'axis': 't',
-                        'avg': 'none',
                         'reduce_method': 'trivial',
-                        'ylabel': '$I(t)$',
+                        'linewidth': 1,
+                        'alpha_m': 0.8,
+                        'ylabel': '$ERPs$',
                         'xlim': (0,None),
                         'ylim': (None,None),
                         'style': 'curve',
@@ -123,14 +122,12 @@ delay_instructions = {
                         'legend': 'conditions',
                         'isolines': None,
                         'axis': 'pois',
-                        'avg': 'none',
                         'reduce_method': 'trivial',
                         'ylabel': '$\\tau$',
                         'xlim': (0,None),
                         'ylim': (12,45),
                         'style': 'marker',
                         'legend_t': 'Condition',
-                        'colormap': cm.viridis,
                         }
 
 separation_instructions = {
@@ -139,14 +136,12 @@ separation_instructions = {
                         'legend': 'embeddings',
                         'isolines': 'percentiles',
                         'axis': 'dt',
-                        'avg': 'none',
                         'reduce_method': 'product',
                         'ylabel': '$S_{m}(\\Delta_{ij} | \\left|i - j\\right| = \\delta t)$',
                         'xlim': (0,None),
-                        'ylim': (0,6),
+                        'ylim': (0,None),
                         'style': 'curve',
                         'legend_t': 'Embedding\ndimension',
-                        'colormap': cm.viridis,
                         }
 
 correxp_instructions = {
@@ -155,14 +150,12 @@ correxp_instructions = {
                         'legend': 'embeddings',
                         'isolines': None,
                         'axis': 'log_r',
-                        'avg': 'none',
                         'reduce_method': 'product',
                         'ylabel': '$\\nu_{m}(r)$',
                         'xlim': (None,None),
                         'ylim': (0,6),
                         'style': 'curve',
                         'legend_t': 'Embedding\ndimension',
-                        'colormap': cm.viridis,
                         }
 
 peaks_instructions = {
@@ -171,14 +164,12 @@ peaks_instructions = {
                       'legend': 'embeddings',
                       'isolines': None,
                       'axis': 'pois',
-                      'avg': 'none',
                       'reduce_method': 'trivial',
                       'ylabel': '$\\nu_{max}$',
                       'xlim': (None,None),
                       'ylim': (1,4),
                       'style': 'marker',
                       'legend_t': 'Embedding\ndimension',
-                      'colormap': cm.viridis,
                      }
 
 plateaus_instructions = {
@@ -187,14 +178,12 @@ plateaus_instructions = {
                       'legend': 'embeddings',
                       'isolines': None,
                       'axis': 'pois',
-                      'avg': 'none',
                       'reduce_method': 'trivial',
                       'ylabel': '$\\nu_{p}$',
                       'xlim': (None,None),
                       'ylim': (0.8,2.1),
                       'style': 'marker',
                       'legend_t': 'Embedding\ndimension',
-                      'colormap': cm.viridis,
                      }
 
 obs_instructions = {
@@ -263,8 +252,14 @@ def show_figure(fig):
 
 # Compile instructions dictionary with standard options and extra overrides
 def make_instructions(info: dict, extra_instructions: dict):
+
     # Construct standard instructions arrays
-    instructions = basic_instructions | obs_instructions[info['obs_name']]
+    instructions = basic_instructions.copy()
+
+    # Obs instructions get priority over basic instructions
+    for key in obs_instructions[info['obs_name']].keys():
+
+        instructions[key] = obs_instructions[info['obs_name']][key]
 
     # Get save path
     instructions['sv_path'] = pics_path(
@@ -275,7 +270,7 @@ def make_instructions(info: dict, extra_instructions: dict):
                        calc_lb = info['calc_lb']
                        ) + instructions['avg'] + '/'
 
-    # Override standard instructions with provided ones
+    # Extra instructions get priority over any instructions
     if extra_instructions != None:
 
         for key in extra_instructions.keys():
