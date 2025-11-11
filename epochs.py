@@ -71,7 +71,7 @@ sv_path = obs_path(exp_name = exp_name, obs_name = 'epochs', avg_trials = avg_tr
 #ch_list = ch_list[0:2]
 
 # Only averaged conditions
-conditions = conditions[:2]
+#conditions = conditions[:2]
 
 # Compare Frontal and Parieto-occipital clusters
 ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3'],['PO4'],['Oz'],['Fp1', 'Fp2', 'Fpz'],['PO3', 'PO4', 'Oz'],['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']

@@ -261,6 +261,13 @@ def make_instructions(info: dict, extra_instructions: dict):
 
         instructions[key] = obs_instructions[info['obs_name']][key]
 
+    # Extra instructions get priority over any instructions
+    if extra_instructions != None:
+
+        for key in extra_instructions.keys():
+
+            instructions[key] = extra_instructions[key]
+
     # Get save path
     instructions['sv_path'] = pics_path(
                         exp_name = info['exp_name'],
@@ -269,13 +276,6 @@ def make_instructions(info: dict, extra_instructions: dict):
                        clust_lb = info['clust_lb'],
                        calc_lb = info['calc_lb']
                        ) + instructions['avg'] + '/'
-
-    # Extra instructions get priority over any instructions
-    if extra_instructions != None:
-
-        for key in extra_instructions.keys():
-
-            instructions[key] = extra_instructions[key]
 
     # Check for confliction instructions
     check_conflict = [instructions['figure'], instructions['multiplot'], instructions['legend'], instructions['axis']]
@@ -755,12 +755,12 @@ def set_figures(figs: list, axes: list, l_dict: dict):
             ax.set_ylim(instructions['ylim'])
 
             ylocs = ax.get_yticks()
-            ylabels = [f'{yloc: .1f}' for yloc in ylocs]
-            ax.set_yticks(ticks = ylocs, labels = ylabels, fontsize = instructions['textsz']/2)
+            #ylabels = [f'{yloc: 06f}' for yloc in ylocs]
+            ax.set_yticks(ticks = ylocs, minor = False)# fontsize = instructions['textsz']/2)
 
             xlocs = ax.get_xticks()
-            xlabels = [f'{xloc: .0f}' for xloc in xlocs]
-            ax.set_xticks(ticks = xlocs, labels = xlabels, fontsize = instructions['textsz']/2)
+            #xlabels = [f'{xloc}' for xloc in xlocs]
+            ax.set_xticks(ticks = xlocs, minor = False)# fontsize = instructions['textsz']/2)
 
             if instructions['showgrid'] != False:
                 ax.grid(instructions['showgrid'], linestyle = '--')
@@ -770,6 +770,9 @@ def set_figures(figs: list, axes: list, l_dict: dict):
 
             ax.set_xlim((l_dict['x'][0],l_dict['x'][-1]))
             #ax.set_xlim(instructions['xlim'])
+
+            ax.tick_params(axis = 'both', which = 'major', labelsize = instructions['textsz']/2)
+            ax.tick_params(axis = 'both', which = 'minor', labelsize = instructions['textsz']/2)
 
     for i, fig in enumerate(figs):
 
@@ -784,7 +787,7 @@ def set_figures(figs: list, axes: list, l_dict: dict):
         fig.supylabel(instructions['ylabel'], size = instructions['textsz'])
 
         if instructions['legend_s'] == True:
-            fig.legend(loc = instructions['legend_loc'], title = instructions['legend_t'], fontsize = instructions['textsz']*0.7)
+            fig.legend(loc = instructions['legend_loc'], title = instructions['legend_t'],title_fontsize = instructions['textsz']/2, fontsize = instructions['textsz']/2)
         
         fig.tight_layout()
 
