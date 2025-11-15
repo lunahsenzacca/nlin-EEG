@@ -76,7 +76,7 @@ def mp_toevoked():
     print('\nSaving evokeds...')
 
     os.makedirs(sv_path, exist_ok = True)
-    
+
     for i in range(0,len(evokeds)):
 
         if avg_trials == False:
@@ -101,7 +101,7 @@ def mp_toevoked():
             mne.write_evokeds(sv_path + sub_list[i] + '_std-ave.fif', std, overwrite = True, verbose = False)
 
     print('\nDONE!\n')
-    
+
     return
 
 # Main method, launch using 'python -m toMNE' in the appropriate enviroment

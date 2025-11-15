@@ -17,6 +17,9 @@ from core import epochs
 # Utility function for observables directories
 from core import obs_path
 
+# Utility function for dimensional time and frequency domain of the experiment
+from core import get_tinfo
+
 # Utility functions for trial data averaging
 from core import flat_evokeds, collapse_trials
 
@@ -91,6 +94,9 @@ if type(ch_list) == tuple:
 else:
     clt = False
 
+# Get time coordinates
+_, times = get_tinfo(exp_name = exp_name, method = method, fraction = frc)
+
 # Dictionary for computation variables
 variables = {   
                 'window' : frc,
@@ -98,6 +104,7 @@ variables = {
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
+                't': list(times)
             }
 
 ### COMPUTATION ###
@@ -114,7 +121,7 @@ def it_loadevokeds(subID: str):
 def it_loadevokeds_std(subID: str):
 
     s_evokeds = loadevokeds(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions, std = True)
+                            avg_trials = avg_trials, conditions = conditions, std = True)
 
     return s_evokeds
 
@@ -190,7 +197,7 @@ def mp_epochs(evoks_iters: list, points: list):
         results.append(r[0])
         e_results.append(r[1])
 
-    lenght = int(frc[1]*maind[exp_name]['T']) - int(frc[0]*maind[exp_name]['T']) - 1
+    lenght = len(times)
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),lenght]
@@ -203,8 +210,6 @@ def mp_epochs(evoks_iters: list, points: list):
     os.makedirs(sv_path, exist_ok = True)
 
     np.savez(sv_path + 'epochs.npz', *EP)
-
-    variables['t'] = [i for i in range(0,lenght)]
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)

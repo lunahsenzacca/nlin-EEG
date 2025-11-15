@@ -55,6 +55,7 @@ clust_dict = {
 
 obs_dict = {
             'epochs': 'Epoch Time Series ',
+            'spectrum': 'Epoch Frequency Spectrum ',
             'delay': '$\\tau$',
             'separation': 'Spacetime Separation ',
             'corrsum': '$C_{m}(r)$ ',
@@ -109,6 +110,23 @@ epochs_instructions = {
                         'linewidth': 1,
                         'alpha_m': 0.8,
                         'ylabel': '$ERPs$',
+                        'xlim': (None,None),
+                        'ylim': (None,None),
+                        'style': 'curve',
+                        'legend_t': 'Condition',
+                        'colormap': cm.Set2,
+                        }
+
+spectrum_instructions = {
+                        'figure': 'pois',
+                        'multiplot': 'subjects',
+                        'legend': 'conditions',
+                        'isolines': None,
+                        'axis': 'freqs',
+                        'reduce_method': 'trivial',
+                        'linewidth': 1,
+                        'alpha_m': 0.8,
+                        'ylabel': 'ERPs Spectrum',
                         'xlim': (0,None),
                         'ylim': (None,None),
                         'style': 'curve',
@@ -188,6 +206,7 @@ plateaus_instructions = {
 
 obs_instructions = {
                     'epochs': epochs_instructions,
+                    'spectrum': spectrum_instructions,
                     'delay': delay_instructions,
                     'separation': separation_instructions,
                     'correxp': correxp_instructions,
@@ -331,7 +350,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         # Initzialize list for array rearranging
         rearrange = [0,0,0,0,0,0]
 
-    elif info['obs_name'] in ['epochs', 'delay']: 
+    elif info['obs_name'] in ['epochs', 'spectrum', 'delay']: 
 
         # Initzialize list of labels for data
         labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],[instructions['e_title']]]
@@ -455,6 +474,14 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
         instructions['xlabel'] = '$t$'
 
+    elif instructions['axis'] == 'freqs':
+
+        rearrange[-1] = 3
+
+        x = X[0]
+
+        instructions['xlabel'] = '$f$'
+
     elif instructions['axis'] == 'pois':
 
         rearrange[-1] = 2
@@ -491,6 +518,15 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
     # Rearrange arrays
     obs = np.permute_dims(OBS, rearrange)
     e_obs = np.permute_dims(E_OBS, rearrange)
+
+    if info['obs_name'] == 'spectrum':
+
+        o = obs.copy()
+
+        obs = np.log10(o)
+        e_obs = e_obs/(np.log(10)*o)
+
+        del o
 
     if instructions['X_transform'] != None:
 
@@ -753,6 +789,9 @@ def set_figures(figs: list, axes: list, l_dict: dict):
         for ax in ax_iter:
 
             ax.set_ylim(instructions['ylim'])
+
+            if info['obs_name'] == 'spectrum':
+                ax.set_xscale('log')
 
             ylocs = ax.get_yticks()
             #ylabels = [f'{yloc: 06f}' for yloc in ylocs]

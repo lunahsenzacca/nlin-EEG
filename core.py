@@ -35,6 +35,12 @@ from teaspoon.parameter_selection.FNN_n import FNN_n
 # Permutation Entropy (Not Used For Now...)
 from teaspoon.SP.information.entropy import PE
 
+# Zero Dimensional Sublevel Set Persistance Diagrams
+from teaspoon.TDA.SLSP import Persistence0D
+
+# Compute cutoff for Persistence Features
+from teaspoon.TDA.SLSP_tools import cutoff
+
     # Scipy library #
 
 # Method for .mat file loading
@@ -150,7 +156,14 @@ def obs_data(obs_path: str, obs_name: str):
 
         X = [x]
 
-    if obs_name == 'delay':
+    elif obs_name == 'spectrum':
+
+        M = np.load(obs_path + 'spectrum.npz')
+        x = variables['freqs']
+
+        X = [x]
+
+    elif obs_name == 'delay':
 
         M = np.load(obs_path + 'delay.npz')
         x = variables['pois']
@@ -278,6 +291,37 @@ def tuplinator(list: list):
 
     return tup
 
+# Get time array for a specific crop
+def get_tinfo(exp_name: str, method: str, fraction: list):
+
+    # Evoked folder paths
+    path = maind[exp_name]['directories'][method]
+
+    # List of ALL subject IDs
+    sub_list = maind[exp_name]['subIDs']
+
+    # Load just one subject
+    example_path = path + sub_list[0] + '-ave.fif'
+
+    evoked = mne.read_evokeds(example_path, verbose = False)
+
+    times = evoked[0].times
+
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
+
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+    
+    evoked[0].crop(tmin = tmin, tmax = tmax, include_tmax = False)
+
+    times = evoked[0].times
+
+    info = evoked[0].info
+
+    return info, times
+
 # Function for single subject conversion from raw data to list  for MNE 
 def raw_tolist(subID: str, exp_name: str):
 
@@ -316,7 +360,7 @@ def raw_tolist(subID: str, exp_name: str):
                 data = mat_data['F'][untup][np.newaxis]
 
                 # There is probably a way to fix this
-                montage = None
+                info = None
 
             else:
 
@@ -324,34 +368,33 @@ def raw_tolist(subID: str, exp_name: str):
 
                 data = mne_data.get_data(picks = untup)
 
-                montage = mne_data.get_montage()
+                info = mne_data.info
 
             all_trials = np.concatenate((all_trials, data), axis = 0)
 
         data_list.append(all_trials)
 
-    return data_list, montage
+    return data_list, info
 
 # Create info file for specific datased
-def toinfo(exp_name: str, montage = None, ch_type = 'eeg'):
+def toinfo(exp_name: str, info: mne.Info, ch_type = 'eeg'):
 
-    # Get electrodes labels
-    ch_list = maind[exp_name]['pois']
+    if type(info) == None:
 
-    ch_types = [ch_type for n in range(0, len(ch_list))]
+        # Get electrodes labels
+        ch_list = maind[exp_name]['pois']
 
-    # Get sampling frequency
-    freq = maind[exp_name]['f']
+        ch_types = [ch_type for n in range(0, len(ch_list))]
 
-    info = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
+        # Get sampling frequency
+        freq = maind[exp_name]['f']
 
-    if type(montage) != None:
-        info.set_montage(montage)
+        info = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
 
     return info
 
 # Function for subwise evoked conversion from list of arrays
-def list_toevoked(data_list: list, montage, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, alt_sv: str):
+def list_toevoked(data_list: list, info: mne.Info, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, alt_sv: str):
     
     # There are different number of trials for each condition,
     # so a simple ndarray is inconvenient. We use a list of ndarray instead
@@ -359,7 +402,7 @@ def list_toevoked(data_list: list, montage, subID: str, exp_name: str, avg_trial
     # The list index cycles faster around the conditions and slower around the subject
 
     # Create info file
-    info = toinfo(exp_name = exp_name, montage = montage)
+    info = toinfo(exp_name = exp_name, info = info)
 
     conditions = list(maind[exp_name]['conditions'].values())
 
@@ -436,10 +479,10 @@ def list_toevoked(data_list: list, montage, subID: str, exp_name: str, avg_trial
 def toevoked(subID: str, exp_name: str, avg_trials: bool, z_score = False, baseline = False, alt_sv = None):
 
     # Create data list
-    data_list, montage = raw_tolist(subID = subID, exp_name = exp_name)
+    data_list, info = raw_tolist(subID = subID, exp_name = exp_name)
 
     # Generate evokeds
-    evokeds = list_toevoked(data_list = data_list, montage = montage, subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, baseline = baseline, alt_sv = alt_sv)
+    evokeds = list_toevoked(data_list = data_list, info = info, subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, baseline = baseline, alt_sv = alt_sv)
 
     return evokeds
 
@@ -1362,6 +1405,184 @@ def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fracti
 
             EP.append(ts)
             E_EP.append(e_ts)
+
+    return EP, E_EP
+
+# Get epochs frequency spectrum
+def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, fraction = [0,1]):
+
+    # Apply fraction to time series
+    times = evoked.times
+
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
+
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+    
+    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    s_evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+
+    # Initzialize result array
+    SP = []
+    E_SP = []
+
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
+
+        TS = []
+        E_TS = []
+        for cl in ch_list:
+            
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            e_ts = s_evoked.get_data(picks = cl)
+
+            n = evoked.nave
+
+            ts = ts.mean(axis = 0)
+            e_ts = e_ts.mean(axis = 0)
+            
+            TS.append(ts)
+            E_TS.append(e_ts)
+
+        # Loop around pois time series
+        for ts, e_ts in zip(FT, E_FT):
+
+            psd, _ = mne.time_frequency.psd_array_welch(ts,
+            sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
+            fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+            n_fft = len(ts)*2,
+            n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution)
+            verbose = False)
+            
+            # Generate time series on a gaussian noise hypotheses if we have more than one trial
+            if n != 1:
+                
+                psd_ = []
+                for i in range(0,N):
+
+                    ts_r = np.random.normal(loc = ts, scale = e_ts*np.sqrt(n))
+
+                    psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
+                    sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
+                    fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+                    n_fft = len(ts)*2,
+                    n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution)
+                    verbose = False)
+
+                    psd_.append(psd_r)
+
+                e_psd = np.asarray(psd_).std(axis = 0)/np.sqrt(N)
+
+            # Otherwise compute fft without any error output
+            else:
+
+                e_psd = np.zeros(len(psd))
+
+            SP.append(psd)
+            E_SP.append(e_psd)
+
+    else:
+
+        TS = evoked.get_data(picks = ch_list)
+        E_TS = s_evoked.get_data(picks = ch_list)
+
+        n = evoked.nave
+
+        # Loop around pois time series
+        for ts, e_ts in zip(TS, E_TS):
+
+            psd, _ = mne.time_frequency.psd_array_welch(ts,
+            sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
+            fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+            n_fft = len(ts)*2,
+            n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution)
+            verbose = False)
+
+            # Generate time series on a gaussian noise hypotheses if we have more than one trial
+            if n != 1:
+                
+                psd_ = []
+                for i in range(0,N):
+
+                    ts_r = np.random.normal(loc = ts, scale = e_ts*np.sqrt(n))
+
+                    psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
+                    sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
+                    fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+                    n_fft = len(ts)*2,
+                    n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution) # Length of FFT (controls frequency resolution)
+                    verbose = False)
+
+                    psd_.append(psd_r)
+
+                e_psd = np.asarray(psd_).std(axis = 0)/np.sqrt(N)
+
+            # Otherwise compute fft without any error output
+            else:
+
+                e_psd = np.zeros(len(psd))
+
+            SP.append(psd)
+            E_SP.append(e_psd)
+
+    return SP, E_SP
+
+# Get epoched 
+def persistence(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fraction = [0,1]):
+
+    # Apply fraction to time series
+    times = evoked.times
+
+    start = int(fraction[0]*len(times))
+    finish = int(fraction[1]*len(times)) - 1
+
+    # Trim time series according to fraction variable
+    tmin = times[start]
+    tmax = times[finish]
+    
+    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    s_evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+
+    # Initzialize result array
+    PS = []
+    E_PS = []
+
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
+
+        TS = []
+        E_TS = []
+        for cl in ch_list:
+            
+            # Get average time series of the cluster
+            ts = evoked.get_data(picks = cl)
+            e_ts = s_evoked.get_data(picks = cl)
+
+            ts = ts.mean(axis = 0)
+            e_ts = e_ts.mean(axis = 0)
+            
+            TS.append(ts)
+            E_TS.append(e_ts)
+
+        # Loop around pois time series
+        for ts, e_ts in zip(TS, E_TS):
+
+            PS.append(ts)
+            E_PS.append(e_ts)
+
+    else:
+
+        TS = evoked.get_data(picks = ch_list)
+        E_TS = s_evoked.get_data(picks = ch_list)
+
+        # Loop around pois time series
+        for ts, e_ts in zip(TS, E_TS):
+
+            PS.append(ts)
+            E_PS.append(e_ts)
 
     return EP, E_EP
 
