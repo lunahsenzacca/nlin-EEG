@@ -712,7 +712,7 @@ def to_log(OBS: np.ndarray, verbose: bool):
 
     if verbose == True:
         print('Zero valued data points: ' + str(c))
-            
+
     log_OBS = np.reshape(np.asarray(r), shp)
     e_log_OBS = np.reshape(np.asarray(e_r), shp)
 
@@ -1409,7 +1409,7 @@ def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fracti
     return EP, E_EP
 
 # Get epochs frequency spectrum
-def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, fraction = [0,1]):
+def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, wf: float, fraction = [0,1]):
 
     # Apply fraction to time series
     times = evoked.times
@@ -1453,8 +1453,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
             psd, _ = mne.time_frequency.psd_array_welch(ts,
             sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
             fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
-            n_fft = len(ts)*2,
-            n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution)
+            n_fft = int(len(ts)*wf),
+            n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
             verbose = False)
             
             # Generate time series on a gaussian noise hypotheses if we have more than one trial
@@ -1468,8 +1468,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
                     psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
                     sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
                     fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
-                    n_fft = len(ts)*2,
-                    n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution)
+                    n_fft = int(len(ts)*wf),
+                    n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
                     verbose = False)
 
                     psd_.append(psd_r)
@@ -1497,8 +1497,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
             psd, _ = mne.time_frequency.psd_array_welch(ts,
             sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
             fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
-            n_fft = len(ts)*2,
-            n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution)
+            n_fft = int(len(ts)*wf),
+            n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
             verbose = False)
 
             # Generate time series on a gaussian noise hypotheses if we have more than one trial
@@ -1512,8 +1512,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
                     psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
                     sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
                     fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
-                    n_fft = len(ts)*2,
-                    n_per_seg = int(len(ts)/2),  # Length of FFT (controls frequency resolution) # Length of FFT (controls frequency resolution)
+                    n_fft = int(len(ts)*wf),
+                    n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution) # Length of FFT (controls frequency resolution)
                     verbose = False)
 
                     psd_.append(psd_r)

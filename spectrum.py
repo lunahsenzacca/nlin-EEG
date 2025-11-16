@@ -88,8 +88,11 @@ ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3
 # Window of interest
 frc = [0., 1.]
 
-# Number of signals to generate for frequency domain erro estimation
-N = 50
+# Number of signals to generate for frequency domain error estimation
+N = 60
+
+# Window factor for frequency space resolution
+wf = 4
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
@@ -106,8 +109,8 @@ f_ts = np.zeros(len(times))
 _, freqs = mne.time_frequency.psd_array_welch(f_ts,
                     sfreq = info['sfreq'],  # Sampling frequency from the evoked data
                     fmin = info['highpass'], fmax = info['lowpass'],  # Focus on the filter range
-                    n_fft = len(f_ts)*2,  # Length of FFT (controls frequency resolution)
-                    n_per_seg = int(len(f_ts)/2),
+                    n_fft = int(len(f_ts)*wf),  # Length of FFT (controls frequency resolution)
+                    n_per_seg = int(len(f_ts)/wf),
                     verbose = False)
 
 # Dictionary for computation variables
@@ -118,7 +121,8 @@ variables = {
                 'conditions' : conditions,
                 'pois' : ch_list,
                 'freqs': list(freqs),
-                'N': N
+                'N': N,
+                'window_factor': wf,
             }
 
 ### COMPUTATION ###
@@ -142,7 +146,7 @@ def it_loadevokeds_std(subID: str):
 # Build Spectrum Plotting iterable function
 def it_spectrum(evoked_l: list):
 
-    SP, E_SP = spectrum(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, N = N, fraction = frc)
+    SP, E_SP = spectrum(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, N = N, wf = wf, fraction = frc)
 
     return SP, E_SP
 
