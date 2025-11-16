@@ -302,7 +302,7 @@ def get_tinfo(exp_name: str, method: str, fraction: list):
 
     # Load just one subject
     example_path = path + sub_list[0] + '-ave.fif'
-
+    
     evoked = mne.read_evokeds(example_path, verbose = False)
 
     times = evoked[0].times

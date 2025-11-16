@@ -97,7 +97,8 @@ basic_instructions = {
                      'e_title': None,#'Lorenz Attractor (w/o embedding normalization)'
                      'legend_s': True,
                      'legend_loc': 'lower left',
-                     'X_transform': None
+                     'X_transform': None,
+                     'save_here': False,
                       }
 
 epochs_instructions = {
@@ -295,6 +296,10 @@ def make_instructions(info: dict, extra_instructions: dict):
                        clust_lb = info['clust_lb'],
                        calc_lb = info['calc_lb']
                        ) + instructions['avg'] + '/'
+
+    if instructions['save_here'] == True:
+
+        instructions['sv_path'] = './output/'
 
     # Check for confliction instructions
     check_conflict = [instructions['figure'], instructions['multiplot'], instructions['legend'], instructions['axis']]
@@ -781,6 +786,9 @@ def set_figures(figs: list, axes: list, l_dict: dict):
     # Cycle around axis and figures to add informations
     # Check if we have multiple axes and initialize proper iterable
     for axs in axes:
+        
+        print('Setting appearances...')
+
         if len(l_dict['multi_idxs']) == 1 or instructions['grid'][0]*instructions['grid'][1] == 1:
             ax_iter = [axs]
         else:
@@ -814,6 +822,8 @@ def set_figures(figs: list, axes: list, l_dict: dict):
             ax.tick_params(axis = 'both', which = 'minor', labelsize = instructions['textsz']/2)
 
     for i, fig in enumerate(figs):
+        
+        print('Loading pictures...')
 
         title = obs_dict[info['obs_name']] + str(l_dict['title_l'][i])
 
@@ -831,8 +841,6 @@ def set_figures(figs: list, axes: list, l_dict: dict):
         fig.tight_layout()
 
         show_figure(fig)
-
-        plt.close()
 
     return figs, axes
 
