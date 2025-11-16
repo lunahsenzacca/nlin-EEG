@@ -36,7 +36,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking_dense'
+exp_name = 'zbmasking_dense'
 
 # Cluster label
 clust_lb = 'CFPO'
@@ -89,10 +89,10 @@ ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3
 frc = [0., 1.]
 
 # Number of signals to generate for frequency domain error estimation
-N = 60
+N = 50
 
 # Window factor for frequency space resolution
-wf = 4
+wf = 3
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:

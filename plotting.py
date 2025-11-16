@@ -126,7 +126,7 @@ spectrum_instructions = {
                         'reduce_method': 'trivial',
                         'linewidth': 1,
                         'alpha_m': 0.8,
-                        'ylabel': 'ERPs Spectrum',
+                        'ylabel': 'I(f) [dB?]',
                         'xlim': (0,None),
                         'ylim': (None,None),
                         'style': 'curve',
@@ -480,7 +480,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
         x = X[0]
 
-        instructions['xlabel'] = '$f$'
+        instructions['xlabel'] = 'f [Hz]'
 
     elif instructions['axis'] == 'pois':
 
