@@ -231,6 +231,8 @@ def simple_plot(info: dict, extra_instructions = None, show = True, save = False
 
     show_figures(figs = figs, l_dict = l_dict, show = show, save = save)
 
+    print('\nDone')
+
     return
 
 # Layered plotting of two observables
@@ -785,10 +787,9 @@ def set_figures(figs: list, axes: list, l_dict: dict):
 
     # Cycle around axis and figures to add informations
     # Check if we have multiple axes and initialize proper iterable
+    print('\nSetting appearances...')
     for axs in axes:
         
-        print('Setting appearances...')
-
         if len(l_dict['multi_idxs']) == 1 or instructions['grid'][0]*instructions['grid'][1] == 1:
             ax_iter = [axs]
         else:
@@ -820,11 +821,10 @@ def set_figures(figs: list, axes: list, l_dict: dict):
 
             ax.tick_params(axis = 'both', which = 'major', labelsize = instructions['textsz']/2)
             ax.tick_params(axis = 'both', which = 'minor', labelsize = instructions['textsz']/2)
-
+    
+    print('\nLoading pictures...')
     for i, fig in enumerate(figs):
         
-        print('Loading pictures...')
-
         title = obs_dict[info['obs_name']] + str(l_dict['title_l'][i])
 
         if instructions['e_title'] != None:
@@ -841,6 +841,7 @@ def set_figures(figs: list, axes: list, l_dict: dict):
         fig.tight_layout()
 
         show_figure(fig)
+
 
     return figs, axes
 

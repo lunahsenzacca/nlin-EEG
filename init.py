@@ -136,6 +136,7 @@ BM_info = {
     'conditions': BM_conditions,
     'directories': BM_paths,
     'tau': 20,
+    'window': [-0.2,0.7]
 }
 
 # Create similar dictionary for zscored results
@@ -148,7 +149,9 @@ ZBM_info = {
     'pois': BM_pois,
     'conditions': BM_conditions,
     'directories': ZBM_paths,
-    'tau': 15
+    'tau': 15,
+    'window': [-0.2,0.7]
+
 }
 
 BMD_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 
@@ -169,6 +172,7 @@ BMD_info = {
     'conditions': BM_conditions,
     'directories': BMD_paths,
     'tau': 35,
+    'window': [-0.2,0.7]
 }
 
 # Create similar dictionary for new preprocessing
@@ -182,7 +186,7 @@ ZBMD_info = {
     'conditions': BM_conditions,
     'directories': ZBMD_paths,
     'tau': 35,
-
+    'window': [-0.2,0.7]
 }
 
 # Create similar dictionary for new preprocessing
@@ -196,6 +200,7 @@ BMD_noICA_info = {
     'conditions': BM_conditions,
     'directories': BMD_noICA_paths,
     'tau': 35,
+    'window': [-0.2,0.7]
 }
 
 # Create similar dictionary for new preprocessing
@@ -209,6 +214,7 @@ ZBMD_noICA_info = {
     'conditions': BM_conditions,
     'directories': ZBMD_noICA_paths,
     'tau': 35,
+    'window': [-0.2,0.7]
 }
 
 # Create similar dictionary for new preprocessing
@@ -222,6 +228,7 @@ BMD_highICA_info = {
     'conditions': BM_conditions,
     'directories': BMD_highICA_paths,
     'tau': 35,
+    'window': [-0.2,0.7]
 }
 
 # Create similar dictionary for new preprocessing
@@ -235,6 +242,7 @@ ZBMD_highICA_info = {
     'conditions': BM_conditions,
     'directories': ZBMD_highICA_paths,
     'tau': 35,
+    'window': [-0.2,0.7]
 }
 
 
@@ -265,6 +273,7 @@ LZ_info = {
     'conditions': LZ_conditions,
     'directories': LZ_paths,
     'tau': 20,
+    'window': [0,10] # Placeholder, there is actually a pysically reasonable value from this
 }
 
 NZ_conditions = {'noise':'noise'}
@@ -278,6 +287,7 @@ NZ_info = {
     'conditions': NZ_conditions,
     'directories': NZ_paths,
     'tau': 20,
+    'window': [0,0.9]
 }
 
 

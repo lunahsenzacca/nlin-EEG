@@ -295,7 +295,7 @@ def tuplinator(list: list):
     return tup
 
 # Get time array for a specific crop
-def get_tinfo(exp_name: str, method: str, fraction: list):
+def get_tinfo(exp_name: str, method: str, window = None):
 
     # Evoked folder paths
     path = maind[exp_name]['directories'][method]
@@ -307,17 +307,9 @@ def get_tinfo(exp_name: str, method: str, fraction: list):
     example_path = path + sub_list[0] + '-ave.fif'
     
     evoked = mne.read_evokeds(example_path, verbose = False)
-
-    times = evoked[0].times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
     
-    evoked[0].crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:
+        evoked[0].crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     times = evoked[0].times
 
@@ -408,6 +400,9 @@ def list_toevoked(data_list: list, info: mne.Info, subID: str, exp_name: str, av
     info = toinfo(exp_name = exp_name, info = info)
 
     conditions = list(maind[exp_name]['conditions'].values())
+    
+    # Get loaded starting time
+    tmin = maind[exp_name]['window'][0]
 
     # Initialize evokeds list
     evokeds = []
@@ -455,6 +450,9 @@ def list_toevoked(data_list: list, info: mne.Info, subID: str, exp_name: str, av
             ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i], kind = 'average')
             s_ev = mne.EvokedArray(std, info, nave = n_trials, comment = conditions[i], kind = 'standard_error')
 
+            ev.shift_time(tmin)
+            s_ev.shift_time(tmin)
+
             evokeds.append([ev, s_ev])
 
         # Or keep each individual trial
@@ -463,6 +461,9 @@ def list_toevoked(data_list: list, info: mne.Info, subID: str, exp_name: str, av
             for trl in array_:
 
                 ev = mne.EvokedArray(trl, info, nave = 1, comment = conditions[i])
+
+                ev.shift_time(tmin)
+
                 evokeds.append([ev])
 
     # This is meant for testing in notebooks
@@ -1356,20 +1357,12 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
 # Get epoched 
-def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fraction = [0,1]):
+def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, window = None):
 
     # Apply fraction to time series
-    times = evoked.times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
-    
-    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
-    s_evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        s_evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     EP = []
@@ -1412,20 +1405,12 @@ def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fracti
     return EP, E_EP
 
 # Get epochs frequency spectrum
-def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, wf: float, fraction = [0,1]):
+def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, wf: float, window = None):
 
     # Apply fraction to time series
-    times = evoked.times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
-    
-    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
-    s_evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        s_evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     SP = []
@@ -1533,21 +1518,13 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
 
     return SP, E_SP
 
-# Get epoched 
-def persistence(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, fraction = [0,1]):
+# Get persistance diagrams [WIP]
+def persistence(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, window = None):
 
     # Apply fraction to time series
-    times = evoked.times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
-    
-    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
-    s_evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        s_evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     PS = []
@@ -1591,19 +1568,11 @@ def persistence(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, f
 
 # Delay time of channel time series of a specific trial
 def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
-               method: str, clst_method: str, fraction = [0,1]):
+               method: str, clst_method: str, window = None):
 
     # Apply fraction to time series
-    times = evoked.times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
-    
-    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     tau = []
@@ -1663,23 +1632,15 @@ def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
 def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: str|int, w: int, rvals: list, 
-                    m_norm: bool, fraction = [0,1], cython = False):
+                    m_norm: bool, window = None, cython = False):
 
     if cython == True:
 
         from cython_modules import c_core
 
     # Apply fraction to time series
-    times = evoked.times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
-
-    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     CS = []
@@ -1811,23 +1772,15 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 # Recurrence Plot of channel time series of a specific trial
 def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: str|int, rvals: list, 
-                    m_norm: bool, fraction = [0,1], cython = False):
+                    m_norm: bool, window = None, cython = False):
 
     if cython == True:
 
         from cython_modules import c_core
 
     # Apply fraction to time series
-    times = evoked.times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
-
-    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     T = len(evoked.times)
 
@@ -1961,23 +1914,15 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
 def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
                     embeddings: list, tau: str|int, percentiles: list,
-                    m_norm: bool, fraction = [0,1], cython = False):
+                    m_norm: bool, window = None, cython = False):
 
     if cython == True:
 
         from cython_modules import c_core
 
     # Apply fraction to time series
-    times = evoked.times
-
-    start = int(fraction[0]*len(times))
-    finish = int(fraction[1]*len(times)) - 1
-
-    # Trim time series according to fraction variable
-    tmin = times[start]
-    tmax = times[finish]
-
-    evoked.crop(tmin = tmin, tmax = tmax, include_tmax = False)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     T = len(evoked.times)
 
@@ -2101,16 +2046,11 @@ def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
 # Information dimension of channel time series of a specific trial
 def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
                           embeddings: list, tau: int, 
-                          fraction = [0,1]):
+                          window = None):
 
     # Apply fraction to time series
-    times = evoked.times
-
-    # Trim time series according to fraction variable
-    tmin = times[int(fraction[0]*(len(times)-1))]
-    tmax = times[int(fraction[1]*(len(times)-1))]
-
-    evoked.crop(tmin = tmin, tmax = tmax)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     D2 = []
@@ -2151,19 +2091,14 @@ def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
 # Largest lyapunov exponent of channel time series
 def lyapunov(evoked: mne.Evoked, ch_list: list | tuple, 
              embeddings: list, tau: int, lenght: int, avT = None,
-             fraction = [0,1], verbose = False):
+             window = None, verbose = False):
 
     # Get sampling frequency
     sfreq = evoked.info['sfreq']
 
     # Apply fraction to time series
-    times = evoked.times
-
-    # Trim time series according to fraction variable
-    tmin = times[int(fraction[0]*(len(times)-1))]
-    tmax = times[int(fraction[1]*(len(times)-1))]
-
-    evoked.crop(tmin = tmin, tmax = tmax)
+    if type(window) == list:   
+        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result arrays
     ly = []

@@ -9,7 +9,7 @@ from init import get_maind
 maind = get_maind()
 
 ## Validators for subject and condition custom entries
-def make_validator(ilist: list):
+def list_validator(ilist: list):
 
     def validator(answers, current):
 
@@ -23,12 +23,34 @@ def make_validator(ilist: list):
 
     return validator
 
+## Validator for time window values
+def window_validator(window: list):
+
+    def validator(answers,current):
+        
+        window_current = [float(i) for i in current.split(',')]
+
+        #print(window_current,type(window_current))
+
+        if window_current[0]>window_current[1]:
+            raise inq.errors.ValidationError('', reason ='t_min greater than t_max!')
+
+        for w in window_current:
+
+            if w > window[1] or w < window[0]:
+                raise inq.errors.ValidationError('', reason = f't = {w}s outside dataset!')
+
+        return True
+
+    return validator
+
 ## Inputs
 def m_input(n: int, exp_name = 'noise'):
 
     sub_list = maind[exp_name]['subIDs']
     conditions = maind[exp_name]['conditions'].keys()
     pois = maind[exp_name]['pois']
+    window = maind[exp_name]['window']
 
     input = [
 
@@ -45,7 +67,7 @@ def m_input(n: int, exp_name = 'noise'):
         ],[
             inq.Text('sub_list',
                      message = 'Type desired subject IDs separated by \',\'',
-                     validate = make_validator(sub_list)
+                     validate = list_validator(sub_list)
             )
         ],[
             inq.List('cond_opt',
@@ -54,23 +76,38 @@ def m_input(n: int, exp_name = 'noise'):
             )
         ],[
             inq.Checkbox('conditions',
-                         message = 'Select conditions [right]',
-                         choices = conditions
+                     message = 'Select conditions [->]',
+                     choices = conditions
             )
         ],[
             inq.List('pois_opt',
                      message = 'Channels to include',
-                     choices = [f'All ({len(pois)} conditions)', 'Check...', 'Type...']
+                     choices = [f'All ({len(pois)} channels)', 'Check...', 'Type...']
             )
         ],[
             inq.Checkbox('pois',
-                         message = 'Select pois [right]',
-                         choices = pois
+                     message = 'Select channels [->]',
+                     choices = pois
             )
         ],[
             inq.Text('pois',
                      message = 'Type desired Channels names separated by \',\'',
-                     validate = make_validator(pois)
+                     validate = list_validator(pois)
+            )
+        ],[
+            inq.List('window_opt',
+                     message = 'Choose time window [t_min,t_max]s',
+                     choices = [f'Full lenght: [{window[0]},{window[1]}]s','Type...']
+            )
+        ],[
+            inq.Text('window',
+                     message = 'Type t_min and t_max [s] separated by \',\'',
+                     validate = window_validator(window)
+            )
+        ],[
+            inq.Confirm('avg_trials',
+                     message = 'Average trial data before computation?',
+                     default = True
             )
         ]
     ]
@@ -82,59 +119,76 @@ def launch():
 
     print('\nHELLO I\'M A LAUNCH SCRIPT!\n')
     
-    ## Prompt for preprocessed dataset
+    ## Prompt for preprocessed dataset name, subjects, conditions, channels and time window
 
     # Get exp_name
     exp_name = inq.prompt(m_input(0))['exp_name']
     
     # Get sub_list
-    sub_opt = inq.prompt(m_input(1, exp_name = exp_name))['sub_opt']
+    sub_opt = inq.prompt(m_input(1, exp_name ))['sub_opt']
 
     # Opt for a subset
     if 'All' not in sub_opt:
        
-        sub_list = list(inq.prompt(m_input(2, exp_name = exp_name))['sub_list'].split(','))
+        sub_list = list(inq.prompt(m_input(2, exp_name ))['sub_list'].split(','))
 
     else:
 
         sub_list = maind[exp_name]['subIDs']
 
     # Get conditions
-    cond_opt = inq.prompt(m_input(3, exp_name = exp_name))['cond_opt']
+    cond_opt = inq.prompt(m_input(3, exp_name ))['cond_opt']
 
     # Opt for a subset
     if 'All' not in cond_opt:
        
-        c = inq.prompt(m_input(4, exp_name = exp_name))['conditions']
+        c = inq.prompt(m_input(4, exp_name ))['conditions']
         conditions = [maind[exp_name]['conditions'][i] for i in c]
 
     else:
 
-        conditions = maind[exp_name]['conditions'].values()
+        conditions = list(maind[exp_name]['conditions'].values())
 
     # Get pois
-    pois_opt = inq.prompt(m_input(5, exp_name = exp_name))['pois_opt']
+    pois_opt = inq.prompt(m_input(5, exp_name))['pois_opt']
 
     # Opt for a subset
     if 'Ch' in pois_opt:
        
-        pois = inq.prompt(m_input(6, exp_name = exp_name))['pois']
+        pois = inq.prompt(m_input(6, exp_name ))['pois']
 
     elif 'Ty' in pois_opt:
-
-        pois = list(inq.prompt(m_input(7, exp_name = exp_name))['pois'].split(','))
+        
+        c = inq.prompt(m_input(7, exp_name ))['pois'].split(',')
+        pois = list(c)
 
     else:
 
         pois = maind[exp_name]['pois']
 
-    ## Prompt for parameters
+    # Get time window
+    window_opt = inq.prompt(m_input(8, exp_name ))['window_opt']
+
+    # Opt for a another
+    if 'Ty' in window_opt:
+
+        c = inq.prompt(m_input(9, exp_name))['window'].split(',')
+        window = [float(i) for i in c]
+
+    else:
+
+        window = maind[exp_name]['window']
+
+    ## Prompt for trial averaging
+
+    avg_trials = inq.prompt(m_input(10, exp_name))['avg_trials']
+
     
     ## Prompt for results plotting after computation
 
     ## Launch compiled script
     
-    print(exp_name, sub_opt, sub_list, conditions, pois)
+    print(exp_name, sub_list, conditions, pois, window, avg_trials)
 
     return
 

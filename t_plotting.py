@@ -7,7 +7,7 @@ import matplotlib.cm as cm
 info = {
     'exp_name': 'zbmasking_dense',
     'avg_trials': True,
-    'obs_name': 'spectrum',
+    'obs_name': 'epochs',
     'clust_lb': 'CFPO',
     'calc_lb': 'FL',
 }
@@ -15,14 +15,14 @@ info = {
 # Extra instructions dictionary for standard instructions override
 extra_instructions = {
     'reduce_legend': [2,3,4,5,6,7,8,9],
-    #'avg': 'sub',
-    #'dim_m': 1.2,
-    #'grid': (1,1),
-    'ylim': (-6, 0),
+    'avg': 'sub',
+    'dim_m': 1.2,
+    'grid': (1,1),
+    #'ylim': (-6, 0),
     #'legend_s': True,
     'alpha_m': 0.9,
     'colormap': cm.tab20c,
-    'linewidth': 1,
+    'linewidth': 2,
     #'ylabel': 'ERPs $[V]$',
     }
 

@@ -86,7 +86,7 @@ ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Window of interest
-frc = [0., 1.]
+window = None
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
@@ -95,11 +95,11 @@ else:
     clt = False
 
 # Get time coordinates
-_, times = get_tinfo(exp_name = exp_name, method = method, fraction = frc)
+_, times = get_tinfo(exp_name = exp_name, method = method, window = window)
 
 # Dictionary for computation variables
 variables = {   
-                'window' : frc,
+                'window' : window,
                 'clustered' : clt,
                 'subjects' : sub_list,
                 'conditions' : conditions,
@@ -128,7 +128,7 @@ def it_loadevokeds_std(subID: str):
 # Build Epochs Plotting iterable function
 def it_epochs(evoked_l: list):
 
-    EP, E_EP = epochs(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, fraction = frc)
+    EP, E_EP = epochs(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, window = window)
 
     return EP, E_EP
 

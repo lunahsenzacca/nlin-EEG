@@ -16,7 +16,7 @@ from init import get_maind
 maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
-workers = 10
+workers = 5
 chunksize = 1
 
 ### SCRIPT PARAMETERS ###
