@@ -145,6 +145,9 @@ def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, cal
 # Get observable data
 def obs_data(obs_path: str, obs_name: str):
 
+    M = None
+    X = None
+
     # Load result variables
     with open(obs_path + 'variables.json', 'r') as f:
         variables = json.load(f)
@@ -241,7 +244,7 @@ def obs_data(obs_path: str, obs_name: str):
 
 # Convert channel names to appropriate .mat data index
 def name_toidx(names: list| tuple, exp_name: str):
-
+    
     # Get list of electrodes names
     ch_list = maind[exp_name]['pois']
 
