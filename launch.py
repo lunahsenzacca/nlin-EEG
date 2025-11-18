@@ -48,6 +48,8 @@ def window_validator(window: list):
     return validator
 
 ## Inputs
+
+## Module wide dataset inputs
 def m_input(n: int, exp_name = 'noise'):
 
     sub_list = maind[exp_name]['subIDs']
@@ -122,7 +124,39 @@ def m_input(n: int, exp_name = 'noise'):
 
     return input[n]
 
+# Script launch input with 
+def l_input(exist: bool):
 
+    warn = ''
+
+    if exist == True:
+
+        warn = ' (  Overwriting!)'
+
+    input = [
+            inq.List('mode_opt',
+                    message = 'That\'s it! Pleace select one of the followings',
+                    choices = [f'Compute{warn}', f'Compute & Plot{warn}','Just quit...']
+            )
+    ]
+
+    return input
+
+# Initial selection, choose between launch and plot
+def cmode():
+
+    input = [
+            inq.List('mode',
+                    message = 'Hello! Please select a mode',
+                    choices = ['Launch module', 'Plot results','QuickPlt','Just quit...']
+            )
+    ]
+
+    mode = inq.prompt(input)['mode']
+
+    return mode
+
+#Launch new computation
 def launch():
 
     print('\nHELLO I\'M A LAUNCH SCRIPT!\n')
@@ -194,17 +228,25 @@ def launch():
     ## Prompt for module
 
     obs_name = inq.prompt(m_input(11))['obs_name']
-    
-    ## Prompt for module parameters
-    
-    ## Prompt for results plotting and saving after computation
 
-    ## Launch compiled script
+    '''ADD PARAMETER INPUTS'''
+
+    ## Prompt for compute or plot or both
+    
+    '''ADD OVERWRITE CHECK'''
+
+    exist = False
+
+    mode_opt = inq.prompt(l_input(exist))['mode_opt']
+
+    if 'quit' in mode_opt:
+
+        return
     
     cmd = f'python -m modules.{obs_name}'
 
     os.system(cmd)
-    
+
     ## Launch compiled plotting
 
     #if plot_opt == True:
@@ -215,7 +257,62 @@ def launch():
 
     return
 
+# Plot some results
+def plot():
+
+    print('\n\tPLOTTING\n')
+    
+    ## Prompt for preprocessed dataset name, and clust_lb of saved data
+
+    # Get exp_name
+    exp_name = inq.prompt(m_input(0))['exp_name']
+
+    # Get clust_lb [ADD DEFAULT COLLECTION OF CLUSTERS]
+    #clust_lb = inq.prompt(c_input)['clust_lb']
+    
+    ## Prompt for trial averaging
+
+    avg_trials = inq.prompt(m_input(10, exp_name))['avg_trials']
+
+    ## Prompt for module
+
+    obs_name = inq.prompt(m_input(11))['obs_name']
+
+    ## Prompt for existing calculations for selected
+
+    '''ADD LIST SELECTION'''
+    
+    ## Print default parameters and prompt for changing
+
+    '''ADD PARAMETER INPUTS'''
+
+    ## PLACEHOLDER, WILL LAUNCH PLOTTING WITH SIMPLE_PLOT
+    cmd = 'python -m t_plotting'
+
+    os.system(cmd)
+
+    ## Launch compiled plotting    
+    #from plotting import simple_plot
+    
+    #simple_plot
+    
+    return
+
 if __name__ == '__main__':
 
-    launch()
+    with open('logo.txt', 'r') as file:
+        logo = file.read()
+
+    print('\n\n\n',logo,'\n\n\n')
+
+    mode = cmode()
+
+    if 'Lau' in mode:
+        launch()
+    elif 'Plo' in mode:
+        plot()
+    elif 'Quic' in mode:
+        os.system('python -m t_plotting')
+
+    print('\n')
 

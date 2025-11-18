@@ -36,7 +36,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking_dense'
+exp_name = 'bmasking_dense'
 
 # Cluster label
 clust_lb = 'CFPO'
@@ -86,10 +86,10 @@ ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Window of interest
-frc = [0., 1.]
+window = None
 
 # Number of signals to generate for frequency domain error estimation
-N = 50
+N = 100
 
 # Window factor for frequency space resolution
 wf = 3
@@ -101,7 +101,7 @@ else:
     clt = False
 
 # Load frequency domain informations and get freqencies array
-info, times = get_tinfo(exp_name = exp_name, method = method, fraction = frc)
+info, times = get_tinfo(exp_name = exp_name, method = method, window = window)
 
 # Make a fake fft to get the same frequency binning
 f_ts = np.zeros(len(times))
@@ -115,7 +115,7 @@ _, freqs = mne.time_frequency.psd_array_welch(f_ts,
 
 # Dictionary for computation variables
 variables = {   
-                'window' : frc,
+                'window' : window,
                 'clustered' : clt,
                 'subjects' : sub_list,
                 'conditions' : conditions,
@@ -146,7 +146,7 @@ def it_loadevokeds_std(subID: str):
 # Build Spectrum Plotting iterable function
 def it_spectrum(evoked_l: list):
 
-    SP, E_SP = spectrum(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, N = N, wf = wf, fraction = frc)
+    SP, E_SP = spectrum(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, N = N, wf = wf, window = window)
 
     return SP, E_SP
 

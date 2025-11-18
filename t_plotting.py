@@ -3,9 +3,9 @@ import matplotlib.cm as cm
 # Print data with wrapper
 # Info dictionary about observable
 info = {
-    'exp_name': 'zbmasking_dense',
+    'exp_name': 'bmasking_dense',
     'avg_trials': True,
-    'obs_name': 'epochs',
+    'obs_name': 'spectrum',
     'clust_lb': 'CFPO',
     'calc_lb': 'FL',
 }
@@ -14,9 +14,8 @@ info = {
 extra_instructions = {
     'reduce_legend': [2,3,4,5,6,7,8,9],
     'avg': 'sub',
-    #'dim_m': 1.2,
     'grid': (1,1),
-    #'ylim': (-6, 0),
+    'ylim': (-15, -11),
     #'legend_s': True,
     'alpha_m': 0.9,
     'colormap': cm.tab20c,
@@ -37,7 +36,7 @@ extra_instructions['backend'] = 'kitcat'
 
 # Set lower dpi and dimension multiplier for reasonable dimensions
 extra_instructions['dpi'] = 200
-extra_instructions['dim_m'] = 0.4
+extra_instructions['dim_m'] = 0.6
 
 # Define main wrapper
 def plot():
