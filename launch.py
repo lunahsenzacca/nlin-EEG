@@ -1,5 +1,8 @@
 # Master script for post-processing analysis
 
+# For I/O of modules
+import os
+
 # Inquirer library for menu selection
 import inquirer as inq
 
@@ -57,7 +60,7 @@ def m_input(n: int, exp_name = 'noise'):
         [
             inq.List('exp_name',
                      message = 'Choose a preprocessed dataset to work with',
-                     choices = maind['exp_lb'].keys()
+                     choices = [str(i) for i in maind['exp_lb'].keys()]
             )
         ],[
             inq.List('sub_opt',
@@ -108,6 +111,11 @@ def m_input(n: int, exp_name = 'noise'):
             inq.Confirm('avg_trials',
                      message = 'Average trial data before computation?',
                      default = True
+            )
+        ],[
+            inq.List('obs_name',
+                     message = 'Choose module to run',
+                     choices = [str(i) for i in maind['obs_lb'].keys()]
             )
         ]
     ]
@@ -183,12 +191,27 @@ def launch():
 
     avg_trials = inq.prompt(m_input(10, exp_name))['avg_trials']
 
+    ## Prompt for module
+
+    obs_name = inq.prompt(m_input(11))['obs_name']
     
-    ## Prompt for results plotting after computation
+    ## Prompt for module parameters
+    
+    ## Prompt for results plotting and saving after computation
 
     ## Launch compiled script
     
-    print(exp_name, sub_list, conditions, pois, window, avg_trials)
+    cmd = f'python -m modules.{obs_name}'
+
+    os.system(cmd)
+    
+    ## Launch compiled plotting
+
+    #if plot_opt == True:
+    
+    #    from plotting import simpleplot
+    
+    #print(exp_name, sub_list, conditions, pois, window, avg_trials)
 
     return
 

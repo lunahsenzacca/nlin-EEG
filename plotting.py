@@ -99,6 +99,8 @@ basic_instructions = {
                      'legend_loc': 'lower left',
                      'X_transform': None,
                      'save_here': False,
+                     'dpi': 200,
+                     'backend': 'inline'
                       }
 
 epochs_instructions = {
@@ -311,10 +313,15 @@ def make_instructions(info: dict, extra_instructions: dict):
 
     # Apply dimension multiplier
     resizable = ['markersize','linewidth','textsz']
-
+    instructions['figsize'] = [i*instructions['dim_m'] for i in instructions['figsize']]
+    
     for key in resizable:
 
         instructions[key] = instructions['dim_m']*instructions[key]
+    
+    # Set matplotlib graphical backend
+    import matplotlib
+    matplotlib.use(instructions['backend'])
 
     return instructions
 
@@ -840,9 +847,6 @@ def set_figures(figs: list, axes: list, l_dict: dict):
         
         fig.tight_layout()
 
-        show_figure(fig)
-
-
     return figs, axes
 
 def show_figures(figs: list, l_dict: dict, show = True, save = False):
@@ -860,7 +864,7 @@ def show_figures(figs: list, l_dict: dict, show = True, save = False):
 
             os.makedirs(sv_path, exist_ok = True)
 
-            fig.savefig(sv_path + str(l_dict['title_l'][i]) + '.png', dpi = 300)
+            fig.savefig(sv_path + str(l_dict['title_l'][i]) + '.png', dpi = l_dict['instructions']['dpi'])
 
         plt.close()
 
