@@ -40,6 +40,7 @@ exp_lb = {
     'noise': 'NZ'
 }
 obs_lb = {
+    'evokeds': 'EV',
     'epochs': 'EP',
     'spectrum': 'SP',
     'delay': 'TAU',
@@ -57,8 +58,8 @@ obs_lb = {
 def paths(exp_name: str, old = False):
 
     paths = {'data': d_path + exp_lb[exp_name] + '/',
-    'avg_data': path + 'evoked/avg/' + exp_lb[exp_name] + '/',
-    'trl_data': path + 'evoked/trl/' + exp_lb[exp_name] + '/',
+    'avg_data': path + 'toMNE/avg/' + exp_lb[exp_name] + '/',
+    'trl_data': path + 'toMNE/trl/' + exp_lb[exp_name] + '/',
     'subject': [d_path + exp_lb[exp_name] + '/','/'],
     'avg_results': r_path + 'avg/' + exp_lb[exp_name] + '/',
     'trl_results': r_path + 'trl/' + exp_lb[exp_name] + '/',
@@ -125,6 +126,17 @@ BM_conditions = {'con_all':'S__',
                  'uncon_right_self': 'S_13',
                  'uncon_right_other': 'S_14',}
 
+BM_conditions_IDs = {'S__': [1,2,3,4],
+                     'S_1': [11,12,13,14],
+                     'S__1': 1,
+                     'S__2': 2,
+                     'S__3': 3,
+                     'S__4': 4,
+                     'S_11': 11,
+                     'S_12': 12,
+                     'S_13': 13,
+                     'S_14': 14,}
+
 BM_paths = paths('bmasking', old = True)
 
 # Summarize in a dictionary
@@ -134,6 +146,7 @@ BM_info = {
     'subIDs': BM_subids,
     'pois': BM_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': BM_paths,
     'tau': 20,
     'window': [-0.2,0.7]
@@ -148,6 +161,7 @@ ZBM_info = {
     'subIDs': BM_subids,
     'pois': BM_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': ZBM_paths,
     'tau': 15,
     'window': [-0.2,0.7]
@@ -170,6 +184,7 @@ BMD_info = {
     'subIDs': BM_subids,
     'pois': BMD_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': BMD_paths,
     'tau': 35,
     'window': [-0.2,0.7]
@@ -184,6 +199,7 @@ ZBMD_info = {
     'subIDs': BM_subids,
     'pois': BMD_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': ZBMD_paths,
     'tau': 35,
     'window': [-0.2,0.7]
@@ -198,6 +214,7 @@ BMD_noICA_info = {
     'subIDs': BM_subids,
     'pois': BMD_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': BMD_noICA_paths,
     'tau': 35,
     'window': [-0.2,0.7]
@@ -212,6 +229,7 @@ ZBMD_noICA_info = {
     'subIDs': BM_subids,
     'pois': BMD_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': ZBMD_noICA_paths,
     'tau': 35,
     'window': [-0.2,0.7]
@@ -226,6 +244,7 @@ BMD_highICA_info = {
     'subIDs': BM_subids,
     'pois': BMD_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': BMD_highICA_paths,
     'tau': 35,
     'window': [-0.2,0.7]
@@ -240,6 +259,7 @@ ZBMD_highICA_info = {
     'subIDs': BM_subids,
     'pois': BMD_pois,
     'conditions': BM_conditions,
+    'conditions_IDs': BM_conditions_IDs,
     'directories': ZBMD_highICA_paths,
     'tau': 35,
     'window': [-0.2,0.7]

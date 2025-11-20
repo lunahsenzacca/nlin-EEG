@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 # Sub-wise function for evoked file loading
-from core import loadevokeds
+from core import loadMNE
 
 # Evoked-wise function for Spectrum Plotting (SP)
 from core import spectrum
@@ -21,7 +21,7 @@ from core import obs_path
 from core import get_tinfo
 
 # Utility functions for trial data averaging
-from core import flat_evokeds, collapse_trials
+from core import flatMNEs, collapse_trials
 
 #Our Very Big Dictionary
 from init import get_maind
@@ -128,17 +128,17 @@ variables = {
 ### COMPUTATION ###
 
 # Build evokeds loading iterable function
-def it_loadevokeds(subID: str):
+def it_loadMNE(subID: str):
 
-    evokeds = loadevokeds(subID = subID, exp_name = exp_name,
+    evokeds = loadMNE(subID = subID, exp_name = exp_name,
                           avg_trials = avg_trials, conditions = conditions)
 
     return evokeds
 
 # Build evokeds loading iterable function
-def it_loadevokeds_std(subID: str):
+def it_loadMNE_std(subID: str):
 
-    s_evokeds = loadevokeds(subID = subID, exp_name = exp_name,
+    s_evokeds = loadMNE(subID = subID, exp_name = exp_name,
                           avg_trials = avg_trials, conditions = conditions, std = True)
 
     return s_evokeds
@@ -151,7 +151,7 @@ def it_spectrum(evoked_l: list):
     return SP, E_SP
 
 # Build evoked loading multiprocessing function
-def mp_loadevokeds():
+def mp_loadMNE():
 
     print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
 
@@ -159,7 +159,7 @@ def mp_loadevokeds():
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list),#, chunksize = chunksize),
+        evokeds = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
@@ -168,13 +168,13 @@ def mp_loadevokeds():
                        )
 
     # Create flat iterable list of evokeds images
-    evoks_iters, points = flat_evokeds(evokeds = evokeds)
+    evoks_iters, points = flatMNEs(evokeds = evokeds)
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        s_evokeds = list(tqdm(p.imap(it_loadevokeds_std, sub_list),#, chunksize = chunksize),
+        s_evokeds = list(tqdm(p.imap(it_loadMNE_std, sub_list),#, chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
@@ -183,7 +183,7 @@ def mp_loadevokeds():
                        )
 
     # Create flat iterable list of evokeds images
-    s_evoks_iters, points = flat_evokeds(evokeds = s_evokeds)
+    s_evoks_iters, points = flatMNEs(evokeds = s_evokeds)
 
     evoks_iters = [[evoks_iters[i],s_evoks_iters[i]] for i in range(0,len(evoks_iters))]
 
@@ -250,7 +250,7 @@ if __name__ == '__main__':
 
     print('\n    FREQUENCY SPECTRUM PLOT SCRIPT')
 
-    evoks_iters, points = mp_loadevokeds()
+    evoks_iters, points = mp_loadMNE()
 
     mp_spectrum(evoks_iters = evoks_iters, points = points)
 

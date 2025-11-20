@@ -18,6 +18,7 @@ Install the required packages in a conda enviroment:
   -pip:
     -teaspoon
     -mne
+    -inquirer (Only for menu.py script)
 ```
 
 ### **Dataset info and observables**

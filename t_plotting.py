@@ -5,7 +5,7 @@ import matplotlib.cm as cm
 info = {
     'exp_name': 'bmasking_dense',
     'avg_trials': True,
-    'obs_name': 'spectrum',
+    'obs_name': 'evokeds',
     'clust_lb': 'CFPO',
     'calc_lb': 'FL',
 }
@@ -15,7 +15,7 @@ extra_instructions = {
     'reduce_legend': [2,3,4,5,6,7,8,9],
     'avg': 'sub',
     'grid': (1,1),
-    'ylim': (-15, -11),
+    'ylim': (-1e-5, 1e-5),
     #'legend_s': True,
     'alpha_m': 0.9,
     'colormap': cm.tab20c,

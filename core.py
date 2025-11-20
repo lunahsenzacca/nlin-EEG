@@ -152,9 +152,9 @@ def obs_data(obs_path: str, obs_name: str):
     with open(obs_path + 'variables.json', 'r') as f:
         variables = json.load(f)
 
-    if obs_name == 'epochs':
+    if obs_name == 'evokeds':
 
-        M = np.load(obs_path + 'epochs.npz')
+        M = np.load(obs_path + 'evokeds.npz')
         x = variables['t']
 
         X = [x]
@@ -303,24 +303,30 @@ def get_tinfo(exp_name: str, method: str, window = None):
     # List of ALL subject IDs
     sub_list = maind[exp_name]['subIDs']
 
-    # Load just one subject
-    example_path = path + sub_list[0] + '-ave.fif'
+    # List of of conditions
+    conditions = list(maind[exp_name]['conditions'].values())
     
-    evoked = mne.read_evokeds(example_path, verbose = False)
+    # Point to first subject and first condition
+    fpath = path + sub_list[0] + '_' + conditions[0]
+
+    if method == 'avg_data':
+        data = mne.read_evokeds(fpath + '-ave.fif', verbose = False)[0]
+    else:
+        data = mne.read_epochs(fpath + '-epo.fif', verbose = False)
     
     if type(window) == list:
-        evoked[0].crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        data.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-    times = evoked[0].times
+    times = data.times
 
-    info = evoked[0].info
+    info = data.info
 
     return info, times
 
 # Function for single subject conversion from raw data to list  for MNE 
 def raw_tolist(subID: str, exp_name: str):
 
-    # Navigate subject folder with raw .mat single trial files
+    # Navigate subject folder with raw single trial files or epochs files
     sub_folder = sub_path(subID, exp_name = exp_name)
     all_files = os.listdir(sub_folder)
 
@@ -335,6 +341,8 @@ def raw_tolist(subID: str, exp_name: str):
 
     # Loop over conditions
     data_list = []
+    info = []
+    events = []
     for cond in conditions:
 
         my_cond_files = [f for f in all_files if cond in f ]
@@ -342,8 +350,9 @@ def raw_tolist(subID: str, exp_name: str):
         # Get indexes of electrodes
         untup = name_toidx(ch_list, exp_name = exp_name)
 
-        all_trials = np.empty((0,len(untup),Tst))
-            
+        all_trials = np.empty((0,len(untup),Tst)) 
+
+        c_events = np.empty((0,3))
         for f in my_cond_files:
 
             path = sub_folder + f
@@ -355,7 +364,8 @@ def raw_tolist(subID: str, exp_name: str):
                 data = mat_data['F'][untup][np.newaxis]
 
                 # There is probably a way to fix this
-                info = None
+                info.append(None)
+                c_events = np.concatenate((c_events, np.array([None, None, None])[np.newaxis]), axis = 0)
 
             else:
 
@@ -363,13 +373,21 @@ def raw_tolist(subID: str, exp_name: str):
 
                 data = mne_data.get_data(picks = untup)
 
-                info = mne_data.info
+                info.append(mne_data.info)
+
+                c_events = np.concatenate((c_events, mne_data.events), axis = 0)
 
             all_trials = np.concatenate((all_trials, data), axis = 0)
 
         data_list.append(all_trials)
 
-    return data_list, info
+        sorts = np.argsort(c_events[:,0])
+
+        c_events = np.asarray([c_events[i] for i in sorts], dtype = np.int32)
+
+        events.append(c_events)
+
+    return data_list, info, events
 
 # Create info file for specific datased
 def toinfo(exp_name: str, info: mne.Info, ch_type = 'eeg'):
@@ -388,27 +406,28 @@ def toinfo(exp_name: str, info: mne.Info, ch_type = 'eeg'):
 
     return info
 
-# Function for subwise evoked conversion from list of arrays
-def list_toevoked(data_list: list, info: mne.Info, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, alt_sv: str):
+# Function for subwise MNE conversion from list of arrays
+def list_toMNE(data_list: list, info: mne.Info, events: tuple, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, sv_path: str):
     
     # There are different number of trials for each condition,
-    # so a simple ndarray is inconvenient. We use a list of ndarray instead
+    # so we cannot make one huge homogeneous ndarray, we have to save
+    # different files per subject and per condition
 
     # The list index cycles faster around the conditions and slower around the subject
 
-    # Create info file
+    # Create info objects
     info = toinfo(exp_name = exp_name, info = info)
 
-    conditions = list(maind[exp_name]['conditions'].values())
-    
     # Get loaded starting time
     tmin = maind[exp_name]['window'][0]
 
-    # Initialize evokeds list
-    evokeds = []
+    conditions = list(maind[exp_name]['conditions'].values())
 
     # Cycle around conditions
     for i, array in enumerate(data_list):
+
+        # File name for saving
+        fname = sv_path + subID + '_' + conditions[i]
 
         # 'array' structure
         # Axis 0 = Trials
@@ -447,87 +466,90 @@ def list_toevoked(data_list: list, info: mne.Info, subID: str, exp_name: str, av
             # Standard error not deviation!
             std = array_.std(axis = 0)/np.sqrt(n_trials)
 
-            ev = mne.EvokedArray(avg, info, nave = n_trials, comment = conditions[i], kind = 'average')
-            s_ev = mne.EvokedArray(std, info, nave = n_trials, comment = conditions[i], kind = 'standard_error')
+            ev = mne.EvokedArray(avg, info[i], nave = n_trials, tmin = tmin, kind = 'average', verbose = False)
+            s_ev = mne.EvokedArray(std, info[i], nave = n_trials, tmin = tmin, kind = 'standard_error', verbose = False)
+            
+            ev.save(fname + '-ave.fif', overwrite = True, verbose = False)
+            s_ev.save(fname + '-std-ave.fif', overwrite = True, verbose = False)
 
-            ev.shift_time(tmin)
-            s_ev.shift_time(tmin)
-
-            evokeds.append([ev, s_ev])
+            del ev, s_ev, array_
 
         # Or keep each individual trial
         else:
 
-            for trl in array_:
+            ep = mne.EpochsArray(array_, info[i], events = events[i], tmin = tmin, verbose = False)
 
-                ev = mne.EvokedArray(trl, info, nave = 1, comment = conditions[i])
+            ep.save(fname + '-epo.fif', overwrite = True, verbose = False)
 
-                ev.shift_time(tmin)
+            del ep, array_
 
-                evokeds.append([ev])
-
-    # This is meant for testing in notebooks
-    if alt_sv != None:
-
-        # Create directory
-        os.makedirs(alt_sv, exist_ok = True)
-
-        # Evoked file directory
-        sv_path = alt_sv + subID + '-ave.fif'
-
-        mne.write_evokeds(sv_path, evokeds, overwrite = True, verbose = False)
- 
-    return evokeds
+    return
 
 # Create evoked file straight from raw data
-def toevoked(subID: str, exp_name: str, avg_trials: bool, z_score = False, baseline = False, alt_sv = None):
+def toMNE(subID: str, exp_name: str, avg_trials: bool, sv_path: str, z_score = False, baseline = False):
 
     # Create data list
-    data_list, info = raw_tolist(subID = subID, exp_name = exp_name)
+    data_list, info, events = raw_tolist(subID = subID, exp_name = exp_name)
 
-    # Generate evokeds
-    evokeds = list_toevoked(data_list = data_list, info = info, subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, baseline = baseline, alt_sv = alt_sv)
+    # Generate evokeds or epochs and save them
+    list_toMNE(data_list = data_list, info = info, events = events, subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, baseline = baseline, sv_path = sv_path)
 
-    return evokeds
+    return
 
-# Load evoked files of a specific subject
-def loadevokeds(exp_name: str, avg_trials: bool, subID: str, conditions: list, std = False):
+# Load MNE files of a specific subject
+def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_std = False):
 
     # Select correct path for data
     if avg_trials == True:
+
         file_p = maind[exp_name]['directories']['avg_data']
+        
+        ext = '-ave.fif'
+        if with_std == True:
+            s_ext = '-std' + ext
+
     else:
+        if with_std == True:
+            raise ValueError('Asking for an Epoch Standard Error object, this makes no sense!')
+
         file_p = maind[exp_name]['directories']['trl_data']
 
-    if std == False:
+        ext = '-epo.fif'
 
-        evokeds = mne.read_evokeds(file_p + subID + '-ave.fif', verbose = False)
-
-    else:
-
-        evokeds = mne.read_evokeds(file_p + subID + '_std-ave.fif', verbose = False)
-
-    # Create evoked list
-    full_evokeds = []
+    # Create 
+    full_data = []
     for cond in conditions:
-
-        c_evokeds = []
-        for e in evokeds:
-            if e.comment == cond:
-                c_evokeds.append(e)
         
-        full_evokeds.append(c_evokeds)
+        path = file_p + subID + '_' + cond + ext
+        
+        if avg_trials == True:
 
-    return full_evokeds
+            data = mne.read_evokeds(path, verbose = False)[0]
 
-# Create one dimensional list with list of evoked objects per subject per condition
-def flat_evokeds(evokeds: list):
+            if with_std == True:
 
-    # Flatten evokeds nested list
-    flat = [x for xss in evokeds for xs in xss for x in xs]
+                s_path = file_p + subID + '_' + cond + s_ext
+
+                s_data = mne.read_evokeds(s_path, verbose = False)[0]
+
+                data = [data,s_data]
+        
+        else:
+
+            data = [mne.read_epochs(path, verbose = False)]
+
+        full_data.append(data)
+
+    return full_data
+
+# Create one dimensional list with list of MNE objects per subject per condition
+def flatMNEs(MNEs: list):
+
+    # Flatten MNEs nested list
+    flat = [x for xs in MNEs for x in xs]
 
     # Save separation coordinates for 'collapse_trials' functions
-    points = [[len(evokeds[i][j]) for j in range(0,len(evokeds[i]))] for i in range(0,len(evokeds))]
+    points = [[1 for j in range(0,len(MNEs[i]))] for i in range(0,len(MNEs))]
 
     return flat, points
 
@@ -1356,17 +1378,32 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
 
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
-# Get epoched 
-def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, window = None):
-
-    # Apply fraction to time series
-    if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-        s_evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+# Get evoked signals 
+def evokeds(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, window = None):
 
     # Initzialize result array
     EP = []
     E_EP = []
+    
+    TS, E_TS = extractTS(MNE = evoked, sMNE = s_evoked, ch_list = ch_list, window = window, clst_method = 'mean')
+
+    # Loop around pois time series
+    for ts, e_ts in zip(TS, E_TS):
+
+        EP.append(ts)
+        E_EP.append(e_ts)
+
+    return EP, E_EP
+
+# Extract time series from MNE data structure in a convenient manner
+def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, window = None, clst_method = 'append'):
+        
+    # Apply fraction to evoked objects
+    if type(window) == list:   
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+
+        if sMNE != None:
+            sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Check if we are clustering electrodes
     if type(ch_list) == tuple:
@@ -1376,33 +1413,30 @@ def epochs(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, window
         for cl in ch_list:
             
             # Get average time series of the cluster
-            ts = evoked.get_data(picks = cl)
-            e_ts = s_evoked.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl)
 
-            ts = ts.mean(axis = 0)
-            e_ts = e_ts.mean(axis = 0)
+            if sMNE != None:
+                e_ts = sMNE.get_data(picks = cl)
+            else:
+                e_ts = np.empty(ts.shape)
+            
+            if clst_method == 'mean':
+                ts = ts.mean(axis = 0)
+                e_ts = e_ts.mean(axis = 0)
             
             TS.append(ts)
             E_TS.append(e_ts)
 
-        # Loop around pois time series
-        for ts, e_ts in zip(TS, E_TS):
-
-            EP.append(ts)
-            E_EP.append(e_ts)
-
     else:
 
-        TS = evoked.get_data(picks = ch_list)
-        E_TS = s_evoked.get_data(picks = ch_list)
+        TS = MNE.get_data(picks = ch_list)
 
-        # Loop around pois time series
-        for ts, e_ts in zip(TS, E_TS):
+        if sMNE != None:
+            E_TS = sMNE.get_data(picks = ch_list)
+        else:
+            E_TS = np.empty(TS.shape)
 
-            EP.append(ts)
-            E_EP.append(e_ts)
-
-    return EP, E_EP
+    return TS, E_TS
 
 # Get epochs frequency spectrum
 def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, wf: float, window = None):
@@ -1416,6 +1450,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
     SP = []
     E_SP = []
 
+    n = evoked.nave
+
     # Check if we are clustering electrodes
     if type(ch_list) == tuple:
 
@@ -1426,8 +1462,6 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
             # Get average time series of the cluster
             ts = evoked.get_data(picks = cl)
             e_ts = s_evoked.get_data(picks = cl)
-
-            n = evoked.nave
 
             ts = ts.mean(axis = 0)
             e_ts = e_ts.mean(axis = 0)
@@ -1476,8 +1510,6 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
 
         TS = evoked.get_data(picks = ch_list)
         E_TS = s_evoked.get_data(picks = ch_list)
-
-        n = evoked.nave
 
         # Loop around pois time series
         for ts, e_ts in zip(TS, E_TS):
@@ -1606,7 +1638,7 @@ def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
 
                 tau.append(np.asarray(ctau).mean())
 
-            elif cmst_methd == 'max':
+            elif clst_methd == 'max':
 
                 tau.append(np.asarray(ctau).max())
 

@@ -54,7 +54,7 @@ clust_dict = {
               }
 
 obs_dict = {
-            'epochs': 'Epoch Time Series ',
+            'evokeds': 'Evoked Signal ',
             'spectrum': 'Epoch Frequency Spectrum ',
             'delay': '$\\tau$',
             'separation': 'Spacetime Separation ',
@@ -103,7 +103,7 @@ basic_instructions = {
                      'backend': 'inline'
                       }
 
-epochs_instructions = {
+evokeds_instructions = {
                         'figure': 'pois',
                         'multiplot': 'subjects',
                         'legend': 'conditions',
@@ -208,7 +208,7 @@ plateaus_instructions = {
                      }
 
 obs_instructions = {
-                    'epochs': epochs_instructions,
+                    'evokeds': evokeds_instructions,
                     'spectrum': spectrum_instructions,
                     'delay': delay_instructions,
                     'separation': separation_instructions,
@@ -364,7 +364,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         # Initzialize list for array rearranging
         rearrange = [0,0,0,0,0,0]
 
-    elif info['obs_name'] in ['epochs', 'spectrum', 'delay']: 
+    elif info['obs_name'] in ['evokeds', 'spectrum', 'delay']: 
 
         # Initzialize list of labels for data
         labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],[instructions['e_title']]]

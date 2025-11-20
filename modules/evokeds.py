@@ -9,10 +9,10 @@ import numpy as np
 from tqdm import tqdm
 
 # Sub-wise function for evoked file loading
-from core import loadevokeds
+from core import loadMNE
 
-# Evoked-wise function for Epochs Plotting (EP)
-from core import epochs
+# Evoked-wise function for Evokeds Plotting (EV)
+from core import evokeds
 
 # Utility function for observables directories
 from core import obs_path
@@ -20,8 +20,8 @@ from core import obs_path
 # Utility function for dimensional time and frequency domain of the experiment
 from core import get_tinfo
 
-# Utility functions for trial data averaging
-from core import flat_evokeds, collapse_trials
+# Utility functions for trial data management
+from core import flatMNEs, collapse_trials
 
 #Our Very Big Dictionary
 from init import get_maind
@@ -36,7 +36,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking_dense'
+exp_name = 'bmasking_dense'
 
 # Cluster label
 clust_lb = 'CFPO'
@@ -44,7 +44,7 @@ clust_lb = 'CFPO'
 # Calcultation parameters label
 calc_lb = 'FL'
 
-# Get data averaged across trials
+# DO NOT CHANGE TO FALSE
 avg_trials = True
 
 if avg_trials == True:
@@ -67,7 +67,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'epochs', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'evokeds', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[1:4]
@@ -110,83 +110,61 @@ variables = {
 ### COMPUTATION ###
 
 # Build evokeds loading iterable function
-def it_loadevokeds(subID: str):
+def it_loadMNE(subID: str):
 
-    evokeds = loadevokeds(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions)
+    MNEs = loadMNE(subID = subID, exp_name = exp_name,
+                          avg_trials = avg_trials, conditions = conditions, with_std = True)
 
-    return evokeds
+    return MNEs
 
-# Build evokeds loading iterable function
-def it_loadevokeds_std(subID: str):
+# Build Evoked Plotting iterable function
+def it_evokeds(evoked_l: list):
 
-    s_evokeds = loadevokeds(subID = subID, exp_name = exp_name,
-                            avg_trials = avg_trials, conditions = conditions, std = True)
-
-    return s_evokeds
-
-# Build Epochs Plotting iterable function
-def it_epochs(evoked_l: list):
-
-    EP, E_EP = epochs(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, window = window)
+    EP, E_EP = evokeds(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, window = window)
 
     return EP, E_EP
 
 # Build evoked loading multiprocessing function
-def mp_loadevokeds():
+def mp_loadMNE():
 
-    print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
+    print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list),#, chunksize = chunksize),
+        loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
                        leave = False,
                        dynamic_ncols = True)
                        )
+    
+    print(len(loaded),len(loaded[0]),len(loaded[0][0]))
+    # Create flat iterable list of MNE objects
+    MNEs_iters, points = flatMNEs(MNEs = loaded)
 
-    # Create flat iterable list of evokeds images
-    evoks_iters, points = flat_evokeds(evokeds = evokeds)
-
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        s_evokeds = list(tqdm(p.imap(it_loadevokeds_std, sub_list),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
-
-    # Create flat iterable list of evokeds images
-    s_evoks_iters, points = flat_evokeds(evokeds = s_evokeds)
-
-    evoks_iters = [[evoks_iters[i],s_evoks_iters[i]] for i in range(0,len(evoks_iters))]
+    print(len(MNEs_iters),len(MNEs_iters[0]))
 
     print('\nDONE!')
 
-    return evoks_iters, points
+    return MNEs_iters, points
 
-# Build Epochs Plotting multiprocessing function
-def mp_epochs(evoks_iters: list, points: list):
+# Build Evokeds Plotting multiprocessing function
+def mp_evokeds(MNEs_iters: list, points: list):
 
-    print('\nComputing Epoched Time Series over each trial')
+    print('\nExtracting Evoked Signal')
     print('\nSpawning ' + str(workers) + ' processes...')
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results_ = list(tqdm(p.imap(it_epochs, evoks_iters, chunksize = chunksize),
+        results_ = list(tqdm(p.imap(it_evokeds, MNEs_iters, chunksize = chunksize),
                             desc = 'Computing channels time series',
                             unit = 'trl',
-                            total = len(evoks_iters),
+                            total = len(MNEs_iters),
                             leave = True,
                             dynamic_ncols = True)
                         )
@@ -202,26 +180,26 @@ def mp_epochs(evoks_iters: list, points: list):
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),lenght]
 
-    EP = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.float64, e_results = e_results)
+    EV = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.float64, e_results = e_results)
 
     print('\nDONE!')
 
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'epochs.npz', *EP)
+    np.savez(sv_path + 'evokeds.npz', *EV)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
-    print('\nResults common shape: ', EP[0].shape[1:])
+    print('\nResults common shape: ', EV[0].shape[1:])
 
     if avg_trials == False:
 
         print('\nTrials\n')
     
         for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
-            print(f'{prod}: ', EP[c].shape[0])
+            print(f'{prod}: ', EV[c].shape[0])
 
     print('')
 
@@ -230,9 +208,9 @@ def mp_epochs(evoks_iters: list, points: list):
 # Launch script with 'python -m recurrence' in appropriate conda enviroment
 if __name__ == '__main__':
 
-    print('\n    EPOCHS PLOT SCRIPT')
+    print('\n    EVOKEDS PLOT SCRIPT')
 
-    evoks_iters, points = mp_loadevokeds()
+    MNEs_iters, points = mp_loadMNE()
 
-    mp_epochs(evoks_iters = evoks_iters, points = points)
+    mp_evokeds(MNEs_iters = MNEs_iters, points = points)
 
