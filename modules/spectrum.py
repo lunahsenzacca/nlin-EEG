@@ -71,7 +71,7 @@ window = info['window']
 
 ### PARAMETERS FOR FREQUENCY SPECTRUM COMPUTATION ###
 
-# Label for 
+# Label for parameter selection
 calc_lb = parameters['calc_lb']
 
 # Number of signals to generate for frequency domain error estimation
@@ -214,8 +214,6 @@ def mp_spectrum(evoks_iters: list, points: list):
     
         for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
             print(f'{prod}: ', SP[c].shape[0])
-
-    print('')
 
     return
 

@@ -36,6 +36,19 @@ avg = {
        'sub': 0
        }
 
+multi_grids = [(3,2),
+               (3,3),
+               (4,3),
+               (4,4),
+               (5,4),
+               (5,5),
+               (6,5),
+               (6,6),
+               (7,6),
+               (7,7),
+               (8,7),
+               (8,8)]
+
 obs_dict = {
             'evokeds': 'Evoked Signal ',
             'spectrum': 'Epoch Frequency Spectrum ',
@@ -74,13 +87,13 @@ basic_instructions = {
                      'markersize': 10,
                      'linewidth': 2,
                      'alpha_m': 0.6,
-                     'grid': (6,6),
+                     'grid': (1,1),
                      'showgrid': True,
                      'figsize': (16,11),
                      'textsz': 25,
                      'e_title': None,
                      'legend_s': True,
-                     'legend_loc': 'lower left',
+                     'legend_loc': 'lower right',
                      'X_transform': None,
                      'save_here': False,
                      'dpi': 200,
@@ -94,8 +107,8 @@ evokeds_instructions = {
                         'axis': 't',
                         'reduce_method': 'trivial',
                         'linewidth': 1,
-                        'alpha_m': 0.9,
-                        'ylabel': '$ERPs$',
+                        'alpha_m': 0.8,
+                        'ylabel': 'ERPs [V]',
                         'xlim': (None,None),
                         'ylim': (None,None),
                         'style': 'curve',
@@ -113,7 +126,7 @@ spectrum_instructions = {
                         'alpha_m': 0.8,
                         'ylabel': 'I(f) [dB?]',
                         'xlim': (0,None),
-                        'ylim': (None,None),
+                        'ylim': (-1.8,-1.1),
                         'style': 'curve',
                         'legend_t': 'Condition',
                         'colormap': cm.tab20c,
@@ -212,7 +225,7 @@ def simple_plot(info: dict, extra_instructions = None, show = True, save = False
 
     show_figures(figs = figs, l_dict = l_dict, show = show, save = save)
 
-    print('\nDone')
+    print('\nDone\n')
 
     return
 
@@ -509,8 +522,8 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
         o = obs.copy()
 
-        obs = np.log10(o)
-        e_obs = e_obs/(np.log(10)*o)
+        obs = np.log10(o)/10
+        e_obs = e_obs/(np.log(10)*o*10)
 
         del o
 
@@ -542,6 +555,15 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
     x_list = [[x,i] for i in x_]
 
+    # Set most appropriate grid for multiplot
+    g_idx = 0
+    for g in multi_grids:
+        if len(multi_idxs) <= g[0]*g[1]:
+            break
+        g_idx += 1
+
+    instructions['grid'] = multi_grids[g_idx]
+
     # Create dictionary for labels titles and reduced plotting
     l_dict = {
         'info': info,
@@ -571,7 +593,8 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
     # Ranges
     x_rng = X[1]
-
+    
+    # For the love of god put this in a function
     if x_rng is not None:
 
         obs = np.zeros([*OBS.shape[:-1],len(x_full)])
@@ -621,7 +644,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
     if len(multi_idxs) == 1 or grid[0]*grid[1] == 1:
         ax_iter = [axs]
     else:
-        ax_iter = axs.flat
+        ax_iter = axs.flat[:len(multi_idxs)]
 
     first = True
     for j, ax in zip(multi_idxs, ax_iter):
@@ -674,6 +697,10 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
                 second = False
 
         first = False
+
+    if len(multi_idxs) < len(axs.flat):
+        for ax in axs.flat[len(multi_idxs):]:
+            ax.axis('off')
 
     plt.close()
 
@@ -735,27 +762,6 @@ def make_figures(info: dict, instructions: dict, verbose: bool, figs = None, axe
     figs = figs_
     axes = axes_
 
-    '''
-    # Old single process method (Can get really slow)
-    # Initzialize new lists for figures and axes
-    figs_ = []
-    axes_ = []
-    for i in range(0, len(OBS)):
-    
-        # Initialize figures
-        fig, axis = plot_1dfunction(OBS = OBS[i], E_OBS = E_OBS[i], X = x_list[i], multi_idxs = l_dict['multi_idxs'], label = l_dict['legend_l'], label_idxs = l_dict['label_idxs'],
-                                    alpha_m = instructions['alpha_m'], grid = instructions['grid'], figsize = instructions['figsize'],
-                                    style = instructions['style'], colormap = instructions['colormap'],
-                                    markersize = instructions['markersize'], linewidth = instructions['linewidth'], legend_s = instructions['legend_s'],
-                                    fig = figs[i], axs = axes[i])
-
-        figs_.append(fig)
-        axes_.append(axis)
-
-    figs = figs_
-    axes = axes_
-    '''
-    
     return figs, axes, l_dict
 
 def set_figures(figs: list, axes: list, l_dict: dict):

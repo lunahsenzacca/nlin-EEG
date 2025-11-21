@@ -5,21 +5,21 @@ import matplotlib.cm as cm
 info = {
     'exp_name': 'bmasking_dense',
     'avg_trials': True,
-    'obs_name': 'evokeds',
-    'clust_lb': 'CFPO',
-    'calc_lb': 'FL',
+    'obs_name': 'spectrum',
+    'clst_lb': 'FT',
+    'calc_lb': None,
 }
 
 # Extra instructions dictionary for standard instructions override
 extra_instructions = {
-    'reduce_legend': [2,3,4,5,6,7,8,9],
-    'avg': 'sub',
-    'grid': (1,1),
+    'reduce_multi': [i for i in range(0,21)],
+    #'avg': 'sub',
+    #'grid': (1,1),
     #'ylim': (-1e-5, 1e-5),
     #'legend_s': True,
-    'alpha_m': 0.9,
-    'colormap': cm.tab20c,
-    'linewidth': 2,
+    #'alpha_m': 0.9,
+    #'colormap': cm.tab20c,
+    #'linewidth': 2,
     #'ylabel': 'ERPs $[V]$',
     }
 

@@ -1,4 +1,3 @@
-import matplotlib.cm as cm
 import json
 
 # Print data with wrapper
@@ -7,20 +6,7 @@ with open('./.tmp/last.json', 'r') as f:
 
     info = json.load(f)
 
-# Extra instructions dictionary for standard instructions override
-extra_instructions = {
-    #'reduce_legend': [2,3,4,5,6,7,8,9],
-    'avg': 'sub',
-    'grid': (1,1),
-    #'ylim': (-1e-5, 1e-5),
-    #'legend_s': True,
-    'alpha_m': 0.9,
-    #'colormap': cm.tab20c,
-    'linewidth': 2,
-    #'ylabel': 'ERPs $[V]$',
-    }
-
-#extra_instructions = None
+extra_instructions = {}
 
 # Import the wrapper 
 from plotting import simple_plot

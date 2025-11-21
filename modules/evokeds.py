@@ -28,84 +28,82 @@ from init import get_maind
 
 maind = get_maind()
 
+obs_name = 'evokeds'
+
 ### MULTIPROCESSING PARAMETERS ###
 
 workers = 10
 chunksize = 1
 
-### SCRIPT PARAMETERS ###
+### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
+
+with open('./.tmp/last.json', 'r') as f:
+
+    info = json.load(f)
+
+with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
+
+    parameters = json.load(f)
+
+### EXPERIMENT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking_dense'
+exp_name = info['exp_name']
 
 # Cluster label
-clust_lb = 'CFPO'
+clst_lb = info['clst_lb']
 
-# Calcultation parameters label
-calc_lb = 'FL'
+# Averaging method
+avg_trials = info['avg_trials']
 
-# DO NOT CHANGE TO FALSE
-avg_trials = True
+# Subject IDs
+sub_list = info['sub_list']
+
+# Conditions
+conditions = info['conditions']
+
+# Channels
+ch_list = info['ch_list']
+
+# Time window
+window = info['window']
+
+### PARAMETERS FOR EVOKED COMPUTATION ###
+
+# Label for parameter selection
+calc_lb = parameters['calc_lb']
+
+# Check if we are clustering electrodes
+if type(ch_list) == tuple:
+    clst = True
+else:
+    clst = False
+
+# Load frequency domain informations and get freqencies array
+_, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
+
+# Dictionary for computation variables
+variables = {   
+                'window' : window,
+                'clustered' : clst,
+                'subjects' : sub_list,
+                'conditions' : conditions,
+                'pois' : ch_list,
+                't': list(times)
+            }
+
+### DATA PATHS ###
 
 if avg_trials == True:
     method = 'avg_data'
 else:
     method = 'trl_data'
 
-### LOAD DATASET DIRECTORIES AND INFOS ###
-
-# Evoked folder paths
+# Processed data
 path = maind[exp_name]['directories'][method]
 
-# List of ALL subject IDs
-sub_list = maind[exp_name]['subIDs']
-
-# List of ALL conditions
-conditions = list(maind[exp_name]['conditions'].values())
-
-# List of ALL electrodes
-ch_list = maind[exp_name]['pois']
-
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'evokeds', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
-
-### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[1:4]
-#ch_list = ch_list[0:2]
-
-# Only averaged conditions
-#conditions = conditions[:2]
-
-# Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3'],['PO4'],['Oz'],['Fp1', 'Fp2', 'Fpz'],['PO3', 'PO4', 'Oz'],['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']
-
-# Crazy stupid all electrodes average
-#ch_list =  ch_list,
-###########################
-
-### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
-
-# Window of interest
-window = None
-
-# Check if we are clustering electrodes
-if type(ch_list) == tuple:
-    clt = True
-else:
-    clt = False
-
-# Get time coordinates
-_, times = get_tinfo(exp_name = exp_name, method = method, window = window)
-
-# Dictionary for computation variables
-variables = {   
-                'window' : window,
-                'clustered' : clt,
-                'subjects' : sub_list,
-                'conditions' : conditions,
-                'pois' : ch_list,
-                't': list(times)
-            }
+sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
 
 ### COMPUTATION ###
 
@@ -184,7 +182,7 @@ def mp_evokeds(MNEs_iters: list, points: list):
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'evokeds.npz', *EV)
+    np.savez(sv_path + f'{obs_name}.npz', *EV)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
