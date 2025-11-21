@@ -23,76 +23,62 @@ from core import get_tinfo
 # Utility functions for trial data averaging
 from core import flatMNEs, collapse_trials
 
-#Our Very Big Dictionary
+# Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
+
+# Module name
+obs_name = 'spectrum'
 
 ### MULTIPROCESSING PARAMETERS ###
 
 workers = 10
 chunksize = 1
 
-### SCRIPT PARAMETERS ###
+### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
+
+with open('./.tmp/last.json', 'r') as f:
+
+    info = json.load(f)
+
+with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
+
+    parameters = json.load(f)
+
+### EXPERIMENT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking_dense'
+exp_name = info['exp_name']
 
 # Cluster label
-clust_lb = 'CFPO'
+clust_lb = info['clst_lb']
 
-# Calcultation parameters label
-calc_lb = 'FL'
+# Averaging method
+avg_trials = info['avg_trials']
 
-# Get data averaged across trials
-avg_trials = True
+# Subject IDs
+sub_list = info['sub_list']
 
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
+# Conditions
+conditions = info['conditions']
 
-### LOAD DATASET DIRECTORIES AND INFOS ###
+# Channels
+ch_list = info['ch_list']
 
-# Evoked folder paths
-path = maind[exp_name]['directories'][method]
+# Time window
+window = info['window']
 
-# List of ALL subject IDs
-sub_list = maind[exp_name]['subIDs']
+### PARAMETERS FOR FREQUENCY SPECTRUM COMPUTATION ###
 
-# List of ALL conditions
-conditions = list(maind[exp_name]['conditions'].values())
-
-# List of ALL electrodes
-ch_list = maind[exp_name]['pois']
-
-# Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'spectrum', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
-
-### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[1:4]
-#ch_list = ch_list[0:2]
-
-# Only averaged conditions
-#conditions = conditions[:2]
-
-# Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3'],['PO4'],['Oz'],['Fp1', 'Fp2', 'Fpz'],['PO3', 'PO4', 'Oz'],['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']
-
-# Crazy stupid all electrodes average
-#ch_list =  ch_list,
-###########################
-
-### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
-
-# Window of interest
-window = None
+# Label for 
+calc_lb = parameters['calc_lb']
 
 # Number of signals to generate for frequency domain error estimation
-N = 100
+N = parameters['N']
 
 # Window factor for frequency space resolution
-wf = 3
+wf = parameters['wf']
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
@@ -101,7 +87,7 @@ else:
     clt = False
 
 # Load frequency domain informations and get freqencies array
-info, times = get_tinfo(exp_name = exp_name, method = method, window = window)
+info, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
 
 # Make a fake fft to get the same frequency binning
 f_ts = np.zeros(len(times))
@@ -125,23 +111,28 @@ variables = {
                 'window_factor': wf,
             }
 
+### DATA PATHS ###
+
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
+# Processed data
+path = maind[exp_name]['directories'][method]
+
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
+
 ### COMPUTATION ###
 
 # Build evokeds loading iterable function
 def it_loadMNE(subID: str):
 
-    evokeds = loadMNE(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions)
+    MNEs = loadMNE(subID = subID, exp_name = exp_name,
+                          avg_trials = avg_trials, conditions = conditions, with_std = True)
 
-    return evokeds
-
-# Build evokeds loading iterable function
-def it_loadMNE_std(subID: str):
-
-    s_evokeds = loadMNE(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions, std = True)
-
-    return s_evokeds
+    return MNEs
 
 # Build Spectrum Plotting iterable function
 def it_spectrum(evoked_l: list):
@@ -153,43 +144,26 @@ def it_spectrum(evoked_l: list):
 # Build evoked loading multiprocessing function
 def mp_loadMNE():
 
-    print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
+    print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evokeds = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
+        loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
                        leave = False,
                        dynamic_ncols = True)
                        )
-
-    # Create flat iterable list of evokeds images
-    evoks_iters, points = flatMNEs(evokeds = evokeds)
-
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        s_evokeds = list(tqdm(p.imap(it_loadMNE_std, sub_list),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
-
-    # Create flat iterable list of evokeds images
-    s_evoks_iters, points = flatMNEs(evokeds = s_evokeds)
-
-    evoks_iters = [[evoks_iters[i],s_evoks_iters[i]] for i in range(0,len(evoks_iters))]
+    
+    # Create flat iterable list of MNE objects
+    MNEs_iters, points = flatMNEs(MNEs = loaded)
 
     print('\nDONE!')
 
-    return evoks_iters, points
+    return MNEs_iters, points
 
 # Build spectrum Plotting multiprocessing function
 def mp_spectrum(evoks_iters: list, points: list):
@@ -227,7 +201,7 @@ def mp_spectrum(evoks_iters: list, points: list):
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'spectrum.npz', *SP)
+    np.savez(sv_path + f'{obs_name}.npz', *SP)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)

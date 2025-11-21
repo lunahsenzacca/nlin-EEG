@@ -295,7 +295,12 @@ def tuplinator(list: list):
     return tup
 
 # Get time array for a specific crop
-def get_tinfo(exp_name: str, method: str, window = None):
+def get_tinfo(exp_name: str, avg_trials: bool, window = None):
+
+    if avg_trials == True:
+        method = 'avg_data'
+    else:
+        method = 'trl_data'
 
     # Evoked folder paths
     path = maind[exp_name]['directories'][method]
@@ -553,6 +558,49 @@ def flatMNEs(MNEs: list):
 
     return flat, points
 
+# Extract time series from MNE data structure in a convenient manner
+def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, window = None, clst_method = 'append'):
+        
+    # Apply fraction to evoked objects
+    if type(window) == list:   
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+
+        if sMNE != None:
+            sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+
+    # Check if we are clustering electrodes
+    if type(ch_list) == tuple:
+
+        TS = []
+        E_TS = []
+        for cl in ch_list:
+            
+            # Get average time series of the cluster
+            ts = MNE.get_data(picks = cl)
+
+            if sMNE != None:
+                e_ts = sMNE.get_data(picks = cl)
+            else:
+                e_ts = np.empty(ts.shape)
+            
+            if clst_method == 'mean':
+                ts = ts.mean(axis = 0)
+                e_ts = e_ts.mean(axis = 0)
+            
+            TS.append(ts)
+            E_TS.append(e_ts)
+
+    else:
+
+        TS = MNE.get_data(picks = ch_list)
+
+        if sMNE != None:
+            E_TS = sMNE.get_data(picks = ch_list)
+        else:
+            E_TS = np.empty(TS.shape)
+
+    return TS, E_TS
+
 # Open results .npz file and convert it to nested list structure
 def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
@@ -588,6 +636,7 @@ def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
     return results, X, variables
 
+## I'M NPT USING THIS MAYBE
 # Create one dimensional list of results per subject per condition
 def flat_results(results: list):
 
@@ -1394,49 +1443,6 @@ def evokeds(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, windo
         E_EP.append(e_ts)
 
     return EP, E_EP
-
-# Extract time series from MNE data structure in a convenient manner
-def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, window = None, clst_method = 'append'):
-        
-    # Apply fraction to evoked objects
-    if type(window) == list:   
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-
-        if sMNE != None:
-            sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-
-    # Check if we are clustering electrodes
-    if type(ch_list) == tuple:
-
-        TS = []
-        E_TS = []
-        for cl in ch_list:
-            
-            # Get average time series of the cluster
-            ts = MNE.get_data(picks = cl)
-
-            if sMNE != None:
-                e_ts = sMNE.get_data(picks = cl)
-            else:
-                e_ts = np.empty(ts.shape)
-            
-            if clst_method == 'mean':
-                ts = ts.mean(axis = 0)
-                e_ts = e_ts.mean(axis = 0)
-            
-            TS.append(ts)
-            E_TS.append(e_ts)
-
-    else:
-
-        TS = MNE.get_data(picks = ch_list)
-
-        if sMNE != None:
-            E_TS = sMNE.get_data(picks = ch_list)
-        else:
-            E_TS = np.empty(TS.shape)
-
-    return TS, E_TS
 
 # Get epochs frequency spectrum
 def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, wf: float, window = None):

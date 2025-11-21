@@ -141,11 +141,8 @@ def mp_loadMNE():
                        dynamic_ncols = True)
                        )
     
-    print(len(loaded),len(loaded[0]),len(loaded[0][0]))
     # Create flat iterable list of MNE objects
     MNEs_iters, points = flatMNEs(MNEs = loaded)
-
-    print(len(MNEs_iters),len(MNEs_iters[0]))
 
     print('\nDONE!')
 

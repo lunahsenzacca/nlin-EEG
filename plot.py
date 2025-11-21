@@ -1,14 +1,11 @@
 import matplotlib.cm as cm
+import json
 
 # Print data with wrapper
 # Info dictionary about observable
-info = {
-    'exp_name': 'bmasking_dense',
-    'avg_trials': True,
-    'obs_name': 'evokeds',
-    'clust_lb': 'CFPO',
-    'calc_lb': 'FL',
-}
+with open('./.tmp/last.json', 'r') as f:
+
+    info = json.load(f)
 
 # Extra instructions dictionary for standard instructions override
 extra_instructions = {
@@ -29,7 +26,7 @@ extra_instructions = {
 from plotting import simple_plot
 
 # Output images in code repos (Who needs notebooks anyway)
-extra_instructions['save_here'] = True
+extra_instructions['save_here'] = False
 
 # Set kitcat browser backend
 extra_instructions['backend'] = 'kitcat'

@@ -2,6 +2,7 @@
 
 # For I/O of modules
 import os
+import json
 
 # Inquirer library for menu selection
 import inquirer as inq
@@ -110,6 +111,10 @@ def m_input(n: int, exp_name = 'noise'):
                      validate = window_validator(window)
             )
         ],[
+            inq.Text('clst_lb',
+                     message = 'Name this selection',
+            )
+        ],[
             inq.Confirm('avg_trials',
                      message = 'Average trial data before computation?',
                      default = True
@@ -121,10 +126,30 @@ def m_input(n: int, exp_name = 'noise'):
             )
         ]
     ]
-
     return input[n]
 
-# Script launch input with 
+# Choose to use defaults parameters for module printing it's values
+def d_input(obs_name: str):
+    
+    with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
+        d = json.load(f)
+
+    print('The selected module has the following default parameters:\n')
+
+    for key in d:
+        print(key, d[key])
+    print('')
+
+    input = [ 
+        inq.List('default_opt',
+                message = 'Select what to do',
+                choices = ['Use default','Type...']
+        )
+    ]
+
+    return input
+
+# Script launch input with overwriting check
 def l_input(exist: bool):
 
     warn = ''
@@ -221,15 +246,41 @@ def launch():
 
         window = maind[exp_name]['window']
 
+    clst_lb = inq.prompt(m_input(10, exp_name))['clst_lb']
+
+    print('')
+
     ## Prompt for trial averaging
 
-    avg_trials = inq.prompt(m_input(10, exp_name))['avg_trials']
+    avg_trials = inq.prompt(m_input(11, exp_name))['avg_trials']
+
+    ## Make a dictionary for this infos
+
+    info = {
+        'exp_name': exp_name,
+        'sub_list': sub_list,
+        'conditions': conditions,
+        'ch_list': pois,
+        'window': window,
+        'clst_lb': clst_lb,
+        'avg_trials': avg_trials,
+    }
 
     ## Prompt for module
 
-    obs_name = inq.prompt(m_input(11))['obs_name']
+    obs_name = inq.prompt(m_input(12))['obs_name']
 
-    '''ADD PARAMETER INPUTS'''
+    default_opt = inq.prompt(d_input(obs_name))['default_opt']
+
+    if 'Ty' in default_opt:
+        ## ADD PROMPTING FOR PARAMETERS
+        parameters = {}
+    else:
+        with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
+            parameters = json.load(f)
+
+    # Add calc_lb to info as wall
+    info['calc_lb'] = parameters['calc_lb']
 
     ## Prompt for compute or plot or both
     
@@ -239,9 +290,25 @@ def launch():
 
     mode_opt = inq.prompt(l_input(exist))['mode_opt']
 
+    plot_opt = False
+
     if 'quit' in mode_opt:
 
         return
+
+    elif 'plot' in mode_opt:
+
+        plot_opt = True
+
+    ## Dump options in .tmp folder for execution
+    
+    # Experiment info
+    with open('./.tmp/last.json', 'w') as f:
+        json.dump(info, f, indent = 2)
+
+    # Script parameters
+    with open(f'./.tmp/modules/{obs_name}.json', 'w') as f:
+        json.dump(parameters, f, indent = 2)
     
     cmd = f'python -m modules.{obs_name}'
 
@@ -249,12 +316,12 @@ def launch():
 
     ## Launch compiled plotting
 
-    #if plot_opt == True:
+    if plot_opt == True:
     
-    #    from plotting import simpleplot
-    
-    #print(exp_name, sub_list, conditions, pois, window, avg_trials)
+        cmd = 'python -m plot'
 
+        os.system(cmd)
+    
     return
 
 # Plot some results
@@ -313,6 +380,3 @@ if __name__ == '__main__':
         plot()
     elif 'Quic' in mode:
         os.system('python -m t_plotting')
-
-    print('\n')
-
