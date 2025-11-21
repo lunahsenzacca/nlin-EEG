@@ -1,5 +1,5 @@
 {
-  "calc_lb": "default",
+  "calc_lb": null,
   "N": 30,
   "wf": 3
 }

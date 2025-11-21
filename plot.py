@@ -9,13 +9,13 @@ with open('./.tmp/last.json', 'r') as f:
 
 # Extra instructions dictionary for standard instructions override
 extra_instructions = {
-    'reduce_legend': [2,3,4,5,6,7,8,9],
+    #'reduce_legend': [2,3,4,5,6,7,8,9],
     'avg': 'sub',
     'grid': (1,1),
     #'ylim': (-1e-5, 1e-5),
     #'legend_s': True,
     'alpha_m': 0.9,
-    'colormap': cm.tab20c,
+    #'colormap': cm.tab20c,
     'linewidth': 2,
     #'ylabel': 'ERPs $[V]$',
     }
@@ -39,7 +39,7 @@ extra_instructions['dim_m'] = 0.6
 def plot():
 
     # Launch the wrapper
-    simple_plot(info = info, extra_instructions = extra_instructions, show = True, save = True, verbose = True)
+    simple_plot(info = info, extra_instructions = extra_instructions, show = True, save = True, verbose = False)
 
     return
 

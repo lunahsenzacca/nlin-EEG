@@ -36,23 +36,6 @@ avg = {
        'sub': 0
        }
 
-clust_dict = {
-              'G': ['Global'],
-              'Gavg': ['Global Average'],
-              'mG': ['Global (m)'],
-              'mGavg': ['Global Average (m)'],
-              'Gsystem': ['Global System'],
-              'mGsystem': ['Global System (m)'],
-              'PO': ['Parieto-Occipital'],
-              'F': ['Fp1', 'Fp2', 'Fpz'],
-              'CFPO': ['Fp1','Fp2','Fpz','PO3','PO4','Oz'],
-              'znoisefree': ['Lorenz'],
-              'm_znoisefree': ['Lorenz (m)'],
-              'm_znoisefree_dense': ['Lorenz (m)'],
-              'gnoise': ['Gaussian Noise'],
-              'm_gnoise': ['Gaussian Noise (m)'],
-              }
-
 obs_dict = {
             'evokeds': 'Evoked Signal ',
             'spectrum': 'Epoch Frequency Spectrum ',
@@ -85,8 +68,9 @@ basic_instructions = {
                      'avg': 'none',
                      'dim_m': 1,
                      'reduce_multi': None,
-                     'reduce_legend': None,#[i for i in range(0,10)],
+                     'reduce_legend': None,
                      'colormap': cm.viridis,
+                     'isolines': None,
                      'markersize': 10,
                      'linewidth': 2,
                      'alpha_m': 0.6,
@@ -94,7 +78,7 @@ basic_instructions = {
                      'showgrid': True,
                      'figsize': (16,11),
                      'textsz': 25,
-                     'e_title': None,#'Lorenz Attractor (w/o embedding normalization)'
+                     'e_title': None,
                      'legend_s': True,
                      'legend_loc': 'lower left',
                      'X_transform': None,
@@ -107,24 +91,22 @@ evokeds_instructions = {
                         'figure': 'pois',
                         'multiplot': 'subjects',
                         'legend': 'conditions',
-                        'isolines': None,
                         'axis': 't',
                         'reduce_method': 'trivial',
                         'linewidth': 1,
-                        'alpha_m': 0.8,
+                        'alpha_m': 0.9,
                         'ylabel': '$ERPs$',
                         'xlim': (None,None),
                         'ylim': (None,None),
                         'style': 'curve',
                         'legend_t': 'Condition',
-                        'colormap': cm.Set2,
+                        'colormap': cm.tab20c,
                         }
 
 spectrum_instructions = {
                         'figure': 'pois',
                         'multiplot': 'subjects',
                         'legend': 'conditions',
-                        'isolines': None,
                         'axis': 'freqs',
                         'reduce_method': 'trivial',
                         'linewidth': 1,
@@ -134,14 +116,13 @@ spectrum_instructions = {
                         'ylim': (None,None),
                         'style': 'curve',
                         'legend_t': 'Condition',
-                        'colormap': cm.Set2,
+                        'colormap': cm.tab20c,
                         }
 
 delay_instructions = {
                         'figure': 'one',
                         'multiplot': 'subjects',
                         'legend': 'conditions',
-                        'isolines': None,
                         'axis': 'pois',
                         'reduce_method': 'trivial',
                         'ylabel': '$\\tau$',
@@ -169,7 +150,6 @@ correxp_instructions = {
                         'figure': 'pois',
                         'multiplot': 'subjects',
                         'legend': 'embeddings',
-                        'isolines': None,
                         'axis': 'log_r',
                         'reduce_method': 'product',
                         'ylabel': '$\\nu_{m}(r)$',
@@ -183,7 +163,6 @@ peaks_instructions = {
                       'figure': 'conditions',
                       'multiplot': 'subjects',  
                       'legend': 'embeddings',
-                      'isolines': None,
                       'axis': 'pois',
                       'reduce_method': 'trivial',
                       'ylabel': '$\\nu_{max}$',
@@ -294,10 +273,10 @@ def make_instructions(info: dict, extra_instructions: dict):
 
     # Get save path
     instructions['sv_path'] = pics_path(
-                        exp_name = info['exp_name'],
+                       exp_name = info['exp_name'],
                        avg_trials = info['avg_trials'],
                        obs_name = info['obs_name'],
-                       clust_lb = info['clust_lb'],
+                       clst_lb = info['clst_lb'],
                        calc_lb = info['calc_lb']
                        ) + instructions['avg'] + '/'
 
@@ -320,8 +299,8 @@ def make_instructions(info: dict, extra_instructions: dict):
         instructions[key] = instructions['dim_m']*instructions[key]
     
     # Set matplotlib graphical backend
-    import matplotlib
-    matplotlib.use(instructions['backend'])
+    from matplotlib import use
+    use(instructions['backend'])
 
     return instructions
 
@@ -332,7 +311,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
                        exp_name = info['exp_name'],
                        avg_trials = info['avg_trials'],
                        obs_name = info['obs_name'],
-                       clust_lb = info['clust_lb'],
+                       clst_lb = info['clst_lb'],
                        calc_lb = info['calc_lb']
                        )
 
@@ -385,9 +364,6 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
             X_results = X_results[:,:,0,0]
 
-    if clst == True:
-        labels[2] = clust_dict[info['clust_lb']]
-
     # Add extra dimension for consistency
     if len(OBS.shape) == 4:
 
@@ -409,10 +385,6 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
             
             OBS = np.expand_dims(OBS, axis = avg[instructions['avg']])
             E_OBS = np.expand_dims(E_OBS, axis = avg[instructions['avg']])
-
-    if instructions['avg'] == 'sub_pois' or 'pois':
-
-        labels[2] = clust_dict[info['clust_lb']]
 
     # Check figures
     if instructions['figure'] == 'pois':
@@ -829,7 +801,7 @@ def set_figures(figs: list, axes: list, l_dict: dict):
             ax.tick_params(axis = 'both', which = 'major', labelsize = instructions['textsz']/2)
             ax.tick_params(axis = 'both', which = 'minor', labelsize = instructions['textsz']/2)
     
-    print('\nLoading pictures...')
+    print('\nLoading pictures...\n')
     for i, fig in enumerate(figs):
         
         title = obs_dict[info['obs_name']] + str(l_dict['title_l'][i])

@@ -244,7 +244,7 @@ def launch():
 
     else:
 
-        window = maind[exp_name]['window']
+        window = None
 
     clst_lb = inq.prompt(m_input(10, exp_name))['clst_lb']
 
@@ -279,14 +279,18 @@ def launch():
         with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
             parameters = json.load(f)
 
-    # Add calc_lb to info as wall
+    # Add calc_lb and obs_name to info as wall
+    calc_lb = parameters['calc_lb']
     info['calc_lb'] = parameters['calc_lb']
+    info['obs_name'] = obs_name
 
     ## Prompt for compute or plot or both
     
     '''ADD OVERWRITE CHECK'''
+    
+    from core import obs_path
 
-    exist = False
+    exist = os.path.isdir(obs_path(exp_name = exp_name, obs_name = obs_name, clst_lb = clst_lb, avg_trials = avg_trials, calc_lb = calc_lb))
 
     mode_opt = inq.prompt(l_input(exist))['mode_opt']
 
@@ -296,11 +300,13 @@ def launch():
 
         return
 
-    elif 'plot' in mode_opt:
+    elif 'Plot' in mode_opt:
 
         plot_opt = True
 
     ## Dump options in .tmp folder for execution
+
+    os.makedirs('./.tmp/modules/', exist_ok = True)
     
     # Experiment info
     with open('./.tmp/last.json', 'w') as f:

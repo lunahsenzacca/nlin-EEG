@@ -109,7 +109,7 @@ def sub_path(subID: str, exp_name: str):
     return path
 
 # Get observable path
-def obs_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc_lb = None):
+def obs_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc_lb = None):
 
     if avg_trials == True:
         results = 'avg_results'
@@ -117,7 +117,7 @@ def obs_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc
         results = 'trl_results'
 
     # Create directory string
-    path = maind[exp_name]['directories'][results] + clust_lb + '/'+ maind['obs_lb'][obs_name] + '/'
+    path = maind[exp_name]['directories'][results] + clst_lb + '/'+ maind['obs_lb'][obs_name] + '/'
 
     if calc_lb != None:
 
@@ -126,7 +126,7 @@ def obs_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc
     return path
 
 # Get pics path
-def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, calc_lb = None):
+def pics_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc_lb = None):
 
     if avg_trials == True:
         pics = 'avg_pics'
@@ -134,7 +134,7 @@ def pics_path(exp_name: str, obs_name: str, clust_lb: str, avg_trials: bool, cal
         pics = 'trl_pics'
 
     # Create directory string
-    path = maind[exp_name]['directories'][pics] + clust_lb + '/'+ maind['obs_lb'][obs_name] + '/'
+    path = maind[exp_name]['directories'][pics] + clst_lb + '/'+ maind['obs_lb'][obs_name] + '/'
 
     if calc_lb != None:
 
@@ -248,7 +248,7 @@ def name_toidx(names: list| tuple, exp_name: str):
     # Get list of electrodes names
     ch_list = maind[exp_name]['pois']
 
-    # Check if we are clustering electrodes with tuples
+    # Check if we are clstering electrodes with tuples
     if type(names) ==  tuple:
 
         first = True
@@ -257,26 +257,26 @@ def name_toidx(names: list| tuple, exp_name: str):
             
             for sc in c:
                 
-                # Add new indexes to cluster list
+                # Add new indexes to clster list
                 part = part + [np.where(np.asarray(ch_list)==sc)[0][0]]
 
             part = part,
             if first == True:
 
-                ch_clust_idx = part
+                ch_clst_idx = part
                 first = False
 
             else:
-                ch_clust_idx = ch_clust_idx + part
+                ch_clst_idx = ch_clst_idx + part
                 
 
     else:
 
-        ch_clust_idx = []
+        ch_clst_idx = []
         for c in names:
-            ch_clust_idx.append(np.where(np.asarray(ch_list)==c)[0][0])
+            ch_clst_idx.append(np.where(np.asarray(ch_list)==c)[0][0])
 
-    return ch_clust_idx
+    return ch_clst_idx
 
 # Convert a list into a tuple of lists
 def tuplinator(list: list):
@@ -568,14 +568,14 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
         if sMNE != None:
             sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
 
         TS = []
         E_TS = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = MNE.get_data(picks = cl)
 
             if sMNE != None:
@@ -1458,14 +1458,14 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
 
     n = evoked.nave
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
 
         TS = []
         E_TS = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             e_ts = s_evoked.get_data(picks = cl)
 
@@ -1568,14 +1568,14 @@ def persistence(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, w
     PS = []
     E_PS = []
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
 
         TS = []
         E_TS = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             e_ts = s_evoked.get_data(picks = cl)
 
@@ -1615,14 +1615,14 @@ def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
     # Initzialize result array
     tau = []
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
         
 
         TS = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             #ts = ts.mean(axis = 0)
             
@@ -1683,14 +1683,14 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     # Initzialize result array
     CS = []
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
         
 
         TS = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             #ts = ts.mean(axis = 0)
             
@@ -1825,13 +1825,13 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
     # Initzialize result array
     RP = []
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
 
         TS = []
         for cl in ch_list:
 
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             #ts = ts.mean(axis = 0)
             
@@ -1969,14 +1969,14 @@ def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
     # Initzialize result array
     SP = []
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
         
 
         TS = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             #ts = ts.mean(axis = 0)
             
@@ -2094,14 +2094,14 @@ def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
     D2 = []
     e_D2 = []
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
         
 
         tl = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             ts = ts.mean(axis = 0)
             
@@ -2143,13 +2143,13 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
     # Error given by alghorithm, to use in case 'avg_trials == True'
     ly_e = []
 
-    # Check if we are clustering electrodes
+    # Check if we are clstering electrodes
     if type(ch_list) == tuple:
 
         tl = []
         for cl in ch_list:
             
-            # Get average time series of the cluster
+            # Get average time series of the clster
             ts = evoked.get_data(picks = cl)
             ts = ts.mean(axis = 0)
             
@@ -2230,9 +2230,9 @@ def correlation_exponent(sub_log_CS: list, n_points: int, log_r: list,
 ### RESULTS MANIPULATION FUNCTION ###
 
 # Select some electrodes from global results
-def reduceCS(exp_name: str, avg_trials: bool, ch_list: list, average = False, clust_lb = 'G', nlabel = None):
+def reduceCS(exp_name: str, avg_trials: bool, ch_list: list, average = False, clst_lb = 'G', nlabel = None):
 
-    path = obs_path(exp_name = exp_name, clust_lb = clust_lb, obs_name = 'corrsum', avg_trials = avg_trials)
+    path = obs_path(exp_name = exp_name, clst_lb = clst_lb, obs_name = 'corrsum', avg_trials = avg_trials)
 
     CS = np.load(path + 'corrsum.npy')
 
@@ -2241,9 +2241,9 @@ def reduceCS(exp_name: str, avg_trials: bool, ch_list: list, average = False, cl
 
     log_r = d['log_r']
 
-    # Check if we are loading a clusterd calculation [certaingly not suitable]
-    if d['clustered'] == True:
-        print('Clustered results are not valid for array reduction')
+    # Check if we are loading a clsterd calculation [certaingly not suitable]
+    if d['clstered'] == True:
+        print('clstered results are not valid for array reduction')
         return
 
     ch_idx = name_toidx(ch_list, exp_name = exp_name)
@@ -2266,7 +2266,7 @@ def reduceCS(exp_name: str, avg_trials: bool, ch_list: list, average = False, cl
         # Change dictionary entry for save    
         d['pois'] = ch_list
 
-        sv_path = obs_path(exp_name = exp_name, clust_lb = nlabel, obs_name = 'corrsum', avg_trials = avg_trials)
+        sv_path = obs_path(exp_name = exp_name, clst_lb = nlabel, obs_name = 'corrsum', avg_trials = avg_trials)
 
         os.makedirs(sv_path, exist_ok = True)
         np.save(sv_path + 'corrsum.npy', CSred)
@@ -2278,7 +2278,7 @@ def reduceCS(exp_name: str, avg_trials: bool, ch_list: list, average = False, cl
     return CSred, log_r
 
 #   Following functions do not implement mne data structure and each of them averages over trials
-#   They are useful because they can average over cluster of electrodes as well but this doesn't seem
+#   They are useful because they can average over clster of electrodes as well but this doesn't seem
 #   to be very easy to implement for mapping in mne.
 
 #   They are fast and can be useful later because some observables need more averaging

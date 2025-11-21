@@ -52,7 +52,7 @@ with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
 exp_name = info['exp_name']
 
 # Cluster label
-clust_lb = info['clst_lb']
+clst_lb = info['clst_lb']
 
 # Averaging method
 avg_trials = info['avg_trials']
@@ -82,9 +82,9 @@ wf = parameters['wf']
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
-    clt = True
+    clst = True
 else:
-    clt = False
+    clst = False
 
 # Load frequency domain informations and get freqencies array
 info, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
@@ -102,7 +102,7 @@ _, freqs = mne.time_frequency.psd_array_welch(f_ts,
 # Dictionary for computation variables
 variables = {   
                 'window' : window,
-                'clustered' : clt,
+                'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
@@ -122,7 +122,7 @@ else:
 path = maind[exp_name]['directories'][method]
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
+sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
 
 ### COMPUTATION ###
 
