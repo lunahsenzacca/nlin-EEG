@@ -4,6 +4,8 @@ Electrodes time series can be studied in a higher dimensional phase space throug
 
 This allows several metrics to be calculated, that can be helpful to characterize the dinamics of the signals under different stimuli or experimental conditions.
 
+For this reason this package(?) includes modules aimed at streamlining the computation and analysis of these observables. Nothing special about this, just a glorified wrapper.
+
 # **How to use**
 
 Install the required packages in a conda enviroment:
@@ -42,5 +44,7 @@ After data conversion standard [modules](/modules) can be launched by running th
     $cd <<nlin-EEG-FOLDER>>
     $python -m modules.<<MODULE_NAME>>
 ```
+### **Speaking of glorified wrappers...**
 
+The [menu.py](/menu.py) coupled with the appropriate graphical backend allows to launch modules and plot results, all within the CLI.
 
