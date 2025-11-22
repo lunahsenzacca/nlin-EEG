@@ -1,0 +1,13 @@
+{
+	"title": "$\\nu_{max}$",
+	"figure": "conditions",
+	"multiplot": "subjects",  
+	"legend": "embeddings",
+	"axis": "pois",
+	"reduce_method": "trivial",
+	"ylabel": "$\\nu_{max}$",
+	"xlim": [null,null],
+	"ylim": [1,4],
+	"style": "marker",
+      	"legend_t": "Embedding\ndimension"
+}

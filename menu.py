@@ -82,7 +82,7 @@ def m_input(n: int, exp_name = 'noise'):
             )
         ],[
             inq.Checkbox('conditions',
-                     message = 'Select conditions [->]',
+                     message = 'Select conditions [Right] and confirm [Enter]',
                      choices = conditions
             )
         ],[
@@ -92,7 +92,7 @@ def m_input(n: int, exp_name = 'noise'):
             )
         ],[
             inq.Checkbox('pois',
-                     message = 'Select channels [->]',
+                     message = 'Select channels [Right] and confirm [Enter]',
                      choices = pois
             )
         ],[
@@ -286,8 +286,6 @@ def launch():
 
     ## Prompt for compute or plot or both
     
-    '''ADD OVERWRITE CHECK'''
-    
     from core import obs_path
 
     exist = os.path.isdir(obs_path(exp_name = exp_name, obs_name = obs_name, clst_lb = clst_lb, avg_trials = avg_trials, calc_lb = calc_lb))
@@ -304,7 +302,7 @@ def launch():
 
         plot_opt = True
 
-    ## Dump options in .tmp folder for execution
+    ## Dump choices in .tmp folder for execution
 
     os.makedirs('./.tmp/modules/', exist_ok = True)
     
@@ -324,7 +322,7 @@ def launch():
 
     if plot_opt == True:
     
-        cmd = 'python -m plot'
+        cmd = 'python -m plotting.plot'
 
         os.system(cmd)
     

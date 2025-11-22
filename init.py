@@ -41,17 +41,17 @@ exp_lb = {
 }
 obs_lb = {
     'evokeds': 'EV',
-    'epochs': 'EP',
+#    'epochs': 'EP',
     'spectrum': 'SP',
     'delay': 'TAU',
-    'recurrence': 'RP',
+#    'recurrence': 'RP',
     'separation': 'SP',
-    'corrsum': 'CS',
+#    'corrsum': 'CS',
     'correxp': 'CE',
     'peaks': 'PK',
     'plateaus': 'PL',
-    'idim': 'D2',
-    'llyap': 'LLE'
+#    'idim': 'D2',
+#    'llyap': 'LLE'
 
 }
 

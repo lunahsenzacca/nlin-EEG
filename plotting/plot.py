@@ -9,7 +9,7 @@ with open('./.tmp/last.json', 'r') as f:
 extra_instructions = {}
 
 # Import the wrapper 
-from plotting import simple_plot
+from plotting.wrappers import simple_plot
 
 # Output images in code repos (Who needs notebooks anyway)
 extra_instructions['save_here'] = False
@@ -19,7 +19,7 @@ extra_instructions['backend'] = 'kitcat'
 
 # Set lower dpi and dimension multiplier for reasonable dimensions
 extra_instructions['dpi'] = 200
-extra_instructions['dim_m'] = 0.6
+extra_instructions['dim_m'] = 0.5
 
 # Define main wrapper
 def plot():

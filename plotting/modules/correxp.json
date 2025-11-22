@@ -1,0 +1,13 @@
+{
+	"title": "$\\nu_{m}(r)$",
+	"figure": "pois",
+	"multiplot": "subjects",
+	"legend": "embeddings",
+	"axis": "log_r",
+	"reduce_method": "product",
+	"ylabel": "$\\nu_{m}(r)$",
+	"xlim": [null,null],
+	"ylim": [0,6],
+	"style": "curve",
+	"legend_t": "Embedding\ndimension"
+}

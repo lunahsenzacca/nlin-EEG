@@ -1,0 +1,22 @@
+{
+     "avg": "none",
+     "dim_m": 1,
+     "reduce_multi": null,
+     "reduce_legend": null,
+     "colormap": "viridis",
+     "isolines": null,
+     "markersize": 10,
+     "linewidth": 2,
+     "alpha_m": 0.6,
+     "grid": [1,1],
+     "showgrid": true,
+     "figsize": [16,11],
+     "textsz": 30,
+     "e_title": null,
+     "legend_s": true,
+     "legend_loc": "lower right",
+     "X_transform": null,
+     "save_here": false,
+     "dpi": 200,
+     "backend": "inline"
+}

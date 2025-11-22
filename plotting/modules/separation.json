@@ -1,0 +1,14 @@
+{
+	"title": "Spacetime Separation",
+	"figure": "pois",
+	"multiplot": "subjects",
+	"legend": "embeddings",
+	"isolines": "percentiles",
+	"axis": "dt",
+	"reduce_method": "product",
+	"ylabel": "$S_{m}(\\Delta_{ij} | \\left|i - j\\right| = \\delta t)$",
+	"xlim": [0,null],
+	"ylim": [0,null],
+	"style": "curve",
+	"legend_t": "Embedding\ndimension"
+}

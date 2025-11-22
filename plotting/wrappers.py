@@ -11,8 +11,6 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-import matplotlib.cm as cm
-
 import matplotlib.colors as mcolors
 
 # Utility functions for directories and data
@@ -28,7 +26,7 @@ maind = get_maind()
 workers = 4
 chunksize = 1
 
-### Extra DICTIONARIES (Eventually put in init.py)###
+# Construction infos
 
 avg = {
        'pois': 2,
@@ -49,19 +47,6 @@ multi_grids = [(3,2),
                (8,7),
                (8,8)]
 
-obs_dict = {
-            'evokeds': 'Evoked Signal ',
-            'spectrum': 'Epoch Frequency Spectrum ',
-            'delay': '$\\tau$',
-            'separation': 'Spacetime Separation ',
-            'corrsum': '$C_{m}(r)$ ',
-            'correxp': '$\\nu_{m}(r)$ ',
-            'peaks': '$\\nu_{max}$ ',
-            'plateaus': '$\\nu_{p}$ ',
-            'idim': '$D_{2}(m)$ ',
-            'llyap': '$\\lambda(m)$ '
-            }
-
 cond_dict = {
              'S__': 'Conscious',
              'S_1': 'Unconscious',
@@ -77,142 +62,23 @@ cond_dict = {
              'noise': 'Noise'
              }
 
-basic_instructions = {
-                     'avg': 'none',
-                     'dim_m': 1,
-                     'reduce_multi': None,
-                     'reduce_legend': None,
-                     'colormap': cm.viridis,
-                     'isolines': None,
-                     'markersize': 10,
-                     'linewidth': 2,
-                     'alpha_m': 0.6,
-                     'grid': (1,1),
-                     'showgrid': True,
-                     'figsize': (16,11),
-                     'textsz': 25,
-                     'e_title': None,
-                     'legend_s': True,
-                     'legend_loc': 'lower right',
-                     'X_transform': None,
-                     'save_here': False,
-                     'dpi': 200,
-                     'backend': 'inline'
-                      }
 
-evokeds_instructions = {
-                        'figure': 'pois',
-                        'multiplot': 'subjects',
-                        'legend': 'conditions',
-                        'axis': 't',
-                        'reduce_method': 'trivial',
-                        'linewidth': 1,
-                        'alpha_m': 0.8,
-                        'ylabel': 'ERPs [V]',
-                        'xlim': (None,None),
-                        'ylim': (None,None),
-                        'style': 'curve',
-                        'legend_t': 'Condition',
-                        'colormap': cm.tab20c,
-                        }
+# Load basic instructions
+with open('./plotting/basic.json', 'r') as f:
+    basic_instructions = json.load(f)
 
-spectrum_instructions = {
-                        'figure': 'pois',
-                        'multiplot': 'subjects',
-                        'legend': 'conditions',
-                        'axis': 'freqs',
-                        'reduce_method': 'trivial',
-                        'linewidth': 1,
-                        'alpha_m': 0.8,
-                        'ylabel': 'I(f) [dB?]',
-                        'xlim': (0,None),
-                        'ylim': (-1.8,-1.1),
-                        'style': 'curve',
-                        'legend_t': 'Condition',
-                        'colormap': cm.tab20c,
-                        }
+# Load standard instructions for modules
+obs_instructions = {}
+for obs_name in maind['obs_lb'].keys():
 
-delay_instructions = {
-                        'figure': 'one',
-                        'multiplot': 'subjects',
-                        'legend': 'conditions',
-                        'axis': 'pois',
-                        'reduce_method': 'trivial',
-                        'ylabel': '$\\tau$',
-                        'xlim': (0,None),
-                        'ylim': (12,45),
-                        'style': 'marker',
-                        'legend_t': 'Condition',
-                        }
+    with open(f'./plotting/modules/{obs_name}.json', 'r') as f:
+        obs_instructions[obs_name] = json.load(f)
 
-separation_instructions = {
-                        'figure': 'pois',
-                        'multiplot': 'subjects',
-                        'legend': 'embeddings',
-                        'isolines': 'percentiles',
-                        'axis': 'dt',
-                        'reduce_method': 'product',
-                        'ylabel': '$S_{m}(\\Delta_{ij} | \\left|i - j\\right| = \\delta t)$',
-                        'xlim': (0,None),
-                        'ylim': (0,None),
-                        'style': 'curve',
-                        'legend_t': 'Embedding\ndimension',
-                        }
-
-correxp_instructions = {
-                        'figure': 'pois',
-                        'multiplot': 'subjects',
-                        'legend': 'embeddings',
-                        'axis': 'log_r',
-                        'reduce_method': 'product',
-                        'ylabel': '$\\nu_{m}(r)$',
-                        'xlim': (None,None),
-                        'ylim': (0,6),
-                        'style': 'curve',
-                        'legend_t': 'Embedding\ndimension',
-                        }
-
-peaks_instructions = {
-                      'figure': 'conditions',
-                      'multiplot': 'subjects',  
-                      'legend': 'embeddings',
-                      'axis': 'pois',
-                      'reduce_method': 'trivial',
-                      'ylabel': '$\\nu_{max}$',
-                      'xlim': (None,None),
-                      'ylim': (1,4),
-                      'style': 'marker',
-                      'legend_t': 'Embedding\ndimension',
-                     }
-
-plateaus_instructions = {
-                      'figure': 'conditions',
-                      'multiplot': 'subjects',  
-                      'legend': 'embeddings',
-                      'isolines': None,
-                      'axis': 'pois',
-                      'reduce_method': 'trivial',
-                      'ylabel': '$\\nu_{p}$',
-                      'xlim': (None,None),
-                      'ylim': (0.8,2.1),
-                      'style': 'marker',
-                      'legend_t': 'Embedding\ndimension',
-                     }
-
-obs_instructions = {
-                    'evokeds': evokeds_instructions,
-                    'spectrum': spectrum_instructions,
-                    'delay': delay_instructions,
-                    'separation': separation_instructions,
-                    'correxp': correxp_instructions,
-                    'peaks': peaks_instructions,
-                    'plateaus': plateaus_instructions
-                   }
 
 ### MAIN PLOTTING WRAPPER ###
 
 # Simple plotting of one observable
-def simple_plot(info: dict, extra_instructions = None, show = True, save = False, verbose = True):
+def simple_plot(info: dict, extra_instructions: dict, show = True, save = False, verbose = True):
 
     # Compile instructions dictionary
     instructions = make_instructions(info = info, extra_instructions = extra_instructions)
@@ -230,7 +96,7 @@ def simple_plot(info: dict, extra_instructions = None, show = True, save = False
     return
 
 # Layered plotting of two observables
-def double_plot(info_1: dict, info_2: dict, extra_instructions_1 = None, extra_instructions_2 = None, show = True, save = False, verbose = True):
+def double_plot(info_1: dict, info_2: dict, extra_instructions_1: dict, extra_instructions_2: dict, show = True, save = False, verbose = True):
 
     # Compile instructions dictionary
     instructions_1 = make_instructions(info = info_1, extra_instructions = extra_instructions_1)
@@ -315,6 +181,17 @@ def make_instructions(info: dict, extra_instructions: dict):
     from matplotlib import use
     use(instructions['backend'])
 
+    # Get matplotlib colormaps
+    if instructions['colormap'] == 'viridis':
+
+        from matplotlib.cm import viridis
+        instructions['colormap'] = viridis
+
+    elif instructions['colormap'] == 'tab20c':
+
+        from matplotlib.cm import tab20c
+        instructions['colormap'] = tab20c
+    
     return instructions
 
 def transform_data(info: dict, instructions: dict, verbose: bool):
@@ -653,9 +530,12 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
             if type(colormap) != str:
 
-                if cmap == cm.Set2 or cmap == cm.tab20c:
-
-                    color = cmap(i)
+                if cmap.name == 'tab20c':
+                    
+                    if len(label_idxs) > 2:
+                        color = cmap(i)
+                    else:
+                        color = cmap(4*i)
 
                 else:
 
@@ -782,6 +662,9 @@ def set_figures(figs: list, axes: list, l_dict: dict):
         
         for ax in ax_iter:
 
+            magnitude_text = ax.yaxis.get_offset_text()
+            magnitude_text.set_size(instructions['textsz']/2)
+
             ax.set_ylim(instructions['ylim'])
 
             if info['obs_name'] == 'spectrum':
@@ -810,11 +693,11 @@ def set_figures(figs: list, axes: list, l_dict: dict):
     print('\nLoading pictures...\n')
     for i, fig in enumerate(figs):
         
-        title = obs_dict[info['obs_name']] + str(l_dict['title_l'][i])
+        title = instructions['title'] + ' ' + str(l_dict['title_l'][i])
 
         if instructions['e_title'] != None:
 
-            title = obs_dict[info['obs_name']] + instructions['e_title']
+            title = instructions['title'] + ' ' + instructions['e_title']
 
         fig.suptitle(title, size = instructions['textsz'])
         fig.supxlabel(instructions['xlabel'], size = instructions['textsz'])
