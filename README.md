@@ -31,16 +31,16 @@ This is a central hub for every string and information which is dataset specific
 
 For use across different datasets the data has to be converted using the [toMNE.py](/makedata/toMNE.py) script.
 
-    -```mne.Evoked``` for data averaged across different trials or single trial data (e.g. resting state data);
-    -```mne.Epochs``` for multiple trial data
+-```mne.Evoked``` for data averaged across different trials or single trial data (e.g. resting state data);
+-```mne.Epochs``` for multiple trial data
 
 ### **Modules**
 
 After data conversion standard [modules](/modules) can be launched by running their main function in the appropriate conda enviroment.
 
 ```
-    cd <<nlin-EEG-FOLDER>>
-    python -m modules.<<MODULE_NAME>>
+    $cd <<nlin-EEG-FOLDER>>
+    $python -m modules.<<MODULE_NAME>>
 ```
 
 
