@@ -34,7 +34,10 @@ avg = {
        'sub': 0
        }
 
-multi_grids = [(3,2),
+multi_grids = [(1,1),
+               (2,1),
+               (2,2),
+               (3,2),
                (3,3),
                (4,3),
                (4,4),
@@ -348,7 +351,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
         x = X[0]
 
-        instructions['xlabel'] = '$t$'
+        instructions['xlabel'] = 't [s]'
 
     elif instructions['axis'] == 'freqs':
 
@@ -522,7 +525,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
         ax_iter = [axs]
     else:
         ax_iter = axs.flat[:len(multi_idxs)]
-
+    
     first = True
     for j, ax in zip(multi_idxs, ax_iter):
 
