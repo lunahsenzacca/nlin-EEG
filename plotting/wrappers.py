@@ -50,22 +50,6 @@ multi_grids = [(1,1),
                (8,7),
                (8,8)]
 
-cond_dict = {
-             'S__': 'Conscious',
-             'S_1': 'Unconscious',
-             'S__1': 'C L Self',
-             'S__2': 'C L Other',
-             'S__3': 'C R Self',
-             'S__4': 'C R Other',
-             'S_11': 'U L Self',
-             'S_12': 'U L Other',
-             'S_13': 'U R Self',
-             'S_14': 'U R Other',
-             'lorenz': 'Lorenz',
-             'noise': 'Noise'
-             }
-
-
 # Load basic instructions
 with open('./plotting/basic.json', 'r') as f:
     basic_instructions = json.load(f)
@@ -210,6 +194,9 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
     # Load results for specific observable
     results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = instructions['X_transform'])
+    
+    # Get mirrored condition dictionary
+    cond_dict = { key: value for value, key in maind[info['exp_name']]['conditions'].items()}
 
     if verbose == True:
         print(f'### {info['obs_name']}.py script parameters ###\n')
@@ -581,7 +568,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
 
         first = False
 
-    if len(multi_idxs) < len(axs.flat):
+    if len(multi_idxs) < len(ax_iter):
         for ax in axs.flat[len(multi_idxs):]:
             ax.axis('off')
 

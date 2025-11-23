@@ -38,7 +38,7 @@ chunksize = 1
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
 
-with open('./.tmp/last.json', 'r') as f:
+with open('./.tmp/info.json', 'r') as f:
 
     info = json.load(f)
 

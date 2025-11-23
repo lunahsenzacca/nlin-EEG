@@ -7,6 +7,10 @@ import json
 # Inquirer library for menu selection
 import inquirer as inq
 
+from pprint import pp
+
+from core import obs_path
+
 # Our Very Big Dictionary of standar options and paths
 from init import get_maind
 
@@ -50,22 +54,28 @@ def window_validator(window: list):
 
 ## Inputs
 
-## Module wide dataset inputs
-def m_input(n: int, exp_name = 'noise'):
-
-    sub_list = maind[exp_name]['subIDs']
-    conditions = maind[exp_name]['conditions'].keys()
-    pois = maind[exp_name]['pois']
-    window = maind[exp_name]['window']
+# exp_name input
+def i_exp_name():
 
     input = [
+        inq.List('exp_name',
+                 message = 'Choose a preprocessed dataset to work with',
+                 choices = [str(i) for i in maind['exp_lb'].keys()]
+                )
 
+    ]
+
+    exp_name = inq.prompt(input)['exp_name']
+
+    return exp_name
+
+# sub_list input
+def i_sub_list(exp_name: str):
+
+    sub_list = maind[exp_name]['subIDs']
+
+    inputs = [
         [
-            inq.List('exp_name',
-                     message = 'Choose a preprocessed dataset to work with',
-                     choices = [str(i) for i in maind['exp_lb'].keys()]
-            )
-        ],[
             inq.List('sub_opt',
                      message = 'Subjects to include',
                      choices = [f'All ({len(sub_list)} subjects)', 'Type...']
@@ -75,7 +85,27 @@ def m_input(n: int, exp_name = 'noise'):
                      message = 'Type desired subject IDs separated by \',\'',
                      validate = list_validator(sub_list)
             )
-        ],[
+        ]       
+    ]
+
+    sub_opt = inq.prompt(inputs[0])['sub_opt']
+
+    if 'All' not in sub_opt: 
+        
+        c = inq.prompt(inputs[1])['sub_list'].split(',')
+        sub_list = list(c)
+        print('')
+
+    return sub_list
+
+# conditions input
+def i_conditions(exp_name: str):
+
+    conditions = maind[exp_name]['conditions'].keys()
+
+
+    inputs = [
+        [
             inq.List('cond_opt',
                      message = 'Conditions to include',
                      choices = [f'All ({len(conditions)} conditions)', 'Check...']
@@ -85,22 +115,71 @@ def m_input(n: int, exp_name = 'noise'):
                      message = 'Select conditions [Right] and confirm [Enter]',
                      choices = conditions
             )
-        ],[
-            inq.List('pois_opt',
+        ]
+    ]
+
+    cond_opt = inq.prompt(inputs[0])['cond_opt']
+
+    if 'All' not in cond_opt:
+       
+        c = inq.prompt(inputs[1])['conditions']
+        conditions = [maind[exp_name]['conditions'][i] for i in c]
+
+    else:
+
+        conditions = list(maind[exp_name]['conditions'].values())
+
+    return conditions
+
+# ch_list input
+def i_ch_list(exp_name: str):
+    
+    pois = maind[exp_name]['pois']
+
+    inputs = [
+        [
+            inq.List('ch_list_opt',
                      message = 'Channels to include',
                      choices = [f'All ({len(pois)} channels)', 'Check...', 'Type...']
             )
         ],[
-            inq.Checkbox('pois',
+            inq.Checkbox('ch_list',
                      message = 'Select channels [Right] and confirm [Enter]',
                      choices = pois
             )
         ],[
-            inq.Text('pois',
+            inq.Text('ch_list',
                      message = 'Type desired Channels names separated by \',\'',
                      validate = list_validator(pois)
             )
-        ],[
+        ]
+    ]
+
+    pois_opt = inq.prompt(inputs[0])['ch_list_opt']
+
+    if 'Ch' in pois_opt:
+       
+        ch_list = inq.prompt(inputs[1])['ch_list']
+
+    elif 'Ty' in pois_opt:
+        
+        c = inq.prompt(inputs[2])['ch_list'].split(',')
+        ch_list = list(c)
+        print('')
+
+    else:
+
+        ch_list = pois
+
+    return ch_list
+
+# window input
+def i_window(exp_name: str):
+
+    window = maind[exp_name]['window']
+
+    inputs = [
+        [
             inq.List('window_opt',
                      message = 'Choose time window [t_min,t_max]s',
                      choices = [f'Full lenght: [{window[0]},{window[1]}]s','Type...']
@@ -110,47 +189,106 @@ def m_input(n: int, exp_name = 'noise'):
                      message = 'Type t_min and t_max [s] separated by \',\'',
                      validate = window_validator(window)
             )
-        ],[
-            inq.Text('clst_lb',
-                     message = 'Name this selection',
-            )
-        ],[
-            inq.Confirm('avg_trials',
-                     message = 'Average trial data before computation?',
-                     default = True
-            )
-        ],[
-            inq.List('obs_name',
-                     message = 'Choose module to run',
-                     choices = [str(i) for i in maind['obs_lb'].keys()]
-            )
         ]
     ]
-    return input[n]
 
-# Choose to use defaults parameters for module printing it's values
-def d_input(obs_name: str):
-    
-    with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
-        d = json.load(f)
+    window_opt = inq.prompt(inputs[0])['window_opt']
 
-    print('The selected module has the following default parameters:\n')
+    if 'Ty' in window_opt:
 
-    for key in d:
-        print(key, d[key])
-    print('')
+        c = inq.prompt(inputs[1])['window'].split(',')
+        window = [float(i) for i in c]
 
-    input = [ 
-        inq.List('default_opt',
-                message = 'Select what to do',
-                choices = ['Use default','Type...']
+    else:
+
+        window = None
+
+
+    return window
+
+# clst_lb input
+def i_clst_lb():
+
+    input = [
+        inq.Text('clst_lb',
+                 message = 'Name this selection',
         )
     ]
 
-    return input
+    clst_lb = inq.prompt(input)['clst_lb']
+    print('')
+
+    return clst_lb
+
+# avg_trials input
+def i_avg_trials():
+
+    input = [
+        inq.Confirm('avg_trials',
+                    message = 'Average trial data before computation?',
+                    default = True
+        )
+    ]
+
+    avg_trials = inq.prompt(input)['avg_trials']
+
+    return avg_trials
+
+# obs_name input
+def i_obs_name():
+
+    input = [
+        inq.List('obs_name',
+                 message = 'Choose module to run',
+                 choices = [str(i) for i in maind['obs_lb'].keys()]
+        )
+    ]
+
+    obs_name = inq.prompt(input)['obs_name']
+
+    return obs_name
+
+# Choose to use defaults parameters for module printing it's values
+def i_parameters(obs_name: str):
+    
+    with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
+        d = json.load(f)
+    
+    if len(d) > 1:
+        print('The selected module has the following default parameters:\n')
+
+        for key in list(d.keys())[1:]:
+            pp({key: d[key]}, width = 10)
+        print('')
+
+    else:
+
+        print('The selected module has no extra parameters, but you can still choose to type a calculation label\n')
+                                                                                                                        
+    input = [ 
+        inq.List('default_opt',
+                message = 'Select what to do',
+                choices = ['Use defaults','Type...']
+        )
+    ]
+
+    default_opt = inq.prompt(input)['default_opt']
+
+    if 'Ty' in default_opt:
+        ## ADD PROMPTING FOR PARAMETERS and calc_lb
+        parameters = {}
+    else:
+        with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
+            parameters = json.load(f)
+
+    return parameters
 
 # Script launch input with overwriting check
-def l_input(exist: bool):
+def i_launch_opt(info: dict):
+
+    path = obs_path(exp_name = info['exp_name'], obs_name = info['obs_name'], clst_lb = info['clst_lb'], avg_trials = info['avg_trials'], calc_lb = info['calc_lb'])
+
+    exist = os.path.isdir(path)
 
     warn = ''
 
@@ -159,22 +297,35 @@ def l_input(exist: bool):
         warn = ' (  Overwriting!)'
 
     input = [
-            inq.List('mode_opt',
-                    message = 'That\'s it! Pleace select one of the followings',
-                    choices = [f'Compute{warn}', f'Compute & Plot{warn}','Just quit...']
-            )
+        inq.List('mode_opt',
+                message = 'That\'s it! Pleace select one of the followings',
+                choices = [f'Compute{warn}', f'Compute & Plot{warn}','Just quit...']
+        )
     ]
 
-    return input
+    mode_opt = inq.prompt(input)['mode_opt']
+    
+    quit_opt = False
+    plot_opt = False
+
+    if 'quit' in mode_opt:
+
+        quit_opt = True
+
+    elif 'Plot' in mode_opt:
+
+        plot_opt = True
+
+    return plot_opt, quit_opt
 
 # Initial selection, choose between launch and plot
 def cmode():
 
     input = [
-            inq.List('mode',
-                    message = 'Hello! Please select a mode',
-                    choices = ['Launch module', 'Plot results','QuickPlt','Just quit...']
-            )
+        inq.List('mode',
+                message = 'Hello! Please select a mode',
+                choices = ['Launch module', 'Plot results','QuickPlt','Just quit...']
+        )
     ]
 
     mode = inq.prompt(input)['mode']
@@ -189,125 +340,57 @@ def launch():
     ## Prompt for preprocessed dataset name, subjects, conditions, channels and time window
 
     # Get exp_name
-    exp_name = inq.prompt(m_input(0))['exp_name']
-    
-    # Get sub_list
-    sub_opt = inq.prompt(m_input(1, exp_name ))['sub_opt']
+    exp_name = i_exp_name()
 
-    # Opt for a subset
-    if 'All' not in sub_opt:
-       
-        sub_list = list(inq.prompt(m_input(2, exp_name ))['sub_list'].split(','))
+    ## Prompt for subjects
+    sub_list = i_sub_list(exp_name)
 
-    else:
+    ## Prompt for conditions
+    conditions = i_conditions(exp_name)
 
-        sub_list = maind[exp_name]['subIDs']
+    ## Prompt for channels
+    ch_list = i_ch_list(exp_name)
 
-    # Get conditions
-    cond_opt = inq.prompt(m_input(3, exp_name ))['cond_opt']
+    ## Prompt for time window
+    window = i_window(exp_name)
 
-    # Opt for a subset
-    if 'All' not in cond_opt:
-       
-        c = inq.prompt(m_input(4, exp_name ))['conditions']
-        conditions = [maind[exp_name]['conditions'][i] for i in c]
-
-    else:
-
-        conditions = list(maind[exp_name]['conditions'].values())
-
-    # Get pois
-    pois_opt = inq.prompt(m_input(5, exp_name))['pois_opt']
-
-    # Opt for a subset
-    if 'Ch' in pois_opt:
-       
-        pois = inq.prompt(m_input(6, exp_name ))['pois']
-
-    elif 'Ty' in pois_opt:
-        
-        c = inq.prompt(m_input(7, exp_name ))['pois'].split(',')
-        pois = list(c)
-
-    else:
-
-        pois = maind[exp_name]['pois']
-
-    # Get time window
-    window_opt = inq.prompt(m_input(8, exp_name ))['window_opt']
-
-    # Opt for a another
-    if 'Ty' in window_opt:
-
-        c = inq.prompt(m_input(9, exp_name))['window'].split(',')
-        window = [float(i) for i in c]
-
-    else:
-
-        window = None
-
-    clst_lb = inq.prompt(m_input(10, exp_name))['clst_lb']
-
-    print('')
+    ## Prompt for cluster label
+    clst_lb = i_clst_lb()
 
     ## Prompt for trial averaging
+    avg_trials = i_avg_trials()
 
-    avg_trials = inq.prompt(m_input(11, exp_name))['avg_trials']
+    ## Prompt for module
+    obs_name = i_obs_name()
 
-    ## Make a dictionary for this infos
+    ## Prompt for module parameters
+    parameters = i_parameters(obs_name)
+    calc_lb = parameters['calc_lb']
+
+    ## Make a dictionary for run info
 
     info = {
         'exp_name': exp_name,
         'sub_list': sub_list,
         'conditions': conditions,
-        'ch_list': pois,
+        'ch_list': ch_list,
         'window': window,
         'clst_lb': clst_lb,
         'avg_trials': avg_trials,
+        'obs_name': obs_name,
+        'calc_lb': calc_lb
     }
 
-    ## Prompt for module
-
-    obs_name = inq.prompt(m_input(12))['obs_name']
-
-    default_opt = inq.prompt(d_input(obs_name))['default_opt']
-
-    if 'Ty' in default_opt:
-        ## ADD PROMPTING FOR PARAMETERS
-        parameters = {}
-    else:
-        with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
-            parameters = json.load(f)
-
-    # Add calc_lb and obs_name to info as wall
-    calc_lb = parameters['calc_lb']
-    info['calc_lb'] = parameters['calc_lb']
-    info['obs_name'] = obs_name
-
     ## Prompt for compute or plot or both
-    
-    from core import obs_path
-
-    exist = os.path.isdir(obs_path(exp_name = exp_name, obs_name = obs_name, clst_lb = clst_lb, avg_trials = avg_trials, calc_lb = calc_lb))
-
-    mode_opt = inq.prompt(l_input(exist))['mode_opt']
-
-    plot_opt = False
-
-    if 'quit' in mode_opt:
-
+    plot_opt, quit_opt = i_launch_opt(info)
+    if quit_opt == True:
         return
 
-    elif 'Plot' in mode_opt:
-
-        plot_opt = True
-
     ## Dump choices in .tmp folder for execution
-
     os.makedirs('./.tmp/modules/', exist_ok = True)
     
     # Experiment info
-    with open('./.tmp/last.json', 'w') as f:
+    with open('./.tmp/info.json', 'w') as f:
         json.dump(info, f, indent = 2)
 
     # Script parameters

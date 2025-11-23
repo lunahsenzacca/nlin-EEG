@@ -115,16 +115,16 @@ BM_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
            'P6', 'AF7', 'AF8', 'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8',
            'Fpz', 'CPz', 'POz', 'Oz']
 
-BM_conditions = {'con_all':'S__',
-                 'uncon_all':'S_1',
-                 'con_left_self': 'S__1',
-                 'con_left_other': 'S__2',
-                 'con_right_self': 'S__3',
-                 'con_right_other': 'S__4',
-                 'uncon_left_self': 'S_11',
-                 'uncon_left_other': 'S_12',
-                 'uncon_right_self': 'S_13',
-                 'uncon_right_other': 'S_14',}
+BM_conditions = {'Conscious':'S__',
+                 'Unconcious':'S_1',
+                 'C L Self': 'S__1',
+                 'C L Other': 'S__2',
+                 'C R Self': 'S__3',
+                 'C R Other': 'S__4',
+                 'U L Self': 'S_11',
+                 'U L Other': 'S_12',
+                 'U R Self': 'S_13',
+                 'U R other': 'S_14',}
 
 BM_conditions_IDs = {'S__': [1,2,3,4],
                      'S_1': [11,12,13,14],
@@ -282,7 +282,7 @@ FS_paths = paths('flash_suppression')
 FS_info = {
 }
 
-LZ_conditions = {'lorenz':'lorenz'}
+LZ_conditions = {'Lorenz':'lorenz'}
 
 LZ_paths = paths('lorenz')
 
@@ -296,7 +296,7 @@ LZ_info = {
     'window': [0,10] # Placeholder, there is actually a pysically reasonable value from this
 }
 
-NZ_conditions = {'noise':'noise'}
+NZ_conditions = {'Noise':'noise'}
 
 NZ_paths = paths('noise')
 
