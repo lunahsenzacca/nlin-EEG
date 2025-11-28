@@ -7,8 +7,8 @@ import numpy as np
 
 from tqdm import tqdm
 
-# Sub-wise function for evoked file loading
-from core import loadevokeds
+# Sub-wise function for MNE file loading
+from core import loadMNE
 
 # Evoked-wise function for Delay Time (TAU) computation
 from core import delay_time
@@ -17,92 +17,74 @@ from core import delay_time
 from core import obs_path
 
 # Utility functions for trial data averaging
-from core import flat_evokeds, collapse_trials
+from core import flatMNEs, collapse_trials
 
 #Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
 
+obs_name = 'delay'
+
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 14
+workers = 10
 chunksize = 1
 
-### SCRIPT PARAMETERS ###
+### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
+
+with open('./.tmp/info.json', 'r') as f:
+
+    info = json.load(f)
+
+with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
+
+    parameters = json.load(f)
+
+### EXPERIMENT PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking'
+exp_name = info['exp_name']
 
 # Cluster label
-clust_lb = 'CFPO'
+clst_lb = info['clst_lb']
 
-# Calcultation parameters label
-calc_lb = 'MI'
+# Averaging method
+avg_trials = info['avg_trials']
 
-# Get data averaged across trials
-avg_trials = True
+# Subject IDs
+sub_list = info['sub_list']
 
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
+# Conditions
+conditions = info['conditions']
 
-### LOAD DATASET DIRECTORIES AND INFOS ###
+# Channels
+ch_list = info['ch_list']
 
-# Evoked folder paths
-path = maind[exp_name]['directories'][method]
+# Time window
+window = info['window']
 
-# List of ALL subject IDs
-sub_list = maind[exp_name]['subIDs']
+### PARAMETERS FOR DELAY TIME COMPUTATION ###
 
-# List of ALL conditions
-conditions = list(maind[exp_name]['conditions'].values())
+# Choose delay time computation method
+tau_method = parameters['tau_method']
 
-# List of ALL electrodes
-ch_list = maind[exp_name]['pois']
+# Choose clustering method
+clst_method = parameters['clst_method']
 
-# Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'delay', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
-
-### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[1:3]
-#ch_list = ch_list[0:2]
-
-# Only averaged conditions
-conditions = conditions[0:2]
-
-# Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1'],['Fp2'],['Fpz'],['Fp1', 'Fp2', 'Fpz'],['O2'],['PO4'],['PO8'],['O2', 'PO4', 'PO8'],['Fp1', 'Fp2', 'Fpz','O2', 'PO4', 'PO8']
-
-# Crazy stupid all electrodes average
-#ch_list =  ch_list,
-###########################
-
-### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
-
-# Method for delay estimation
-method = 'mutual_information'
-#method = 'autocorrelation'
-
-# Method for handling delay time of clusters
-clst_method = 'avg'
-#clst_method = 'max'
-
-# Window of interest
-frc = [0., 1.]
+# Label for parameter selection
+calc_lb = parameters['calc_lb']
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
     clt = True
 else:
     clt = False
-    clst_method = None
 
 # Dictionary for computation variables
 variables = {   
-                'method': method,
-                'window' : frc,
+                'tau_method': tau_method,
+                'window' : window,
                 'clustered' : clt,
                 'clst_method': clst_method,
                 'subjects' : sub_list,
@@ -110,51 +92,65 @@ variables = {
                 'pois' : ch_list,
             }
 
+### DATA PATHS ###
+
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
+# Processed data
+path = maind[exp_name]['directories'][method]
+
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
+
 ### COMPUTATION ###
 
 # Build evokeds loading iterable function
-def it_loadevokeds(subID: str):
+def it_loadMNE(subID: str):
 
-    evokeds = loadevokeds(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions)
+    MNEs = loadMNE(subID = subID, exp_name = exp_name,
+                   avg_trials = avg_trials, conditions = conditions,
+                   with_std = False)
 
-    return evokeds
+    return MNEs
 
 # Build Correlation Sum iterable function
-def it_delay_time(evoked: mne.Evoked):
+def it_delay_time(MNE: list):
 
-    tau = delay_time(evoked = evoked, ch_list = ch_list,
-                          method = method, clst_method = clst_method,
-                          fraction = frc)
+    tau = delay_time(MNE = MNE[0], ch_list = ch_list,
+                          tau_method = tau_method, clst_method = clst_method,
+                          window = window)
 
-    return tau
+    return tau 
 
-# Build evoked loading multiprocessing function
-def mp_loadevokeds():
+# Build MNE loading multiprocessing function
+def mp_loadMNE():
 
-    print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
+    print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list),#, chunksize = chunksize),
+        loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
                        leave = False,
                        dynamic_ncols = True)
                        )
-
-    # Create flat iterable list of evokeds images
-    evoks_iters, points = flat_evokeds(evokeds = evokeds)
+    
+    # Create flat iterable list of MNE objects
+    MNEs_iters, points = flatMNEs(MNEs = loaded)
 
     print('\nDONE!')
 
-    return evoks_iters, points
+    return MNEs_iters, points
 
 # Build Correlation Sum multiprocessing function
-def mp_delay_time(evoks_iters: list, points: list):
+def mp_delay_time(MNEs_iters: list, points: list):
 
     print('\nComputing Delay Time over each trial')
     print('\nSpawning ' + str(workers) + ' processes...')
@@ -163,14 +159,14 @@ def mp_delay_time(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_delay_time, evoks_iters, chunksize = chunksize),
+        results = list(tqdm(p.imap(it_delay_time, MNEs_iters, chunksize = chunksize),
                             desc = 'Computing channels time series',
                             unit = 'trl',
-                            total = len(evoks_iters),
+                            total = len(MNEs_iters),
                             leave = True,
                             dynamic_ncols = True)
                         )
-
+    
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list)]
 
@@ -181,7 +177,7 @@ def mp_delay_time(evoks_iters: list, points: list):
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'delay.npz', *tau)
+    np.savez(sv_path + f'{obs_name}.npz', *tau)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
@@ -204,7 +200,7 @@ if __name__ == '__main__':
 
     print('\n    DELAY TIME SCRIPT')
 
-    evoks_iters, points = mp_loadevokeds()
+    MNEs_iters, points = mp_loadMNE()
 
-    mp_delay_time(evoks_iters = evoks_iters, points = points)
+    mp_delay_time(MNEs_iters = MNEs_iters, points = points)
 

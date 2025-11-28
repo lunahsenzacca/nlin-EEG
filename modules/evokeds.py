@@ -68,8 +68,6 @@ ch_list = info['ch_list']
 # Time window
 window = info['window']
 
-### PARAMETERS FOR EVOKED COMPUTATION ###
-
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
 
@@ -132,7 +130,7 @@ def mp_loadMNE():
     with Pool(workers) as p:
 
         loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
+                      desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
                        leave = False,
@@ -141,6 +139,8 @@ def mp_loadMNE():
     
     # Create flat iterable list of MNE objects
     MNEs_iters, points = flatMNEs(MNEs = loaded)
+
+    print(len(MNEs_iters),len(MNEs_iters[0]))
 
     print('\nDONE!')
 

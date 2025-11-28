@@ -521,7 +521,7 @@ def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_
 
         ext = '-epo.fif'
 
-    # Create 
+    # Create  
     full_data = []
     for cond in conditions:
         
@@ -538,6 +538,10 @@ def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_
                 s_data = mne.read_evokeds(s_path, verbose = False)[0]
 
                 data = [data,s_data]
+
+            else:
+
+                data = [data]
         
         else:
 
@@ -568,11 +572,13 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
         if sMNE != None:
             sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
+    
+    TS = []
+    E_TS = []
+
     # Check if we are clstering electrodes
     if type(ch_list) == tuple:
 
-        TS = []
-        E_TS = []
         for cl in ch_list:
             
             # Get average time series of the clster
@@ -586,18 +592,23 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
             if clst_method == 'mean':
                 ts = ts.mean(axis = 0)
                 e_ts = e_ts.mean(axis = 0)
-            
+
             TS.append(ts)
             E_TS.append(e_ts)
-
+            
     else:
 
-        TS = MNE.get_data(picks = ch_list)
+        for poi in ch_list:
 
-        if sMNE != None:
-            E_TS = sMNE.get_data(picks = ch_list)
-        else:
-            E_TS = np.empty(TS.shape)
+            ts = MNE.get_data(picks = poi)
+
+            if sMNE != None:
+                e_ts = sMNE.get_data(picks = poi)
+            else:
+                e_ts = np.empty(ts.shape)
+    
+            TS.append(ts)
+            E_TS.append(e_ts)
 
     return TS, E_TS
 
@@ -636,7 +647,6 @@ def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
     return results, X, variables
 
-## I'M NPT USING THIS MAYBE
 # Create one dimensional list of results per subject per condition
 def flat_results(results: list):
 
@@ -1605,65 +1615,36 @@ def persistence(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, w
     return EP, E_EP
 
 # Delay time of channel time series of a specific trial
-def delay_time(evoked: mne.Evoked, ch_list: list|tuple,
-               method: str, clst_method: str, window = None):
+def delay_time(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
+               tau_method: str, clst_method: str, window = None):
 
     # Apply fraction to time series
     if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     tau = []
 
-    # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
+    TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = clst_method)
+
+    # Loop around pois time series
+    for ts in TS:
+
+        ctau = []
+
+        for t in ts:
+
+            if tau_method == 'mutual_information':
+                ctau.append(MI_for_delay(t))
+                
+            elif tau_method == 'autocorrelation':
+                ctau.append(autoCorrelation_tau(t))
         
+        if clst_method == 'mean':
+            tau.append(np.asarray(ctau).mean())
 
-        TS = []
-        for cl in ch_list:
-            
-            # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
-            #ts = ts.mean(axis = 0)
-            
-            TS.append(ts)
-        
-        for ts in TS:
-
-            ctau = []
-
-            if method == 'mutual_information':
-
-                [ctau.append(MI_for_delay(t)) for t in ts]
-
-            elif method == 'autocorrelation':
-
-                [ctau.append(autoCorrelation_tau(t)) for t in ts]
-
-            if clst_method == 'avg':
-
-                tau.append(np.asarray(ctau).mean())
-
-            elif clst_methd == 'max':
-
-                tau.append(np.asarray(ctau).max())
-
-    else:
-
-        TS = evoked.get_data(picks = ch_list)
-    
-        # Loop around pois time series
-        for ts in TS:
-
-            if method == 'mutual_information':
-
-                tau.append(MI_for_delay(ts))
-
-            elif method == 'autocorrelation':
-
-                tau.append(autoCorrelation_tau(ts))
-
-    # Returns list in -C style ordering
+        elif clst_method == 'append':
+            tau.append(np.asarray(ctau).max())
 
     return tau
 

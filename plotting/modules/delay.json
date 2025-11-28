@@ -7,7 +7,7 @@
 	"reduce_method": "trivial",
 	"ylabel": "$\\tau$",
 	"xlim": [0,null],
-	"ylim": [12,45],
+	"ylim": [null,null],
 	"style": "marker",
 	"legend_t": "Condition"
 }
