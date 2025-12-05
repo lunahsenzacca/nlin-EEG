@@ -16,7 +16,6 @@ import json
 import warnings
 
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 
 from tqdm import tqdm
@@ -73,7 +72,7 @@ tuplinator       : Old helper function for functions that do not use mne
 
 raw_tolist       : Extract raw data and prepare it for MNE evoked file format conversion
                    by computing the input for list_toevoked;
-                   
+
 toinfo           : Create info file for MNE evoked file format;
 
 list_toevoked    : Converts multiple trial array to MNE evoked file format;
@@ -90,7 +89,7 @@ def cython_compile(verbose: bool, setup_name = 'cython_setup'):
 
     with warnings.catch_warnings():
 
-        if verbose == True:
+        if verbose is True:
 
             warnings.simplefilter('ignore')
 
@@ -754,7 +753,7 @@ def corrsum_getrecurrence(path: str):
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
-def dist(x: np.array, y: np.array, m_norm = False, m = None):
+def dist(x: np.ndarray, y: np.ndarray, m_norm = False, m = None):
 
     d = np.sqrt(np.sum((x - y)**2, axis = 0))
 
@@ -904,7 +903,7 @@ def zscore(trials_array: np.ndarray, keep_relations = False):
         s = s.mean()
 
         #Apply Z-Score
-        z_trials_array = (trials_array - m)/std
+        z_trials_array = (trials_array - m)/s
 
     # Full electrode-wise Z-Score
     else:
@@ -938,7 +937,7 @@ def zscore(trials_array: np.ndarray, keep_relations = False):
     return z_trials_array
 
 # 1-D function Adymensional Gaussian kernel convolution
-def gauss_kernel(function: np.array, x: np.array, scale: float, cutoff: int, order: int):
+def gauss_kernel(function: np.ndarray, x: np.ndarray, scale: float, cutoff: int, order: int):
 
     i_len = len(function)
 
@@ -973,7 +972,7 @@ def gauss_kernel(function: np.array, x: np.array, scale: float, cutoff: int, ord
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
 # Time-delay embedding of a single time series
-def td_embedding(ts: np.array, embedding: int, tau: int):
+def td_embedding(ts: np.ndarray, embedding: int, tau: int):
 
     min_len = (embedding - 1)*tau + 1
 
@@ -1047,7 +1046,7 @@ def corr_sum(dist_matrix: np.ndarray, r: float, w: int):
     return csum
 
 # Recurrence Plot for a single embeddend time series
-def rec_plt(dist_matrix: np.ndarray, r: float, T: int, m_norm = None, m = None):
+def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
 
     N = dist_matrix.shape[0]
 
@@ -1066,7 +1065,7 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int, m_norm = None, m = None):
     return rplt
 
 # Spacetime Separation Plot for a single embeddend time series
-def sep_plt(dist_matrix: np.ndarray, percentiles: np.array, T: int):
+def sep_plt(dist_matrix: np.ndarray, percentiles: np.ndarray, T: int):
 
     N = dist_matrix.shape[0]
 
@@ -1156,9 +1155,12 @@ def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, sca
     n_log_r = np.asarray(n_log_r)
 
     # Apply Gaussian filtering for smoothing
-    if gauss_filter == True:
-        ce = gauss_kernel(function = ce, x = n_log_r, scale = scale, cutoff = cutoff, order = 0)
-        e_ce = gauss_kernel(function = e_ce, x = n_log_r, scale = scale, cutoff = cutoff, order = 0)
+    if gauss_filter is True:
+        if cutoff or scale is None:
+            raise ValueError('\'cutoff\' and \'scale\' need to be set for kernel computation')
+        else:
+            ce = gauss_kernel(function = ce, x = n_log_r, scale = scale, cutoff = cutoff, order = 0)
+            e_ce = gauss_kernel(function = e_ce, x = n_log_r, scale = scale, cutoff = cutoff, order = 0)
 
     return  ce, e_ce
 
@@ -1238,7 +1240,7 @@ def rec_correlation_sum(trial_RP: list, log_r: list, w = None):
         for ab, ab_ in zip(abc, abc_):
             for a, a_ in zip(ab, ab_):
 
-                cs = corr_sum(recurrence_plot = a, w = w)
+                cs = rec_corr_sum(recurrence_plot = a, w = w)
 
                 CS.append(cs)
                 E_CS.append(0)
@@ -1328,69 +1330,6 @@ def ce_plateaus(trial_CE: np.ndarray, log_r: list, screen_points: int, resolutio
 
             rs = [bounds[0],bounds[1]]
 
-            '''
-            # Old method based on R-Value of fit :P VERY INEFFICIENT
-            for point in intervals:
-
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-
-                    fit = linregress(x = log_r[point[0]:point[1]], y = a2[point[0]:point[1]], nan_policy = 'omit')
-                
-                fits.append(fit)
-
-            slope = [fit.slope for fit in fits]
-
-            #rvalues = [abs(fit.rvalue) for fit in fits]
-            
-            t_idxs = []
-            for i, r in enumerate(slope):
-
-                if abs(r) < m_threshold:
-
-                    t_idxs.append(i)
-            
-            if len(t_idxs) != 0:
-
-                t_rvalues = [rvalues[i] for i in t_idxs]
-
-                best_idx = t_idxs[np.argmin(t_rvalues)]
-
-                bounds = intervals[best_idx]
-
-                mean = np.mean(a2[bounds[0]:bounds[1]])
-                std = np.std(a2[bounds[0]:bounds[1]])
-
-                rs = [bounds[0],bounds[1]]
-                
-
-                # Initzialize weighted likelyhood list
-                likelyhoods = []
-                for i in t_idxs:
-
-                    point = intervals[i]
-
-                    ml = np.sum((a2[point[0]:point[1]] - np.mean(a2[point[0]:point[1]]))/(a2_[point[0]:point[1]]**2))
-
-                    likelyhoods.append(ml)
-
-                best_idx = t_idxs[np.argmin(likelyhoods)]
-
-                bounds = intervals[best_idx]
-
-                mean = np.mean(a2[bounds[0]:bounds[1]])
-                std = np.std(a2[bounds[0]:bounds[1]])
-
-                rs = [bounds[0],bounds[1]]
-                
-            else:
-
-                mean = np.nan
-                std = np.nan
-
-                rs = [np.nan,np.nan]
-            
-            '''
             P.append(mean)
             Pe.append(std)
             Pr.append(rs)
@@ -1455,18 +1394,18 @@ def evokeds(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, windo
     return EP, E_EP
 
 # Get epochs frequency spectrum
-def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: int, wf: float, window = None):
+def spectrum(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, N: int, wf: float, window = None):
 
     # Apply fraction to time series
     if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-        s_evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        s_MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     SP = []
     E_SP = []
 
-    n = evoked.nave
+    n = MNE.nave
 
     # Check if we are clstering electrodes
     if type(ch_list) == tuple:
@@ -1476,8 +1415,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
         for cl in ch_list:
             
             # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
-            e_ts = s_evoked.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl)
+            e_ts = s_MNE.get_data(picks = cl)
 
             ts = ts.mean(axis = 0)
             e_ts = e_ts.mean(axis = 0)
@@ -1486,11 +1425,11 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
             E_TS.append(e_ts)
 
         # Loop around pois time series
-        for ts, e_ts in zip(FT, E_FT):
+        for ts, e_ts in zip(TS, E_TS):
 
             psd, _ = mne.time_frequency.psd_array_welch(ts,
-            sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
-            fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+            sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
+            fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
             n_fft = int(len(ts)*wf),
             n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
             verbose = False)
@@ -1504,8 +1443,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
                     ts_r = np.random.normal(loc = ts, scale = e_ts*np.sqrt(n))
 
                     psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
-                    sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
-                    fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+                    sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
+                    fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
                     n_fft = int(len(ts)*wf),
                     n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
                     verbose = False)
@@ -1524,15 +1463,15 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
 
     else:
 
-        TS = evoked.get_data(picks = ch_list)
-        E_TS = s_evoked.get_data(picks = ch_list)
+        TS = MNE.get_data(picks = ch_list)
+        E_TS = s_MNE.get_data(picks = ch_list)
 
         # Loop around pois time series
         for ts, e_ts in zip(TS, E_TS):
 
             psd, _ = mne.time_frequency.psd_array_welch(ts,
-            sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
-            fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+            sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
+            fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
             n_fft = int(len(ts)*wf),
             n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
             verbose = False)
@@ -1546,8 +1485,8 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
                     ts_r = np.random.normal(loc = ts, scale = e_ts*np.sqrt(n))
 
                     psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
-                    sfreq = evoked.info['sfreq'],  # Sampling frequency from the evoked data
-                    fmin = evoked.info['highpass'], fmax = evoked.info['lowpass'],  # Focus on the filter range
+                    sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
+                    fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
                     n_fft = int(len(ts)*wf),
                     n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution) # Length of FFT (controls frequency resolution)
                     verbose = False)
@@ -1566,60 +1505,37 @@ def spectrum(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, N: i
 
     return SP, E_SP
 
-# Get persistance diagrams [WIP]
-def persistence(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, window = None):
+# Get persistance diagrams
+def persistence(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, max_pairs: int, window = None):
 
     # Apply fraction to time series
-    if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-        s_evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+    if window is list:
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-    # Initzialize result array
+    # Initzialize results array
+
     PS = []
-    E_PS = []
 
-    # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
+    TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'mean')
 
-        TS = []
-        E_TS = []
-        for cl in ch_list:
-            
-            # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
-            e_ts = s_evoked.get_data(picks = cl)
+    # Loop around pois time series
+    for ts in TS:
+        for t in ts:
 
-            ts = ts.mean(axis = 0)
-            e_ts = e_ts.mean(axis = 0)
-            
-            TS.append(ts)
-            E_TS.append(e_ts)
+            # Get informations peristence of peak and valleys
+            f1, f2, pairs  = Persistence0D(t)
+            nf1,nf2,npairs = Persistence0D(-t)
 
-        # Loop around pois time series
-        for ts, e_ts in zip(TS, E_TS):
+            print(type(pairs), len(pairs))
 
-            PS.append(ts)
-            E_PS.append(e_ts)
-
-    else:
-
-        TS = evoked.get_data(picks = ch_list)
-        E_TS = s_evoked.get_data(picks = ch_list)
-
-        # Loop around pois time series
-        for ts, e_ts in zip(TS, E_TS):
-
-            PS.append(ts)
-            E_PS.append(e_ts)
-
-    return EP, E_EP
+    return PS
 
 # Delay time of channel time series of a specific trial
 def delay_time(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
                tau_method: str, clst_method: str, window = None):
 
     # Apply fraction to time series
-    if type(window) == list:   
+    if window is list:
         MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
@@ -1636,10 +1552,10 @@ def delay_time(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
 
             if tau_method == 'mutual_information':
                 ctau.append(MI_for_delay(t))
-                
+
             elif tau_method == 'autocorrelation':
                 ctau.append(autoCorrelation_tau(t))
-        
+
         if clst_method == 'mean':
             tau.append(np.asarray(ctau).mean())
 

@@ -2,7 +2,6 @@
 import os
 import json
 import mne
-import warnings
 
 import numpy as np
 
@@ -135,9 +134,9 @@ def it_loadMNE(subID: str):
     return MNEs
 
 # Build Spectrum Plotting iterable function
-def it_spectrum(evoked_l: list):
+def it_spectrum(MNE_l: list):
 
-    SP, E_SP = spectrum(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, N = N, wf = wf, window = window)
+    SP, E_SP = spectrum(MNE = MNE_l[0], s_MNE = MNE_l[1], ch_list = ch_list, N = N, wf = wf, window = window)
 
     return SP, E_SP
 
@@ -165,8 +164,8 @@ def mp_loadMNE():
 
     return MNEs_iters, points
 
-# Build spectrum Plotting multiprocessing function
-def mp_spectrum(evoks_iters: list, points: list):
+# Build spectrum multiprocessing function
+def mp_spectrum(MNEs_iters: list, points: list):
 
     print('\nComputing Fourier Transform over each trial')
     print('\nSpawning ' + str(workers) + ' processes...')
@@ -175,10 +174,10 @@ def mp_spectrum(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results_ = list(tqdm(p.imap(it_spectrum, evoks_iters, chunksize = chunksize),
+        results_ = list(tqdm(p.imap(it_spectrum, MNEs_iters, chunksize = chunksize),
                             desc = 'Computing channels time series',
                             unit = 'trl',
-                            total = len(evoks_iters),
+                            total = len(MNEs_iters),
                             leave = True,
                             dynamic_ncols = True)
                         )
@@ -222,7 +221,7 @@ if __name__ == '__main__':
 
     print('\n    FREQUENCY SPECTRUM PLOT SCRIPT')
 
-    evoks_iters, points = mp_loadMNE()
+    MNEs_iters, points = mp_loadMNE()
 
-    mp_spectrum(evoks_iters = evoks_iters, points = points)
+    mp_spectrum(MNEs_iters = MNEs_iters, points = points)
 

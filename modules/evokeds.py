@@ -114,9 +114,9 @@ def it_loadMNE(subID: str):
     return MNEs
 
 # Build Evoked Plotting iterable function
-def it_evokeds(evoked_l: list):
+def it_evokeds(MNE_l: list):
 
-    EP, E_EP = evokeds(evoked = evoked_l[0], s_evoked = evoked_l[1], ch_list = ch_list, window = window)
+    EP, E_EP = evokeds(MNE = MNE_l[0], s_evoked = MNE_l[1], ch_list = ch_list, window = window)
 
     return EP, E_EP
 
