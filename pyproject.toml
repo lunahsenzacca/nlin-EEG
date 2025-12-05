@@ -1,0 +1,37 @@
+[project]
+name = "nlin-eeg"
+version = "0.0.1"
+description = "Some python modules for nonlinear EEG analysis."
+authors = [
+    {name = "lunahsenzacca",email = "elle.rutigliano@gmail.com"}
+]
+license = {text = "?"}
+readme = "README.md"
+requires-python = "=3.12.2"
+dependencies = [
+    "teaspoon (>=1.5.29,<2.0.0)",
+    "mne (>=1.11.0,<2.0.0)",
+    "numpy (>=2.3.5,<3.0.0)",
+    "pandas (>=2.3.3,<3.0.0)",
+    "matplotlib (>=3.10.7,<4.0.0)",
+    "scipy (>=1.16.3,<2.0.0)",
+    "cython (>=3.2.2,<4.0.0)",
+    "inquirer (>=3.4.1,<4.0.0)",
+    "kitcat (>=1.2.1,<2.0.0)",
+    "tqdm (>=4.67.1,<5.0.0)",
+    "ipython (>=9.8.0,<10.0.0)"
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel (>=7.1.0,<8.0.0)",
+    "neovim (>=0.3.1,<0.4.0)",
+    "pynvim (>=0.6.0,<0.7.0)",
+    "pyright (>=1.1.407,<2.0.0)",
+    "flake8 (>=7.3.0,<8.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

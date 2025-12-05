@@ -1,0 +1,21 @@
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+
+# poetry
+poetry.lock
+
+# pycache and compiled cython
+*.pyc
+*.so
+*.c
+*.o
+*.png
+.tmp
