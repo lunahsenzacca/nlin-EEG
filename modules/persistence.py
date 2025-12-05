@@ -109,17 +109,16 @@ sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_tr
 def it_loadMNE(subID: str):
 
     MNEs = loadMNE(subID = subID, exp_name = exp_name,
-                   avg_trials = avg_trials, conditions = conditions,
-                   with_std = True)
+                   avg_trials = avg_trials, conditions = conditions)
 
     return MNEs
 
 # Build persistance diagrams iterable function 
 def it_persistence(MNE_l: list):
 
-    PS = persistence(MNE = MNE_l[0], ch_list = ch_list, max_pairs = max_pairs, window = window)
+    PS, TPS = persistence(MNE = MNE_l[0], ch_list = ch_list, max_pairs = max_pairs, window = window)
 
-    return PS
+    return PS, TPS
 
 # Build evoked/epochs loading multiprocessing function
 def mp_loadMNE():
@@ -162,17 +161,21 @@ def mp_persistence(MNEs_iters: list, points: list):
                             leave = True,
                             dynamic_ncols = True)
                         )
-    results = []
-    e_results = []
+    resultsPS = []
+    resultsTPS = []
     for r in results_:
 
-        results.append(r[0])
-        e_results.append(r[1])
+        resultsPS.append(r[0])
+        resultsTPS.append(r[1])
+    
+    # Create homogeneous arrays for results
+    fshape = [len(sub_list),len(conditions),len(ch_list),max_pairs,4]
 
-    # Create homogeneous array averaging across trial results
-    fshape = [len(sub_list),len(conditions),len(ch_list)]
+    PS = collapse_trials(results = resultsPS, points = points, fshape = fshape, dtype = np.float64)
 
-    PS = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.float64, e_results = e_results)
+    fshape = [len(sub_list),len(conditions),len(ch_list),max_pairs,2]
+
+    TPS = collapse_trials(results = resultsTPS, points = points, fshape = fshape, dtype = np.int32)
 
     print('\nDONE!')
 
@@ -180,6 +183,7 @@ def mp_persistence(MNEs_iters: list, points: list):
     os.makedirs(sv_path, exist_ok = True)
 
     np.savez(sv_path + f'{obs_name}.npz', *PS)
+    np.savez(sv_path + f'{obs_name}_times.npz', *TPS)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)

@@ -591,7 +591,7 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
             if clst_method == 'mean':
                 ts = ts.mean(axis = 0)
                 e_ts = e_ts.mean(axis = 0)
-
+            ### ADD EPOCH FIX
             TS.append(ts)
             E_TS.append(e_ts)
             
@@ -605,7 +605,11 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
                 e_ts = sMNE.get_data(picks = poi)
             else:
                 e_ts = np.empty(ts.shape)
-    
+            
+            if len(ts.shape) > 2:
+                ts = ts[:,0]
+                e_ts = e_ts[:,0]
+
             TS.append(ts)
             E_TS.append(e_ts)
 
@@ -1515,6 +1519,7 @@ def persistence(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, max_pairs: 
     # Initzialize results array
 
     PS = []
+    TPS = []
 
     TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'mean')
 
@@ -1523,12 +1528,27 @@ def persistence(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, max_pairs: 
         for t in ts:
 
             # Get informations peristence of peak and valleys
-            f1, f2, pairs  = Persistence0D(t)
-            nf1,nf2,npairs = Persistence0D(-t)
+            t_birth, _, pairs = Persistence0D(t)
+            nt_birth,_,npairs = Persistence0D(-t)
 
-            print(type(pairs), len(pairs))
+            parr  = np.zeros((max_pairs,4), dtype = np.float64)
+            tarr  = np.zeros((max_pairs,2), dtype = np.int32)
 
-    return PS
+            for i in range(0,max_pairs):
+                
+                if i < (min(len(pairs),len(npairs))):
+                    parr[i,0:2] = pairs[-i-1]
+                    parr[i,2:4] = npairs[-i-1]
+
+                    tarr[i,0] = t_birth[-i-1]
+                    tarr[i,1] = nt_birth[-i-1]
+                else:
+                    break
+
+            PS.append(parr)
+            TPS.append(tarr)
+
+    return PS, TPS
 
 # Delay time of channel time series of a specific trial
 def delay_time(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
