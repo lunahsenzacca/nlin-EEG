@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 # Sub-wise function for evoked file loading
-from core import loadevokeds
+from core import loadMNE
 
 # Sub-wise function for Largest Lyapunov Exponent (LLE) computation
 from core import lyapunov
@@ -17,7 +17,7 @@ from core import lyapunov
 from core import obs_path
 
 # Utility functions for trial data averaging
-from core import flat_evokeds, collapse_trials
+from core import flatMNEs, collapse_trials
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -59,7 +59,7 @@ conditions = list(maind[exp_name]['conditions'].values())
 ch_list = maind[exp_name]['pois']
 
 # Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', clust_lb = lb, avg_trials = avg_trials)
+sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', clst_lb = lb, avg_trials = avg_trials)
 
 ### FOR QUICKER EXECUTION ###
 #sub_list = sub_list[0:1]
@@ -112,9 +112,9 @@ variables = {
 ### SCRIPT FOR COMPUTATION ###
 
 # Build evokeds loading iterable function
-def it_loadevokeds(subID: str):
+def it_loadMNE(subID: str):
 
-    evokeds = loadevokeds(subID = subID, exp_name = exp_name,
+    evokeds = loadMNE(subID = subID, exp_name = exp_name,
                           avg_trials = avg_trials, conditions = conditions)
 
     return evokeds
@@ -124,7 +124,7 @@ def it_lyapunov(evoked: mne.Evoked):
 
     ly, ly_e = lyapunov(evoked = evoked, ch_list = ch_list,
                         embeddings = embeddings, tau = tau,
-                        lenght = lenght, avT = avT, fraction = frc, verbose = True)
+                        lenght = lenght, avT = avT, window = window, verbose = True)
 
     return [ly, ly_e]
 
@@ -137,7 +137,7 @@ def mp_loadevokeds():
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list), #chunksize = chunksize),
+        MNEs = list(tqdm(p.imap(it_loadMNE, sub_list), #chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
@@ -145,7 +145,7 @@ def mp_loadevokeds():
                        )
 
     # Create flat iterable list of evokeds images
-    evoks_iters, points = flat_evokeds(evokeds = evokeds)
+    evoks_iters, points = flatMNEs(MNEs = MNEs)
 
     print('\nDONE!')
 
