@@ -27,48 +27,72 @@ from init import get_maind
 
 maind = get_maind()
 
+# Module name
+obs_name = 'correxp'
+
 ### MULTIPROCESSIN PARAMETERS ###
 
 workers = 10
 chunksize = 1
 
-### LOAD PARAMETERS ###
+### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
+
+with open('./.tmp/info.json', 'r') as f:
+
+    info = json.load(f)
+
+with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
+
+    parameters = json.load(f)
+
+### EXPERIMENT PARAMETERS ###
 
 # Dataset name
-exp_name = 'zbmasking_dense'
-
-# Get data averaged across trials
-avg_trials = True
+exp_name = info['exp_name']
 
 # Cluster label
-clust_lb = 'CFPO'
+clst_lb = info['clst_lb']
 
-# Calculation parameters label for load results
-calc_lb = '[m_dense_MI]w_80'
+# Averaging method
+avg_trials = info['avg_trials']
 
-# Calculation parameters label for saved results
-sv_calc_lb = '3nogauss'
+# Subject IDs
+sub_list = info['sub_list']
 
-# Make explicit reference to previus calculation parameters
-sv_calc_lb = '[' + calc_lb + ']' + sv_calc_lb
+# Conditions
+conditions = info['conditions']
 
-# Correlation Sum results directory
-path = obs_path(exp_name = exp_name, obs_name = 'corrsum', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
+# Channels
+ch_list = info['ch_list']
 
-# Correlation Exponent saved results directory
-sv_path = obs_path(exp_name = exp_name, obs_name = 'correxp', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = sv_calc_lb)
+# Time window
+window = info['window']
 
-### SCRIPT PARAMETERS ###
+### DATA PATHS ###
+
+# Label of Correlation Sum calculation
+load_calc_lb = parameters['load_calc_lb']
+
+# Label for parameter selection
+calc_lb = parameters['calc_lb']
+
+# Processed data
+path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = load_calc_lb)
+
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
+
+### PARAMETERS FOR FREQUENCY SPECTRUM COMPUTATION ###
 
 # Number of points in moving average for derivative computation
-n_points = 3
+n_points = parameters['n_points']
 
 # Apply gaussian filter to results for smoothing
-gauss_filter = False
+gauss_filter = parameters['gauss_filter']
 
 # Parameters of the gaussian filter
-scale = 0.01
-cutoff = 5
+scale = parameters['scale'] #0.01
+cutoff = parameters['cutoff'] #5
 
 if gauss_filter == False:
     scale = None
@@ -78,9 +102,7 @@ if gauss_filter == False:
 with open(path + 'variables.json', 'r') as f:
     variables = json.load(f)
 
-sub_list = variables['subjects']
-conditions = variables['conditions']
-ch_list = variables['pois']
+# Get available embeddings 
 embeddings = variables['embeddings']
 log_r = variables['log_r']
 

@@ -2,7 +2,7 @@
 
 {
   packages = with pkgs; [
-    gcc-unwrapped
+    gcc
     libz
   ];
   languages.python.enable = true;
