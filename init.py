@@ -14,7 +14,7 @@ The main method of the script saves the dictionary into a .json file
    #vvvvvvvvvvvvvv#
 
 # Main folder where data and results are stored
-path = '/home/lunis/Documents/nlin-EEG/'
+path = '~/EEG/Cargo/'
 
 # Data subfolder
 d_path = path + 'data/'
