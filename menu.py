@@ -324,7 +324,7 @@ def cmode():
     input = [
         inq.List('mode',
                 message = 'Hello! Please select a mode',
-                choices = ['Launch module', 'Plot results','QuickPlt','Just quit...']
+                choices = ['Launch module', 'Plot results','Relaunch last selection','Just quit...']
         )
     ]
 
@@ -385,6 +385,9 @@ def launch():
     plot_opt, quit_opt = i_launch_opt(info)
     if quit_opt == True:
         return
+
+    # Add plot opt to info for relaunch option
+    info['plot_opt'] = plot_opt
 
     ## Dump choices in .tmp folder for execution
     os.makedirs('./.tmp/modules/', exist_ok = True)
@@ -465,5 +468,18 @@ if __name__ == '__main__':
         launch()
     elif 'Plo' in mode:
         plot()
-    elif 'Quic' in mode:
-        os.system('python -m t_plotting')
+    elif 'Relau' in mode:
+        # Experiment info
+        with open('./.tmp/info.json', 'r') as f:
+            info = json.load(f)
+
+        cmd = f'python -m modules.{info['obs_name']}'
+
+        os.system(cmd)
+
+        ## Launch compiled plotting
+        if info['plot_opt'] == True:
+        
+            cmd = 'python -m plotting.plot'
+
+            os.system(cmd)

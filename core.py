@@ -1381,13 +1381,13 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
 # Get evoked signals 
-def evokeds(evoked: mne.Evoked, s_evoked: mne.Evoked, ch_list: list|tuple, window = None):
+def evokeds(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, window = None):
 
     # Initzialize result array
     EP = []
     E_EP = []
     
-    TS, E_TS = extractTS(MNE = evoked, sMNE = s_evoked, ch_list = ch_list, window = window, clst_method = 'mean')
+    TS, E_TS = extractTS(MNE = MNE, sMNE = s_MNE, ch_list = ch_list, window = window, clst_method = 'mean')
 
     # Loop around pois time series
     for ts, e_ts in zip(TS, E_TS):

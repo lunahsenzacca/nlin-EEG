@@ -34,10 +34,10 @@ sub_list = maind[exp_name]['subIDs']
 conditions = list(maind[exp_name]['conditions'].values())
 
 # Apply Z-Score
-z_score = True
+z_score = False
 
 # Apply whole trial baseline
-baseline = False
+baseline = True
 
 if z_score == True:
     sv_name = 'z' + exp_name

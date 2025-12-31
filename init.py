@@ -14,7 +14,7 @@ The main method of the script saves the dictionary into a .json file
    #vvvvvvvvvvvvvv#
 
 # Main folder where data and results are stored
-path = '~/EEG/Cargo/'
+path = '../Cargo/'
 
 # Data subfolder
 d_path = path + 'data/'
@@ -41,10 +41,10 @@ exp_lb = {
 }
 obs_lb = {
     'evokeds': 'EV',
-    #    'epochs': 'EP',
+#    'epochs': 'EP',
     'spectrum': 'SP',
     'delay': 'TAU',
-    'persistence': 'PS',
+#    'persistence': 'PS',
 #    'recurrence': 'RP',
     'separation': 'SP',
 #    'corrsum': 'CS',
