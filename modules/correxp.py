@@ -1,20 +1,16 @@
 # Usual suspects
 import os
 import json
-import warnings
 
 import numpy as np
 
 from tqdm import tqdm
 
-# Scipy function for linear regression
-from scipy.stats import linregress
+# Utility function for observables results path
+from core import obs_path
 
 # Utility function for corrsum.py results loading
 from core import correxp_getcorrsum
-
-# Utility function for observables directories and data
-from core import obs_path, obs_data
 
 # Sub-wise function for correlation exponent
 from core import correlation_exponent

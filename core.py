@@ -1585,7 +1585,7 @@ def delay_time(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
     return tau
 
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
-def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
+def correlation_sum(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
                     embeddings: list, tau: str|int, w: int, rvals: list, 
                     m_norm: bool, window = None, cython = False):
 
@@ -1595,7 +1595,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
     # Apply fraction to time series
     if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     CS = []
@@ -1608,7 +1608,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
         for cl in ch_list:
             
             # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl)
             #ts = ts.mean(axis = 0)
             
             TS.append(ts)
@@ -1676,7 +1676,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
 
     else:
 
-        TS = evoked.get_data(picks = ch_list)
+        TS = MNE.get_data(picks = ch_list)
     
         # Loop around pois time series
         for ts in TS:
@@ -1725,7 +1725,7 @@ def correlation_sum(evoked: mne.Evoked, ch_list: list|tuple,
     return CS
 
 # Recurrence Plot of channel time series of a specific trial
-def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
+def recurrence_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
                     embeddings: list, tau: str|int, rvals: list, 
                     m_norm: bool, window = None, cython = False):
 
@@ -1735,9 +1735,9 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
 
     # Apply fraction to time series
     if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-    T = len(evoked.times)
+    T = len(MNE.times)
 
     # Initzialize result array
     RP = []
@@ -1749,7 +1749,7 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
         for cl in ch_list:
 
             # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl)
             #ts = ts.mean(axis = 0)
             
             TS.append(ts)
@@ -1817,7 +1817,7 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
 
     else:
 
-        TS = evoked.get_data(picks = ch_list)
+        TS = MNE.get_data(picks = ch_list)
     
         # Loop around pois time series
         for ts in TS:
@@ -1867,7 +1867,7 @@ def recurrence_plot(evoked: mne.Evoked, ch_list: list|tuple,
     return RP
 
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
-def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
+def separation_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
                     embeddings: list, tau: str|int, percentiles: list,
                     m_norm: bool, window = None, cython = False):
 
@@ -1877,9 +1877,9 @@ def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
 
     # Apply fraction to time series
     if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-    T = len(evoked.times)
+    T = len(MNE.times)
 
     percentiles = np.asarray(percentiles, dtype = np.int8)
 
@@ -1894,7 +1894,7 @@ def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
         for cl in ch_list:
             
             # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl)
             #ts = ts.mean(axis = 0)
             
             TS.append(ts)
@@ -1956,7 +1956,7 @@ def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
 
     else:
 
-        TS = evoked.get_data(picks = ch_list)
+        TS = MNE.get_data(picks = ch_list)
     
         # Loop around pois time series
         for ts in TS:
@@ -1999,13 +1999,13 @@ def separation_plot(evoked: mne.Evoked, ch_list: list|tuple,
     return SP
 
 # Information dimension of channel time series of a specific trial
-def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
+def information_dimension(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
                           embeddings: list, tau: int, 
                           window = None):
 
     # Apply fraction to time series
     if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     D2 = []
@@ -2019,7 +2019,7 @@ def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
         for cl in ch_list:
             
             # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl)
             ts = ts.mean(axis = 0)
             
             tl.append(ts)
@@ -2028,7 +2028,7 @@ def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
 
     else:    
 
-        TS = evoked.get_data(picks = ch_list)
+        TS = MNE.get_data(picks = ch_list)
     
     # Loop around pois time series
     for ts in TS:
@@ -2044,16 +2044,16 @@ def information_dimension(evoked: mne.Evoked, ch_list: list|tuple,
     return D2, e_D2
 
 # Largest lyapunov exponent of channel time series
-def lyapunov(evoked: mne.Evoked, ch_list: list | tuple, 
+def lyapunov(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, 
              embeddings: list, tau: int, lenght: int, avT = None,
              window = None, verbose = False):
 
     # Get sampling frequency
-    sfreq = evoked.info['sfreq']
+    sfreq = MNE.info['sfreq']
 
     # Apply fraction to time series
     if type(window) == list:   
-        evoked.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result arrays
     ly = []
@@ -2067,7 +2067,7 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
         for cl in ch_list:
             
             # Get average time series of the clster
-            ts = evoked.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl)
             ts = ts.mean(axis = 0)
             
             tl.append(ts)
@@ -2076,7 +2076,7 @@ def lyapunov(evoked: mne.Evoked, ch_list: list | tuple,
 
     else:    
 
-        TS = evoked.get_data(picks = ch_list)
+        TS = MNE.get_data(picks = ch_list)
     
     # Loop around pois tim series
     for ts in TS:
