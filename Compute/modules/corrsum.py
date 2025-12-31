@@ -175,8 +175,10 @@ def mp_loadMNEs():
 # Build Correlation Sum multiprocessing function
 def mp_correlation_sum(MNEs_iters: list, points: list):
 
+    i_window = maind[exp_name]['window']
+
     # Get absolute complexity of the script and estimated completion time
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*np.log(len(r))*(((maind[exp_name]['T'])**2)*(window[1]-window[0])**2)
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*np.log(len(r))*(((maind[exp_name]['T'])**2)*(i_window[1]-i_window[0])**2)
 
     velocity = 26e-7
 

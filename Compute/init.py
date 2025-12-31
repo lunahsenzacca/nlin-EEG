@@ -47,7 +47,7 @@ obs_lb = {
 #    'persistence': 'PS',
 #    'recurrence': 'RP',
     'separation': 'SP',
-#    'corrsum': 'CS',
+    'corrsum': 'CS',
     'correxp': 'CE',
     'peaks': 'PK',
     'plateaus': 'PL',

@@ -7,7 +7,7 @@ authors = [
 ]
 license = {text = "?"}
 readme = "README.md"
-requires-python = "=3.12.2"
+requires-python = "==3.12.2"
 dependencies = [
     "teaspoon (>=1.5.29,<2.0.0)",
     "mne (>=1.11.0,<2.0.0)",

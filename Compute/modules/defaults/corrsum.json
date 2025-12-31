@@ -1,0 +1,8 @@
+{
+  "calc_lb": null,
+  "embeddings": [3,4,5,6],
+  "tau": "mutual_information",
+  "w": 0,
+  "log_span": [-2.5,1,150,10],
+  "m_norm": true
+}
