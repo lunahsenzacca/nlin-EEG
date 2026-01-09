@@ -1,13 +1,26 @@
 { pkgs, lib, config, inputs, ... }:
 
 {
+
+  env.GREET = ''
+    Let's try doing something today!
+  '';
+
+  scripts.hello.exec = ''
+    echo $GREET
+  '';
+
+  enterShell = ''
+    hello
+  '';
+
   packages = with pkgs; [
     gcc
     libz
-    python312Packages.qtpy
-    python312Packages.pyqt6
-    python312Packages.pyside6
-    python312Packages.pyqtgraph
+    python313Packages.qtpy
+    python313Packages.pyqt6
+    python313Packages.pyside6
+    python313Packages.pyqtgraph
   ];
   languages.python.enable = true;
   languages.python.version = "3.13";

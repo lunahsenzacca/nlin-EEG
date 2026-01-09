@@ -563,9 +563,9 @@ def flatMNEs(MNEs: list):
 
 # Extract time series from MNE data structure in a convenient manner
 def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, window = None, clst_method = 'append'):
-        
+
     # Apply fraction to evoked objects
-    if type(window) == list:   
+    if window is list:
         MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
         if sMNE != None:
@@ -591,10 +591,10 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
             if clst_method == 'mean':
                 ts = ts.mean(axis = 0)
                 e_ts = e_ts.mean(axis = 0)
-            ### ADD EPOCH FIX
+
             TS.append(ts)
             E_TS.append(e_ts)
-            
+
     else:
 
         for poi in ch_list:
