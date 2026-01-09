@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#echo 'Loaded some aliases'
+
+# Quick launch menu.py script
+alias menu='python -m menu'
+
+# Quick launch toMNE.py script
+alias convert='python -m makedata.toMNE'
+
+# Launch t.py in a ipython shell
+alias nb='ipython -i t.py'
+

@@ -12,6 +12,8 @@
 
   enterShell = ''
     hello
+    cd Compute
+    source .aliases
   '';
 
   packages = with pkgs; [
