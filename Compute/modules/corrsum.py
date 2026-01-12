@@ -216,7 +216,7 @@ def mp_correlation_sum(MNEs_iters: list, points: list):
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'corrsum.npz', *CS)
+    np.savez(sv_path + f'{obs_name}.npz', *CS)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)

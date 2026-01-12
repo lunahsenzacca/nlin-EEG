@@ -164,7 +164,7 @@ def mp_correlation_exponent():
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'correxp.npz', *CE)
+    np.savez(sv_path + f'{obs_name}.npz', *CE)
 
     variables['log_r'] = r_log_r
     variables['n_points'] = n_points

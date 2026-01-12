@@ -21,11 +21,18 @@ def list_validator(ilist: list):
 
     def validator(answers, current):
 
-        list_current = current.split(',')
-        
-        for element in list_current:
-            if element not in ilist:
-                raise inq.errors.ValidationError('', reason =f'{element} not in dataset!')
+        if '#' in current:
+            tuple_current = []
+            tuple_str = current.split('#')
+            for tuple in tuple_str:
+                tuple_current.append(tuple.split(','))
+        else:
+            tuple_current = [current.split(',')]
+
+        for list_current in tuple_current:
+            for element in list_current:
+                if element not in ilist:
+                    raise inq.errors.ValidationError('', reason =f'{element} not in dataset!')
 
         return True
 
@@ -132,15 +139,26 @@ def i_conditions(exp_name: str):
     return conditions
 
 # ch_list input
-def i_ch_list(exp_name: str):
-    
+def i_channels(exp_name: str):
+
     pois = maind[exp_name]['pois']
+
+    if os.path.isfile(path = './.tmp/clst.json') == True:
+
+        with open('./.tmp/clst.json', 'r') as f:
+            saved_clst = json.load(f)
+
+        opt = [f'All ({len(pois)} channels)', f'Saved Clusters ({len(saved_clst)})', 'Check...', 'Type...']
+
+    else:
+        saved_clst = {}
+        opt = [f'All ({len(pois)} channels)', 'Check...', 'Type...']
 
     inputs = [
         [
             inq.List('ch_list_opt',
                      message = 'Channels to include',
-                     choices = [f'All ({len(pois)} channels)', 'Check...', 'Type...']
+                     choices = opt
             )
         ],[
             inq.Checkbox('ch_list',
@@ -152,26 +170,64 @@ def i_ch_list(exp_name: str):
                      message = 'Type desired Channels names separated by \',\'',
                      validate = list_validator(pois)
             )
+        ],[
+            inq.List('clst_lb',
+                     message = 'Select one of the following',
+                     choices = saved_clst.keys,
+            )
+        ],[
+            inq.Text('clst_lb',
+                     message = 'Name this group',
+            )
+        ],[
+            inq.Confirm('ch_list_sv', 
+                     message = 'Save this cluster selection?',
+            )
         ]
     ]
 
     pois_opt = inq.prompt(inputs[0])['ch_list_opt']
 
     if 'Ch' in pois_opt:
-       
+
         ch_list = inq.prompt(inputs[1])['ch_list']
 
     elif 'Ty' in pois_opt:
-        
-        c = inq.prompt(inputs[2])['ch_list'].split(',')
-        ch_list = list(c)
+
+        ch_str = inq.prompt(inputs[2])['ch_list']
+
+        if '#' in ch_str:
+            ch_list = []
+            cl_str = ch_str.split('#')
+            for cl in cl_str:
+                ch_list.append(cl.split(','))
+        else:
+            ch_list = ch_str.split(',')
         print('')
+
+    elif 'Sav' in pois_opt:
+
+        clst_lb = inq.prompt(inputs[3])['clst_lb']
+        ch_list = saved_clst[clst_lb]
 
     else:
 
+        clst_lb = 'all'
         ch_list = pois
 
-    return ch_list
+    if ('Ch' or 'Ty') in pois_opt:
+
+        clst_lb = inq.prompt(inputs[4])['clst_lb']
+        ch_list_sv = inq.prompt(inputs[5])['ch_list_sv']
+
+        if ch_list_sv == True:
+
+            saved_clst[clst_lb] = ch_list
+
+            with open('./.tmp/clst.json', 'w') as f:
+                json.dump(saved_clst, f, indent = 2)
+
+    return ch_list, clst_lb
 
 # window input
 def i_window(exp_name: str):
@@ -206,20 +262,6 @@ def i_window(exp_name: str):
 
     return window
 
-# clst_lb input
-def i_clst_lb():
-
-    input = [
-        inq.Text('clst_lb',
-                 message = 'Name this selection',
-        )
-    ]
-
-    clst_lb = inq.prompt(input)['clst_lb']
-    print('')
-
-    return clst_lb
-
 # avg_trials input
 def i_avg_trials():
 
@@ -231,6 +273,7 @@ def i_avg_trials():
     ]
 
     avg_trials = inq.prompt(input)['avg_trials']
+    print('')
 
     return avg_trials
 
@@ -264,8 +307,8 @@ def i_parameters(obs_name: str):
     else:
 
         print('The selected module has no extra parameters, but you can still choose to type a calculation label\n')
-                                                                                                                        
-    input = [ 
+
+    input = [
         inq.List('default_opt',
                 message = 'Select what to do',
                 choices = ['Use defaults','Type...']
@@ -349,13 +392,10 @@ def launch():
     conditions = i_conditions(exp_name)
 
     ## Prompt for channels
-    ch_list = i_ch_list(exp_name)
+    ch_list, clst_lb = i_channels(exp_name)
 
     ## Prompt for time window
     window = i_window(exp_name)
-
-    ## Prompt for cluster label
-    clst_lb = i_clst_lb()
 
     ## Prompt for trial averaging
     avg_trials = i_avg_trials()

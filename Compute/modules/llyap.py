@@ -24,71 +24,45 @@ from init import get_maind
 
 maind = get_maind()
 
+# Module name
+obs_name = 'llyap'
+
 ### MULTIPROCESSIN PARAMETERS ###
 workers = 16
 chunksize = 1
 
-### SCRIPT PARAMETERS ###
+### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
+
+with open('./.tmp/info.json', 'r') as f:
+
+    info = json.load(f)
+
+with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
+
+    parameters = json.load(f)
+
+### EXPERIMENT PARAMETERS ###
 
 # Dataset name
-exp_name = 'lorenz'
+exp_name = info['exp_name']
 
-# Label for results folder
-lb = 'noisefree'
+# Cluster label
+clst_lb = info['clst_lb']
 
-# Get data averaged across trials
-avg_trials = True
+# Averaging method
+avg_trials = info['avg_trials']
 
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
+# Subject IDs
+sub_list = info['sub_list']
 
-### LOAD DATASET DIRECTORIES AND INFOS ###
+# Conditions
+conditions = info['conditions']
 
-# Evoked folder path
-path = maind[exp_name]['directories'][method]
+# Channels
+ch_list = info['ch_list']
 
-# List of ALL subject IDs
-sub_list = maind[exp_name]['subIDs']
-
-# List of ALL conditions
-conditions = list(maind[exp_name]['conditions'].values())
-
-# List of ALL electrodes
-ch_list = maind[exp_name]['pois']
-
-# Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'llyap', clst_lb = lb, avg_trials = avg_trials)
-
-### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[0:1]
-#ch_list = ch_list[0:3]
-
-#Only averaged conditions
-#conditions = list(conditions)[0:2]
-#Parieto-Occipital and Frontal electrodes
-#ch_list = ch_list, #['Fp1','Fp2','Fpz'],['O2','PO4','PO8']
-###########################
-
-### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
-
-# Embedding dimensions
-embeddings = [i for i in range(2,10)]
-
-# Time delay
-tau = maind[exp_name]['tau']
-
-# Average period of data
-avT = maind[exp_name]['avT']
-# This  way compute it for each time series
-avT = None
-
-# Lenght of separation trajectories
-lenght = 10
-
-# Window of interest
-frc = [0, 1]
+# Time window
+window = info['window']
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
@@ -96,12 +70,34 @@ if type(ch_list) == tuple:
 else:
     clt = False
 
+# Get method string
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
+### PARAMETERS FOR LARGEST LYAPUNOV EXPONENT COMPUTATION ###
+
+# Label for parameter selection
+calc_lb = parameters['calc_lb']
+
+# Embedding dimensions
+embeddings = parameters['embeddings']
+
+# Set different time delay for each time series
+tau = parameters['tau']
+
+# Theiler window
+w = parameters['w']
+
+# Apply embedding normalization when computing distances
+m_norm = parameters['m_norm']
+
 # Dictionary for computation variables
 variables = {   
                 'tau' : tau,
-                'avT': avT,
-                'lenght': lenght,
-                'window' : frc,
+                'w': w,
+                'window' : window,
                 'clustered' : clt,
                 'subjects' : sub_list,
                 'conditions' : conditions,
@@ -109,7 +105,15 @@ variables = {
                 'embeddings' : embeddings
             }
 
-### SCRIPT FOR COMPUTATION ###
+### DATA PATHS ###
+
+# Processed data
+path = maind[exp_name]['directories'][method]
+
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
+
+### COMPUTATION ###
 
 # Build evokeds loading iterable function
 def it_loadMNE(subID: str):
@@ -120,16 +124,16 @@ def it_loadMNE(subID: str):
     return evokeds
 
 # Build Largest Lyapunov Exponent iterable function
-def it_lyapunov(evoked: mne.Evoked):
+def it_lyapunov(MNE_l: list):
 
-    ly, ly_e = lyapunov(evoked = evoked, ch_list = ch_list,
+    LY, E_LY = lyapunov(MNE = MNE_l[0], ch_list = ch_list,
                         embeddings = embeddings, tau = tau,
-                        lenght = lenght, avT = avT, window = window, verbose = True)
+                        w = w, window = window, verbose = True)
 
-    return [ly, ly_e]
+    return [LY, E_LY]
 
 # Build evoked loading multiprocessing function
-def mp_loadevokeds():
+def mp_loadMNEs():
 
     print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
 
@@ -145,14 +149,14 @@ def mp_loadevokeds():
                        )
 
     # Create flat iterable list of evokeds images
-    evoks_iters, points = flatMNEs(MNEs = MNEs)
+    MNEs_iters, points = flatMNEs(MNEs = MNEs)
 
     print('\nDONE!')
 
-    return evoks_iters, points
+    return MNEs_iters, points
 
 # Build multiprocessing function
-def mp_lyapunov(evoks_iters: list, points: list):
+def mp_lyapunov(MNEs_iters: list, points: list):
 
     complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)
 
@@ -170,10 +174,10 @@ def mp_lyapunov(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_lyapunov, evoks_iters), #chunksize = chunksize),
+        results = list(tqdm(p.imap(it_lyapunov, MNEs_iters), #chunksize = chunksize),
                                         desc = 'Computing channels time series',
                                         unit = 'trl',
-                                        total = len(evoks_iters),
+                                        total = len(MNEs_iters),
                                         leave = True,
                                         dynamic_ncols = True)
                                     )
@@ -185,21 +189,28 @@ def mp_lyapunov(evoks_iters: list, points: list):
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
 
-    ly = collapse_trials(results = r, points = points, fshape = fshape, e_results = e_r)
-    
+    LY = collapse_trials(results = r, points = points, fshape = fshape, e_results = e_r)
+
     print('\nDONE!')
 
-    # Save results to local
+   # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.save(sv_path + 'llyap.npy', ly)
-
-    variables['shape'] = ly.shape
+    np.savez(sv_path + f'{obs_name}.npz', *LY)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables,f)
 
-    print('\nResults shape: ', ly.shape, '\n')
+    print('\nResults common shape: ', LY[0].shape[1:])
+
+    if avg_trials == False:
+
+        print('\nTrials\n')
+    
+        for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
+            print(f'{prod}: ', LY[c].shape[0])
+
+    print('')
 
     return
 
@@ -208,7 +219,7 @@ if __name__ == '__main__':
 
     print('\n    LARGEST LYAPUNOV EXPONENT SCRIPT')
 
-    evoks_iters, points = mp_loadevokeds()
+    MNEs_iters, points = mp_loadMNEs()
 
-    mp_lyapunov(evoks_iters = evoks_iters, points = points)
+    mp_lyapunov(MNEs_iters = MNEs_iters, points = points)
 
