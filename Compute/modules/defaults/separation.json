@@ -4,5 +4,5 @@
   "tau": "mutual_information",
   "w": 0,
   "m_norm": true,
-  "log_span": [-2.5,1,150,10]
+  "percentiles": [10,50,90]
 }

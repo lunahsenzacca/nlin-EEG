@@ -1,8 +1,6 @@
 # Usual suspects
 import os
 import json
-import mne
-import warnings
 
 import numpy as np
 
@@ -11,8 +9,8 @@ from tqdm import tqdm
 # Cython file compile wrapper
 from core import cython_compile
 
-# Sub-wise function for evoked file loading
-from core import loadevokeds
+# Sub-wise function for MNE file loading
+from core import loadMNE
 
 # Evoked-wise function for Spacetime Separation Plot (SP) computation
 from core import separation_plot
@@ -21,23 +19,60 @@ from core import separation_plot
 from core import obs_path
 
 # Utility functions for trial data averaging
-from core import flat_evokeds, collapse_trials
+from core import flatMNEs, collapse_trials
 
 #Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
 
+# Module name
+obs_name = 'separation'
+
 ### MULTIPROCESSING PARAMETERS ###
 
 workers = 10
 chunksize = 1
 
-### SCRIPT PARAMETERS ###
+### CYTHON DEBUG PARAMETERS ###
 
 # Cython implementation of the script
 cython = True
-cython_verbose = True
+cython_verbose = False
+### SCRIPT PARAMETERS ###
+
+### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
+
+with open('./.tmp/info.json', 'r') as f:
+
+    info = json.load(f)
+
+with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
+
+    parameters = json.load(f)
+
+### EXPERIMENT PARAMETERS ###
+
+# Dataset name
+exp_name = info['exp_name']
+
+# Cluster label
+clst_lb = info['clst_lb']
+
+# Averaging method
+avg_trials = info['avg_trials']
+
+# Subject IDs
+sub_list = info['sub_list']
+
+# Conditions
+conditions = info['conditions']
+
+# Channels
+ch_list = info['ch_list']
+
+# Time window
+window = info['window']
 
 # Dataset name
 exp_name = 'bmasking_dense'
@@ -51,72 +86,42 @@ calc_lb = 'F'
 # Get data averaged across trials
 avg_trials = True
 
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
-
-### LOAD DATASET DIRECTORIES AND INFOS ###
-
-# Evoked folder paths
-path = maind[exp_name]['directories'][method]
-
-# List of ALL subject IDs
-sub_list = maind[exp_name]['subIDs']
-
-# List of ALL conditions
-conditions = list(maind[exp_name]['conditions'].values())
-
-# List of ALL electrodes
-ch_list = maind[exp_name]['pois']
-
-# Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = 'separation', avg_trials = avg_trials, clust_lb = clust_lb, calc_lb = calc_lb)
-
-### FOR QUICKER EXECUTION ###
-#sub_list = sub_list[1:4]
-#ch_list = ch_list[0:2]
-
-# Only averaged conditions
-conditions = conditions[0:2]
-
-# Compare Frontal and Parieto-occipital clusters
-ch_list = ['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']#['Fp1'],['Fp2'],['Fpz'],['PO3'],['PO4'],['Oz'],['Fp1', 'Fp2', 'Fpz'],['PO3', 'PO4', 'Oz'],['Fp1', 'Fp2', 'Fpz','PO3', 'PO4', 'Oz']
-
-# Crazy stupid all electrodes average
-#ch_list =  ch_list,
-##############################
-
-### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
-
-# Embedding dimensions
-embeddings = [3, 6, 9]
-
-# Set different time delay for each time series
-#tau = 'mutual_information'
-# Or set a global value
-tau = maind[exp_name]['tau']
-
-# Window of interest
-frc = [0., 1.]
-
-# Set desired percentiles for percentage isolines
-percentiles = [10,50,90]
-
-# Apply embedding normalization when computing distances
-m_norm = False
-
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
     clt = True
 else:
     clt = False
 
-# Dictionary for computation variables
+# Get method string
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
 
+### PARAMETERS FOR SEPARATION PLOT COMPUTATION ###
+
+# Label for parameter selection
+calc_lb = parameters['calc_lb']
+
+# Embedding dimensions
+embeddings = parameters['embeddings']
+
+# Set different time delay for each time series
+tau = parameters['tau']
+
+# Theiler window
+w = parameters['w']
+
+# Apply embedding normalization when computing distances
+m_norm = parameters['m_norm']
+
+# Set desired percentiles for isolines
+percentiles = parameters['percentiles']
+
+# Dictionary for computation variables
 variables = {   
                 'tau' : tau,
-                'window' : frc,
+                'window' : window,
                 'm_norm': m_norm,
                 'clustered' : clt,
                 'subjects' : sub_list,
@@ -126,27 +131,35 @@ variables = {
                 'percentiles' : percentiles
             }
 
+### DATA PATHS ###
+
+# Processed data
+path = maind[exp_name]['directories'][method]
+
+# Directory for saved results
+sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
+
 ### COMPUTATION ###
 
 # Build evokeds loading iterable function
-def it_loadevokeds(subID: str):
+def it_loadMNE(subID: str):
 
-    evokeds = loadevokeds(subID = subID, exp_name = exp_name,
+    MNEs = loadMNE(subID = subID, exp_name = exp_name,
                           avg_trials = avg_trials, conditions = conditions)
 
-    return evokeds
+    return MNEs
 
 # Build Spacetime Separation Plot iterable function
-def it_separation_plot(evoked: mne.Evoked):
+def it_separation_plot(MNE_l: list):
 
-    SP = separation_plot(evoked = evoked, ch_list = ch_list,
-                         embeddings = embeddings, tau = tau, fraction = frc,
+    SP = separation_plot(MNE = MNE_l[0], ch_list = ch_list,
+                         embeddings = embeddings, tau = tau, window = window,
                          percentiles = percentiles, m_norm = m_norm, cython = cython)
 
     return SP
 
 # Build evoked loading multiprocessing function
-def mp_loadevokeds():
+def mp_loadMNE():
 
     print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
 
@@ -154,7 +167,7 @@ def mp_loadevokeds():
     from multiprocessing import Pool
     with Pool(workers) as p:
 
-        evokeds = list(tqdm(p.imap(it_loadevokeds, sub_list),#, chunksize = chunksize),
+        MNEs = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
@@ -163,17 +176,22 @@ def mp_loadevokeds():
                        )
 
     # Create flat iterable list of evokeds images
-    evoks_iters, points = flat_evokeds(evokeds = evokeds)
+    MNEs_iters, points = flatMNEs(MNEs= MNEs)
 
     print('\nDONE!')
 
-    return evoks_iters, points
+    return MNEs_iters, points
 
 # Build Spacetime Separation Plot multiprocessing function
-def mp_separation_plot(evoks_iters: list, points: list):
+def mp_separation_plot(MNEs_iters: list, points: list):
+    
+    if window is None:
+        i_window = maind[exp_name]['window']
+    else:
+        i_window = window
 
     # Get absolute complexity of the script and estimated completion time
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*(((maind[exp_name]['T'])**2)*(frc[1]-frc[0])**2)
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*(((maind[exp_name]['T'])**2)*(i_window[1]-i_window[0])**2)
 
     velocity = 26e-7
 
@@ -189,15 +207,15 @@ def mp_separation_plot(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_separation_plot, evoks_iters, chunksize = chunksize),
+        results = list(tqdm(p.imap(it_separation_plot, MNEs_iters, chunksize = chunksize),
                             desc = 'Computing channels time series',
                             unit = 'trl',
-                            total = len(evoks_iters),
+                            total = len(MNEs_iters),
                             leave = True,
                             dynamic_ncols = True)
                         )
 
-    lenght = int(frc[1]*maind[exp_name]['T']) - int(frc[0]*maind[exp_name]['T']) - 1
+    lenght = int(i_window[1]*maind[exp_name]['T']) - int(i_window[0]*maind[exp_name]['T']) - 1
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(percentiles),lenght]
@@ -229,7 +247,7 @@ def mp_separation_plot(evoks_iters: list, points: list):
 
     return
 
-# Launch script with 'python -m recurrence' in appropriate conda enviroment
+# Launch script with 'python -m separation' in appropriate conda enviroment
 if __name__ == '__main__':
 
     print('\n    SPACETIME SEPARATION PLOT SCRIPT')
@@ -238,7 +256,7 @@ if __name__ == '__main__':
 
         cython_compile(verbose = cython_verbose)
 
-    evoks_iters, points = mp_loadevokeds()
+    MNEs_iters, points = mp_loadMNE()
 
-    mp_separation_plot(evoks_iters = evoks_iters, points = points)
+    mp_separation_plot(MNEs_iters = MNEs_iters, points = points)
 

@@ -9,7 +9,7 @@ from tqdm import tqdm
 # Cython file compile wrapper
 from core import cython_compile
 
-# Sub-wise function for evoked file loading
+# Sub-wise function for MNE file loading
 from core import loadMNE
 
 # Evoked-wise function for Correlation Sum (CS) computation
@@ -73,6 +73,18 @@ ch_list = info['ch_list']
 # Time window
 window = info['window']
 
+# Check if we are clustering electrodes
+if type(ch_list) == tuple:
+    clt = True
+else:
+    clt = False
+
+# Get method string
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
 ### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Label for parameter selection
@@ -87,19 +99,13 @@ tau = parameters['tau']
 # Theiler window
 w = parameters['w']
 
+# Apply embedding normalization when computing distances
+m_norm = parameters['m_norm']
+
 # Distances for sampling the dependance
 log_span = parameters['log_span']
 
 r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
-
-# Apply embedding normalization when computing distances
-m_norm = parameters['m_norm']
-
-# Check if we are clustering electrodes
-if type(ch_list) == tuple:
-    clt = True
-else:
-    clt = False
 
 # Dictionary for computation variables
 variables = {   
@@ -117,11 +123,6 @@ variables = {
             }
 
 ### DATA PATHS ###
-
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
 
 # Processed data
 path = maind[exp_name]['directories'][method]
@@ -175,7 +176,10 @@ def mp_loadMNEs():
 # Build Correlation Sum multiprocessing function
 def mp_correlation_sum(MNEs_iters: list, points: list):
 
-    i_window = maind[exp_name]['window']
+    if window is None:
+        i_window = maind[exp_name]['window']
+    else:
+        i_window = window
 
     # Get absolute complexity of the script and estimated completion time
     complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*np.log(len(r))*(((maind[exp_name]['T'])**2)*(i_window[1]-i_window[0])**2)
