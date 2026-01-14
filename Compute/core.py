@@ -562,7 +562,12 @@ def flatMNEs(MNEs: list):
     return flat, points
 
 # Extract time series from MNE data structure in a convenient manner
-def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, window = None, clst_method = 'append'):
+# Returns a nested list of time series with the following hierarchy
+# 
+#   [Trials][Electrodes in cluster][Time points]
+# 
+# Each function needs 2 for loops to get to the individual time series 1-d vector, just 1 for the cluster
+def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, sMNE = None, window = None, clst_method = 'append'):
 
     # Apply fraction to evoked objects
     if window is list:
@@ -581,16 +586,20 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
         for cl in ch_list:
             
             # Get average time series of the clster
-            ts = MNE.get_data(picks = cl)
+            ts = MNE.get_data(picks = cl) 
 
             if sMNE != None:
                 e_ts = sMNE.get_data(picks = cl)
             else:
                 e_ts = np.empty(ts.shape)
-            
+
+            if len(ts.shape) < 3:
+                ts = ts[np.newaxis]
+                e_ts = e_ts[np.newaxis]
+
             if clst_method == 'mean':
-                ts = ts.mean(axis = 0)
-                e_ts = e_ts.mean(axis = 0)
+                ts = ts.mean(axis = 1)[:,np.newaxis]
+                e_ts = e_ts.mean(axis = 1)[:,np.newaxis]
 
             TS.append(ts)
             E_TS.append(e_ts)
@@ -605,10 +614,10 @@ def extractTS(MNE: mne.Evoked|mne.Epochs, ch_list: list|tuple, sMNE = None, wind
                 e_ts = sMNE.get_data(picks = poi)
             else:
                 e_ts = np.empty(ts.shape)
-            
-            if len(ts.shape) > 2:
-                ts = ts[:,0]
-                e_ts = e_ts[:,0]
+
+            if len(ts.shape) < 3:
+                ts = ts[np.newaxis]
+                e_ts = ts[np.newaxis]
 
             TS.append(ts)
             E_TS.append(e_ts)
@@ -975,8 +984,20 @@ def gauss_kernel(function: np.ndarray, x: np.ndarray, scale: float, cutoff: int,
 
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
-# Time-delay embedding of a single time series
-def td_embedding(ts: np.ndarray, embedding: int, tau: int):
+# Time-delay embedding of a single time series (1-d vector)
+def td_embedding(ts: np.ndarray, embedding: int, tau: str|int):
+
+    # Compute tau with given string method
+
+    if tau == 'mutual_information':
+        tau = int(MI_for_delay(ts))
+
+    elif tau == 'autocorrelation':
+        tau = int(autoCorrelation_tau(ts))
+
+    else:
+        if tau is not int:
+            raise ValueError('tau method not \'mutual_information\' or \'autocorrelation\' or int')
 
     min_len = (embedding - 1)*tau + 1
 
@@ -985,7 +1006,7 @@ def td_embedding(ts: np.ndarray, embedding: int, tau: int):
 
         print('Data lenght is insufficient, try smaller parameters')
         return
-    
+
     # Set lenght of embedding
     m = len(ts) - min_len + 1
 
@@ -996,6 +1017,26 @@ def td_embedding(ts: np.ndarray, embedding: int, tau: int):
     emb_ts = ts[idxs]
 
     emb_ts = np.asarray(emb_ts, dtype = np.float64)
+
+    emb_ts = np.swapaxes(emb_ts, 0, 1)
+
+    return emb_ts
+
+# Time-delay embedding of a list of time series (n-d n>1 vector)
+def multi_embedding(c_ts: list, embedding: int, tau: str|int):
+
+    lenghts = []
+    emb_ts = []
+    for ts in c_ts:
+
+        emb_t = td_embedding(ts = ts, embedding = embedding, tau = tau)
+
+        lenghts.append(emb_t.shape[1])
+        emb_ts.append(emb_t)
+
+    min_len = np.min(np.asarray(lenghts))
+
+    emb_ts = np.asarray([t[0:min_len] for emb_t in emb_ts for t in emb_t ], dtype = np.float64)
 
     return emb_ts
 
@@ -1169,21 +1210,16 @@ def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, sca
     return  ce, e_ce
 
 # Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
-def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = False):
+def lyap(emb_ts: np.ndarray, dt: int, w: int, sfreq: int, verbose = False):
 
-    N = len(emb_ts)
-
-    if N < m_period/10:
-        print('Embedded data too short compared to average period')
-        return
+    N = emb_ts.shape[1]
 
     ds = np.zeros((N,N), dtype = np.float64)
 
     # Cycle through all different couples of points
     for i in range(0,N):
         for j in range(0,i):
-            
-            dij = dist(emb_ts[i],emb_ts[j])
+            dij = dist(emb_ts[:,i],emb_ts[:,j])
             ds[i,j] = dij
             ds[j,i] = dij
 
@@ -1191,31 +1227,31 @@ def lyap(emb_ts: np.ndarray, lenght: int, m_period: int, sfreq: int, verbose = F
     lnd = []
     for i, el in enumerate(ds):
 
-        if i < N - lenght:
+        if i < N - dt:
 
             # Select only distant points on the trajectory but not too far on the end
             jt = []
             for j in range(0,N):
-                if abs(j-i) > m_period and j < N - lenght:
+                if abs(j-i) > w and j < N - dt:
                     jt.append(j)
 
             if len(jt) != 0:
                 # Get nearest neighbour
                 d0 = np.min(el[jt])
-                j = int(np.argwhere(el == d0))
+                js = int(np.argwhere(el == d0))
 
             # Construct separation data
-            for delta in range(0,lenght):
+            for delta in range(0,dt):
                 if len(jt) != 0:
-                    lnd.append(np.log(dist(emb_ts[i + delta],emb_ts[j + delta])))
+                    lnd.append(np.log(dist(emb_ts[:,i + delta],emb_ts[:,js + delta])))
                 else:
                     lnd.append(np.nan)
 
     # Reshape results
-    lnd = np.asarray(lnd).reshape((N - lenght ,lenght))
+    lnd = np.asarray(lnd).reshape((N - dt,dt))
 
     # Get slope for largest Lyapunov exponent
-    x = np.asarray([i for i in range (0,lenght)])
+    x = np.asarray([i for i in range (0,dt)])
 
     with warnings.catch_warnings():
         if verbose == False:
@@ -1391,9 +1427,10 @@ def evokeds(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, window = No
 
     # Loop around pois time series
     for ts, e_ts in zip(TS, E_TS):
+        for t, e_t in zip(ts, e_ts):
 
-        EP.append(ts)
-        E_EP.append(e_ts)
+            EP.append(t)
+            E_EP.append(e_t)
 
     return EP, E_EP
 
@@ -1410,6 +1447,8 @@ def spectrum(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, N: int, wf
     E_SP = []
 
     n = MNE.nave
+
+
 
     # Check if we are clstering electrodes
     if type(ch_list) == tuple:
@@ -1510,7 +1549,7 @@ def spectrum(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, N: int, wf
     return SP, E_SP
 
 # Get persistance diagrams
-def persistence(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, max_pairs: int, window = None):
+def persistence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple, max_pairs: int, window = None):
 
     # Apply fraction to time series
     if window is list:
@@ -1535,7 +1574,6 @@ def persistence(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, max_pairs: 
             tarr  = np.zeros((max_pairs,2), dtype = np.int32)
 
             for i in range(0,max_pairs):
-                
                 if i < (min(len(pairs),len(npairs))):
                     parr[i,0:2] = pairs[-i-1]
                     parr[i,2:4] = npairs[-i-1]
@@ -1551,12 +1589,8 @@ def persistence(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, max_pairs: 
     return PS, TPS
 
 # Delay time of channel time series of a specific trial
-def delay_time(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
+def delay_time(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                tau_method: str, clst_method: str, window = None):
-
-    # Apply fraction to time series
-    if window is list:
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     # Initzialize result array
     tau = []
@@ -1585,7 +1619,7 @@ def delay_time(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
     return tau
 
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
-def correlation_sum(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
+def correlation_sum(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, w: int, rvals: list, 
                     m_norm: bool, window = None, cython = False):
 
@@ -1593,66 +1627,20 @@ def correlation_sum(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
 
         from cython_modules import c_core
 
-    # Apply fraction to time series
-    if type(window) == list:   
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+    # Extract time series from data
+    TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'append')
 
     # Initzialize result array
     CS = []
 
-    # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
-        
+    # Cycle around trials
+    for ts in TS:
+        # Cycle around clusters
+        for t in ts:
 
-        TS = []
-        for cl in ch_list:
-            
-            # Get average time series of the clster
-            ts = MNE.get_data(picks = cl)
-            #ts = ts.mean(axis = 0)
-            
-            TS.append(ts)
-        
-        for ts in TS:
-
-            # Compile delay time list for each component
-            tau_ = []
-            for t in ts:
-                
-                if tau == 'mutual_information':
-
-                    tau_.append(MI_for_delay(t))
-
-                elif tau == 'autocorrelation':
-
-                    tau_.append(autoCorrelation_tau(t))
-
-                elif type(tau) == int:
-
-                    tau_.append(tau)
-
+            # Cycle around embeddings
             for m in embeddings:
-                
-                emb_ts = []
-                emb_lenghts = []
-                for i, t in enumerate(ts):
-
-                    emb_t = td_embedding(t, embedding = m, tau = tau_[i])
-
-                    l = len(emb_t)
-
-                    emb_ts.append(emb_t)
-                    emb_lenghts.append(l)
-
-                # Set embedded time series to same lenght for array transformation
-                emb_ts = [emb_t[0:np.asarray(emb_lenghts).min()] for emb_t in emb_ts]
-
-                emb_ts = np.asarray(emb_ts)
-
-                emb_ts = np.swapaxes(emb_ts, 1, 2)
-                emb_ts = np.swapaxes(emb_ts, 0, 1)
-
-                emb_ts = np.asarray([emb_ts[i,j] for j in range(0,emb_ts.shape[1]) for i in range(0,emb_ts.shape[0])], dtype = np.float64)
+                emb_ts = multi_embedding(c_ts = t, embedding = m, tau = tau)
 
                 if cython == False:
 
@@ -1662,52 +1650,7 @@ def correlation_sum(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
 
                     dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
-                for r in rvals:
-
-                    if cython == False:
-
-                        cs = corr_sum(dist_matrix = dist_matrix, r = r, w = w)
-
-                    else:
-
-                        cs = c_core.corr_sum(dist_matrix = dist_matrix, r = r, w = w)
-
-                    CS.append(cs)
-
-    else:
-
-        TS = MNE.get_data(picks = ch_list)
-    
-        # Loop around pois time series
-        for ts in TS:
-                
-            if tau == 'mutual_information':
-
-                tau_ = MI_for_delay(ts)
-
-            elif tau == 'autocorrelation':
-
-                tau_ = autoCorrelation_tau(ts)
-
-            elif type(tau) == int:
-
-                tau_ = tau
-            
-            for m in embeddings:
-                emb_ts = td_embedding(ts, embedding = m, tau = tau_)
-
-                emb_ts = np.asarray(emb_ts)
-
-                emb_ts = np.swapaxes(emb_ts, 0, 1)
-
-                if cython == False:
-
-                    dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
-                else:
-
-                    dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
+                # Cycle around r values
                 for r in rvals:
 
                     if cython == False:
@@ -1725,7 +1668,7 @@ def correlation_sum(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
     return CS
 
 # Recurrence Plot of channel time series of a specific trial
-def recurrence_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
+def recurrence_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, rvals: list, 
                     m_norm: bool, window = None, cython = False):
 
@@ -1733,67 +1676,20 @@ def recurrence_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
 
         from cython_modules import c_core
 
-    # Apply fraction to time series
-    if type(window) == list:   
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-
-    T = len(MNE.times)
+    # Extract time series from data
+    TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'append')
 
     # Initzialize result array
     RP = []
 
-    # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
+    # Cycle around trials
+    for ts in TS:
+        # Cycle around clusters
+        for t in ts:
 
-        TS = []
-        for cl in ch_list:
-
-            # Get average time series of the clster
-            ts = MNE.get_data(picks = cl)
-            #ts = ts.mean(axis = 0)
-            
-            TS.append(ts)
-        
-        for ts in TS:
-
-            # Compile delay time list for each component
-            tau_ = []
-            for t in ts:
-
-                if tau == 'mutual_information':
-
-                    tau_.append(MI_for_delay(t))
-
-                elif tau == 'autocorrelation':
-
-                    tau_.append(autoCorrelation_tau(t))
-
-                elif type(tau) == int:
-
-                    tau_.append(tau)
-
+            # Cycle around embeddings
             for m in embeddings:
-
-                emb_ts = []
-                emb_lenghts = []
-                for i, t in enumerate(ts):
-
-                    emb_t = td_embedding(t, embedding = m, tau = tau_[i])
-
-                    l = len(emb_t)
-
-                    emb_ts.append(emb_t)
-                    emb_lenghts.append(l)
-
-                # Set embedded time series to same lenght for array transformation
-                emb_ts = [emb_t[0:np.asarray(emb_lenghts).min()] for emb_t in emb_ts]
-
-                emb_ts = np.asarray(emb_ts)
-
-                emb_ts = np.swapaxes(emb_ts, 1, 2)
-                emb_ts = np.swapaxes(emb_ts, 0, 1)
-
-                emb_ts = np.asarray([emb_ts[i,j] for j in range(0,emb_ts.shape[1]) for i in range(0,emb_ts.shape[0])], dtype = np.float64)
+                emb_ts = multi_embedding(c_ts = t, embedding = m, tau = tau)
 
                 if cython == False:
 
@@ -1803,62 +1699,16 @@ def recurrence_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
 
                     dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
+                # Cycle around r-values
                 for r in rvals:
 
                     if cython == False:
 
-                        rp = rec_plt(dist_matrix = dist_matrix, r = r, T = T)
+                        rp = rec_plt(dist_matrix = dist_matrix, r = r, T = emb_ts.shape[1])
 
                     else:
 
-                        rp = c_core.rec_plt(dist_matrix = dist_matrix, r = r, T = T)
-
-                    RP.append(rp)
-
-    else:
-
-        TS = MNE.get_data(picks = ch_list)
-    
-        # Loop around pois time series
-        for ts in TS:
-                
-            if tau == 'mutual_information':
-
-                tau_ = MI_for_delay(ts)
-
-            elif tau == 'autocorrelation':
-
-                tau_ = autoCorrelation_tau(ts)
-
-            elif type(tau) == int:
-
-                tau_ = tau
-            
-            for m in embeddings:
-
-                emb_ts = td_embedding(ts, embedding = m, tau = tau_)
-
-                emb_ts = np.asarray(emb_ts)
-
-                emb_ts = np.swapaxes(emb_ts, 0, 1)
-
-                if cython == False:
-
-                    dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
-                else:
-
-                    dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
-                for r in rvals:
-
-                    if cython == False:
-
-                        rp = rec_plt(emb_ts = emb_ts, r = r, T = T)
-
-                    else:
-
-                        rp = c_core.rec_plt(emb_ts = emb_ts, r = r, T = T)
+                        rp = c_core.rec_plt(dist_matrix = dist_matrix, r = r, T = emb_ts.shape[1])
 
                     RP.append(rp)
 
@@ -1867,78 +1717,30 @@ def recurrence_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
     return RP
 
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
-def separation_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
+def separation_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, percentiles: list,
                     m_norm: bool, window = None, cython = False):
+
+    percentiles = np.asarray(percentiles, dtype = np.int8)
 
     if cython == True:
 
         from cython_modules import c_core
 
-    # Apply fraction to time series
-    if type(window) == list:   
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-
-    T = len(MNE.times)
-
-    percentiles = np.asarray(percentiles, dtype = np.int8)
+    # Extract time series from data
+    TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'append')
 
     # Initzialize result array
     SP = []
 
-    # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
-        
+    # Cycle around trials
+    for ts in TS:
+        # Cycle around clusters
+        for t in ts:
 
-        TS = []
-        for cl in ch_list:
-            
-            # Get average time series of the clster
-            ts = MNE.get_data(picks = cl)
-            #ts = ts.mean(axis = 0)
-            
-            TS.append(ts)
-        
-        for ts in TS:
-
-            # Compile delay time list for each component
-            tau_ = []
-            for t in ts:
-                
-                if tau == 'mutual_information':
-
-                    tau_.append(MI_for_delay(t))
-
-                elif tau == 'autocorrelation':
-
-                    tau_.append(autoCorrelation_tau(t))
-
-                elif type(tau) == int:
-
-                    tau_.append(tau)
-
+            # Cycle around embeddings
             for m in embeddings:
-                
-                emb_ts = []
-                emb_lenghts = []
-                for i, t in enumerate(ts):
-
-                    emb_t = td_embedding(t, embedding = m, tau = tau_[i])
-
-                    l = len(emb_t)
-
-                    emb_ts.append(emb_t)
-                    emb_lenghts.append(l)
-
-                # Set embedded time series to same lenght for array transformation
-                emb_ts = [emb_t[0:np.asarray(emb_lenghts).min()] for emb_t in emb_ts]
-
-                emb_ts = np.asarray(emb_ts)
-
-                emb_ts = np.swapaxes(emb_ts, 1, 2)
-                emb_ts = np.swapaxes(emb_ts, 0, 1)
-
-                emb_ts = np.asarray([emb_ts[i,j] for j in range(0,emb_ts.shape[1]) for i in range(0,emb_ts.shape[0])], dtype = np.float64)
+                emb_ts = multi_embedding(c_ts = t, embedding = m, tau = tau)
 
                 if cython == False:
 
@@ -1954,52 +1756,12 @@ def separation_plot(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
 
                 SP.append(sp)
 
-    else:
-
-        TS = MNE.get_data(picks = ch_list)
-    
-        # Loop around pois time series
-        for ts in TS:
-                
-            if tau == 'mutual_information':
-
-                tau_ = MI_for_delay(ts)
-
-            elif tau == 'autocorrelation':
-
-                tau_ = autoCorrelation_tau(ts)
-
-            elif type(tau) == int:
-
-                tau_ = tau
-            
-            for m in embeddings:
-                emb_ts = td_embedding(ts, embedding = m, tau = tau_)
-
-                emb_ts = np.asarray(emb_ts)
-
-                emb_ts = np.swapaxes(emb_ts, 0, 1)
-
-                if cython == False:
-
-                    dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
-                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
-
-                else:
-
-                    dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
-                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
-
-                SP.append(sp)
-
-    # Returns list in -C style ordering
+     # Returns list in -C style ordering
 
     return SP
 
-# Information dimension of channel time series of a specific trial
-def information_dimension(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
+# NEEDS REVISING # Information dimension of channel time series of a specific trial
+def information_dimension(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                           embeddings: list, tau: int, 
                           window = None):
 
@@ -2044,72 +1806,47 @@ def information_dimension(MNE: mne.Evoked | mne.Epochs, ch_list: list|tuple,
     return D2, e_D2
 
 # Largest lyapunov exponent of channel time series
-def lyapunov(MNE: mne.Evoked | mne.Epochs, ch_list: list | tuple, 
-             embeddings: list, tau: int, lenght: int, avT = None,
+def lyapunov(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple, 
+             embeddings: list, tau: str|int, w: int, dt = None,
              window = None, verbose = False):
 
     # Get sampling frequency
     sfreq = MNE.info['sfreq']
 
-    # Apply fraction to time series
-    if type(window) == list:   
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+    # Extract time series from data
+    TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'append')
 
     # Initzialize result arrays
-    ly = []
+    LY = []
     # Error given by alghorithm, to use in case 'avg_trials == True'
-    ly_e = []
+    E_LY = []
 
-    # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
-
-        tl = []
-        for cl in ch_list:
-            
-            # Get average time series of the clster
-            ts = MNE.get_data(picks = cl)
-            ts = ts.mean(axis = 0)
-            
-            tl.append(ts)
-        
-        TS = np.asarray(tl)
-
-    else:    
-
-        TS = MNE.get_data(picks = ch_list)
-    
-    # Loop around pois tim series
+    # Cycle around trials
     for ts in TS:
+        # Cycle around clusters
+        for t in ts:
 
-        # Get mean period of the time series through power spectrum analysis
-        # this method is not very robust to noise if the estimated period is too
-        # large for the embeddin dimension
-        if avT == None:
-            f, ps = periodogram(ts)
-            avT = np.sum(ps)/np.sum(f*ps)
-            if verbose == True:
-                print('Average period: ',avT)
-        
-        for m in embeddings:
-            emb_ts = td_embedding(ts, embedding = m, tau = tau)
-            
-            l, l_e, x, y, fit = lyap(emb_ts, m_period = avT, lenght = lenght, sfreq = sfreq, verbose = verbose)
+            # Get mean period of the time series through power spectrum analysis
+            # this method is not very robust to noise if the estimated period is too
+            # large for the embeddin dimension
+            if dt is None:
+                f, ps = periodogram(t)
+                dt = int(np.sum(ps)/np.sum(f*ps))
+                if verbose == True:
+                    print('Average period: ', dt)
 
-            '''
-            # Plotting for correct estimation of optimal lenght,
-            # the system is bounded so is the separation of trajectories
+            # Cycle around embeddings
+            for m in embeddings:
 
-            plt.plot(x,y)
-            plt.plot(x, (fit.slope*x + fit.intercept))
+                emb_ts = multi_embedding(c_ts = t, embedding = m, tau = tau)
+                ly, e_ly, _, _, _ = lyap(emb_ts, dt = dt, w = w, sfreq = sfreq, verbose = verbose)
 
-            plt.show()
-            plt.close()
-            '''
+                LY.append(ly)
+                E_LY.append(e_ly)
 
-            ly.append(l)
-            ly_e.append(l_e)
+     # Returns list in -C style ordering
 
-    return ly, ly_e
+    return LY, E_LY
 
 # Sub-wise function for correlation exponent computation
 def correlation_exponent(sub_log_CS: list, n_points: int, log_r: list,

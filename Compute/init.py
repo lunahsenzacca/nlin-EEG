@@ -52,7 +52,7 @@ obs_lb = {
     'peaks': 'PK',
     'plateaus': 'PL',
 #    'idim': 'D2',
-#    'llyap': 'LLE'
+    'llyap': 'LLE'
 
 }
 

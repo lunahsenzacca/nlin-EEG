@@ -28,7 +28,7 @@ maind = get_maind()
 obs_name = 'llyap'
 
 ### MULTIPROCESSIN PARAMETERS ###
-workers = 16
+workers = 10
 chunksize = 1
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
@@ -90,6 +90,9 @@ tau = parameters['tau']
 # Theiler window
 w = parameters['w']
 
+# Lenght of expansion phase
+dt = parameters['dt']
+
 # Apply embedding normalization when computing distances
 m_norm = parameters['m_norm']
 
@@ -128,7 +131,7 @@ def it_lyapunov(MNE_l: list):
 
     LY, E_LY = lyapunov(MNE = MNE_l[0], ch_list = ch_list,
                         embeddings = embeddings, tau = tau,
-                        w = w, window = window, verbose = True)
+                        dt = dt, w = w, window = window, verbose = False)
 
     return [LY, E_LY]
 

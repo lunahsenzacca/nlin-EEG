@@ -1,0 +1,13 @@
+{
+	"title": "$\\lambda_{max}(m)$",
+	"figure": "pois",
+	"multiplot": "subjects",
+	"legend": "conditions",
+	"axis": "embeddings",
+	"reduce_method": "product",
+	"ylabel": "$\\lambda_{max}(m)$",
+	"xlim": [null,null],
+	"ylim": [null,null],
+	"style": "curve",
+	"legend_t": "Conditions"
+}

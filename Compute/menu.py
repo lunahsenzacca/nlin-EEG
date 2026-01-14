@@ -173,7 +173,7 @@ def i_channels(exp_name: str):
         ],[
             inq.List('clst_lb',
                      message = 'Select one of the following',
-                     choices = saved_clst.keys,
+                     choices = list(saved_clst.keys()),
             )
         ],[
             inq.Text('clst_lb',
@@ -215,7 +215,7 @@ def i_channels(exp_name: str):
         clst_lb = 'all'
         ch_list = pois
 
-    if ('Ch' or 'Ty') in pois_opt:
+    if 'Ch' in pois_opt or 'Ty' in pois_opt:
 
         clst_lb = inq.prompt(inputs[4])['clst_lb']
         ch_list_sv = inq.prompt(inputs[5])['ch_list_sv']
