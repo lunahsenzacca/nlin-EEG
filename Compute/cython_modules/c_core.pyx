@@ -6,6 +6,8 @@ cimport numpy as cnp
 
 cimport cython
 
+from libc.math cimport sqrt
+
 cnp.import_array()
 
 DTYPEfloat = np.float64
@@ -21,20 +23,22 @@ ctypedef cnp.int8_t DTYPEint_t
 @cython.wraparound(False)
 cpdef DTYPEfloat_t dist(cnp.ndarray[DTYPEfloat_t, ndim = 1] x, cnp.ndarray[DTYPEfloat_t, ndim = 1] y, bint m_norm, int m):
 
-    cdef DTYPEfloat_t d
+    cdef:
 
-    cdef int N = x.shape[0]
-    cdef int i
+        Py_ssize_t N = x.shape[0]
+        Py_ssize_t i
+
+        DTYPEfloat_t d
 
     for i in range(0,N):
 
-        d += (x[i] - y[i])**2
+        d += (x[i] - y[i])*(x[i] - y [i])
 
-    d = np.sqrt(d)
+    d = sqrt(d)
 
     if m_norm == True and m != None:
 
-        d = d/m
+        d /= m
 
     return d
 
@@ -43,13 +47,14 @@ cpdef DTYPEfloat_t dist(cnp.ndarray[DTYPEfloat_t, ndim = 1] x, cnp.ndarray[DTYPE
 @cython.wraparound(False)
 cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] distance_matrix(cnp.ndarray[DTYPEfloat_t, ndim = 2] emb_ts, bint m_norm, int m):
 
-    cdef int N = emb_ts.shape[1]
+    cdef:
 
-    cdef cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix = np.full((N,N), 0, dtype = DTYPEfloat)
+        cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix = np.full((N,N), 0, dtype = DTYPEfloat)
 
-    cdef int i, j
+        Py_ssize_t N = emb_ts.shape[1]
+        Py_ssize_t i, j
 
-    cdef DTYPEfloat_t dij
+        DTYPEfloat_t dij
 
     # Cycle through all different couples of points
     for i in range(0,N):
@@ -67,11 +72,12 @@ cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] distance_matrix(cnp.ndarray[DTYPEfloat
 @cython.wraparound(False)
 cpdef cnp.ndarray[DTYPEint_t, ndim = 2] rec_plt(cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix, DTYPEfloat_t r, int T):
 
-    cdef int N = dist_matrix.shape[0]
+    cdef:
 
-    cdef cnp.ndarray[DTYPEint_t, ndim = 2] rplt = np.full((T,T), 0, dtype = DTYPEint)
+        cnp.ndarray[DTYPEint_t, ndim = 2] rplt = np.full((T,T), 0, dtype = DTYPEint)
 
-    cdef int i, j
+        Py_ssize_t N = dist_matrix.shape[0]
+        Py_ssize_t i, j
 
     # Cycle through all different couples of points
     for i in range(0,N):
@@ -90,17 +96,16 @@ cpdef cnp.ndarray[DTYPEint_t, ndim = 2] rec_plt(cnp.ndarray[DTYPEfloat_t, ndim =
 @cython.wraparound(False)
 cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] sep_plt(cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix, cnp.ndarray[DTYPEint_t, ndim = 1] percentiles, int T):
 
-    cdef int N = dist_matrix.shape[0]
+    cdef:
 
-    cdef int n = percentiles.shape[0]
+        cnp.ndarray[DTYPEfloat_t, ndim = 1] perc = np.full((n), 0, dtype = DTYPEfloat)
+        cnp.ndarray[DTYPEfloat_t, ndim = 2] splt = np.full((n,T), 0, dtype = DTYPEfloat)
 
-    cdef cnp.ndarray[DTYPEfloat_t, ndim = 1] perc = np.full((n), 0, dtype = DTYPEfloat)
+        Py_ssize_t N = dist_matrix.shape[0]
+        Py_ssize_t n = percentiles.shape[0]
+        Py_ssize_t i, j
 
-    cdef cnp.ndarray[DTYPEfloat_t, ndim = 2] splt = np.full((n,T), 0, dtype = DTYPEfloat)
-
-    cdef int i, j
-
-    cdef list dist
+        list dist
 
     # Compose distribution of distances for each relative time distance
     for i in range(0,N):
@@ -126,13 +131,14 @@ cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] sep_plt(cnp.ndarray[DTYPEfloat_t, ndim
 @cython.wraparound(False)
 cpdef DTYPEfloat_t corr_sum(cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix, DTYPEfloat_t r, int w):
 
-    cdef int N = dist_matrix.shape[0]
+    cdef:
 
-    cdef DTYPEfloat_t csum
+        DTYPEfloat_t csum
 
-    cdef int i, j
+        int c = 0
 
-    cdef int c = 0
+        Py_ssize_t N = dist_matrix.shape[0]
+        Py_ssize_t i, j
 
     if w == 0:
 
