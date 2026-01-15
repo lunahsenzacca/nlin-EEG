@@ -330,7 +330,7 @@ def i_parameters(obs_name: str):
         import tempfile
         import subprocess
 
-        temporary = tempfile.NamedTemporaryFile(mode='w+t', suffix = ".json", delete=True, dir = ".tmp")
+        temporary = tempfile.NamedTemporaryFile(mode='w+t', prefix = f'tmp_{obs_name}', suffix = ".json", delete=True, dir = ".tmp")
 
         n = temporary.name
 

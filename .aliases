@@ -3,11 +3,10 @@
 #echo 'Loaded some aliases'
 
 # Quick launch menu.py script
-alias menu='python -m Compute.menu'
+alias menu='cd Compute && python -m menu && cd ..'
 
 # Quick launch toMNE.py script
-alias convert='python -m Compute.makedata.toMNE'
+alias convert='cd Compute && python -m makedata.toMNE && cd ..'
 
 # Launch t.py in a ipython shell
-alias nb='ipython -i Compute/t.py'
-
+alias nb='cd Compute && ipython -i Compute/t.py && cd ..'
