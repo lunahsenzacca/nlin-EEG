@@ -176,7 +176,7 @@ def mp_correlation_exponent():
         variables['cutoff'] = cutoff
 
     with open(sv_path + 'variables.json', 'w') as f:
-        json.dump(variables, f, indent = 3)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', CE[0].shape[1:])
 
@@ -191,7 +191,7 @@ def mp_correlation_exponent():
 
     return
 
-# Launch script with 'python -m idim' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    CORRELATION EXPONENT SCRIPT')

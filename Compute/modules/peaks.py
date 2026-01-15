@@ -130,7 +130,7 @@ def mp_ce_peaks():
     variables['width'] = width
 
     with open(sv_path + 'variables.json', 'w') as f:
-        json.dump(variables, f, indent = 3)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', P[0].shape[1:])
 
@@ -145,7 +145,7 @@ def mp_ce_peaks():
 
     return
 
-# Launch script with 'python -m idim' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    CORRELATION EXPONENT PEAKS SCRIPT')

@@ -19,6 +19,7 @@
   packages = with pkgs; [
     gcc
     libz
+    micro
     python313Packages.qtpy
     python313Packages.pyqt6
     python313Packages.pyside6

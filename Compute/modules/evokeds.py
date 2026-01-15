@@ -183,7 +183,7 @@ def mp_evokeds(MNEs_iters: list, points: list):
     np.savez(sv_path + f'{obs_name}.npz', *EV)
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', EV[0].shape[1:])
 
@@ -198,7 +198,7 @@ def mp_evokeds(MNEs_iters: list, points: list):
 
     return
 
-# Launch script with 'python -m recurrence' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    EVOKEDS PLOT SCRIPT')

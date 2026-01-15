@@ -180,7 +180,7 @@ def mp_delay_time(MNEs_iters: list, points: list):
     np.savez(sv_path + f'{obs_name}.npz', *tau)
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', tau[0].shape[1:])
 
@@ -195,7 +195,7 @@ def mp_delay_time(MNEs_iters: list, points: list):
 
     return
 
-# Launch script with 'python -m corrsum' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    DELAY TIME SCRIPT')

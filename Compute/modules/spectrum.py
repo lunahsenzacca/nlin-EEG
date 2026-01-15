@@ -203,7 +203,7 @@ def mp_spectrum(MNEs_iters: list, points: list):
     np.savez(sv_path + f'{obs_name}.npz', *SP)
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', SP[0].shape[1:])
 
@@ -214,9 +214,10 @@ def mp_spectrum(MNEs_iters: list, points: list):
         for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
             print(f'{prod}: ', SP[c].shape[0])
 
+    print('')
+
     return
 
-# Launch script with 'python -m recurrence' in appropriate conda enviroment
 if __name__ == '__main__':
 
     print('\n    FREQUENCY SPECTRUM PLOT SCRIPT')

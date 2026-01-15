@@ -1,11 +1,13 @@
 # Usual suspects
 import os
 import json
-import mne
 
 import numpy as np
 
 from tqdm import tqdm
+
+# Cython file compile wrapper
+from core import cython_compile
 
 # Sub-wise function for evoked file loading
 from core import loadMNE
@@ -30,6 +32,12 @@ obs_name = 'llyap'
 ### MULTIPROCESSIN PARAMETERS ###
 workers = 10
 chunksize = 1
+
+### CYTHON DEBUG PARAMETERS ###
+
+# Cython implementation of the script
+cython = False
+cython_verbose = False
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
 
@@ -100,7 +108,9 @@ m_norm = parameters['m_norm']
 variables = {   
                 'tau' : tau,
                 'w': w,
+                'dt': dt,
                 'window' : window,
+                'm_norm': m_norm,
                 'clustered' : clt,
                 'subjects' : sub_list,
                 'conditions' : conditions,
@@ -131,7 +141,8 @@ def it_lyapunov(MNE_l: list):
 
     LY, E_LY = lyapunov(MNE = MNE_l[0], ch_list = ch_list,
                         embeddings = embeddings, tau = tau,
-                        dt = dt, w = w, window = window, verbose = False)
+                        dt = dt, w = w, m_norm = m_norm,
+                        cython= cython, window = window, verbose = False)
 
     return [LY, E_LY]
 
@@ -202,7 +213,7 @@ def mp_lyapunov(MNEs_iters: list, points: list):
     np.savez(sv_path + f'{obs_name}.npz', *LY)
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables,f, indent = 2)
 
     print('\nResults common shape: ', LY[0].shape[1:])
 
@@ -221,6 +232,10 @@ def mp_lyapunov(MNEs_iters: list, points: list):
 if __name__ == '__main__':
 
     print('\n    LARGEST LYAPUNOV EXPONENT SCRIPT')
+
+    if cython == True:
+
+        cython_compile(verbose = cython_verbose)
 
     MNEs_iters, points = mp_loadMNEs()
 

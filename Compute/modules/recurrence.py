@@ -214,7 +214,7 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
     np.savez(sv_path + 'recurrence.npz', *RP)
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', RP[0].shape[1:])
 
@@ -229,7 +229,7 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
 
     return
 
-# Launch script with 'python -m recurrence' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    RECURRENCE PLOT SCRIPT')

@@ -232,7 +232,7 @@ def mp_separation_plot(MNEs_iters: list, points: list):
     variables['dt'] = [i for i in range(0,lenght)]
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', SP[0].shape[1:])
 
@@ -247,7 +247,7 @@ def mp_separation_plot(MNEs_iters: list, points: list):
 
     return
 
-# Launch script with 'python -m separation' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    SPACETIME SEPARATION PLOT SCRIPT')

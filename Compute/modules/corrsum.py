@@ -219,14 +219,14 @@ def mp_correlation_sum(MNEs_iters: list, points: list):
     np.savez(sv_path + f'{obs_name}.npz', *CS)
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', CS[0].shape[1:])
 
     if avg_trials == False:
 
         print('\nTrials\n')
-    
+
         for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
             print(f'{prod}: ', CS[c].shape[0])
 
@@ -234,7 +234,7 @@ def mp_correlation_sum(MNEs_iters: list, points: list):
 
     return
 
-# Launch script with 'python -m corrsum' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    CORRELATION SUM PLOT SCRIPT')

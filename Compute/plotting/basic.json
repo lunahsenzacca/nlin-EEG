@@ -1,5 +1,5 @@
 {
-     "avg": "none",
+     "avg": "sub",
      "dim_m": 1,
      "reduce_multi": null,
      "reduce_legend": null,

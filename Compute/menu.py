@@ -218,7 +218,12 @@ def i_channels(exp_name: str):
     if 'Ch' in pois_opt or 'Ty' in pois_opt:
 
         clst_lb = inq.prompt(inputs[4])['clst_lb']
+
+        print('')
+
         ch_list_sv = inq.prompt(inputs[5])['ch_list_sv']
+
+        print('')
 
         if ch_list_sv == True:
 
@@ -296,7 +301,10 @@ def i_parameters(obs_name: str):
     
     with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
         d = json.load(f)
-    
+
+        f.seek(0)
+        txt = f.read()
+
     if len(d) > 1:
         print('The selected module has the following default parameters:\n')
 
@@ -311,15 +319,31 @@ def i_parameters(obs_name: str):
     input = [
         inq.List('default_opt',
                 message = 'Select what to do',
-                choices = ['Use defaults','Type...']
+                choices = ['Use defaults','Change...']
         )
     ]
 
     default_opt = inq.prompt(input)['default_opt']
 
-    if 'Ty' in default_opt:
-        ## ADD PROMPTING FOR PARAMETERS and calc_lb
-        parameters = {}
+    if 'Ch' in default_opt:
+
+        import tempfile
+        import subprocess
+
+        temporary = tempfile.NamedTemporaryFile(mode='w+t', suffix = ".json", delete=True, dir = ".tmp")
+
+        n = temporary.name
+
+        with open(n, 'a') as f:
+            f.write(txt)
+
+        temporary.close
+
+        subprocess.call(['micro', n])
+
+        with open(n, 'r') as f:
+            parameters = json.load(f)
+
     else:
         with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
             parameters = json.load(f)
@@ -378,8 +402,6 @@ def cmode():
 #Launch new computation
 def launch():
 
-    print('\nHELLO I\'M A LAUNCH SCRIPT!\n')
-    
     ## Prompt for preprocessed dataset name, subjects, conditions, channels and time window
 
     # Get exp_name

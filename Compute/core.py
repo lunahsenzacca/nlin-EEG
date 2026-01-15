@@ -54,6 +54,8 @@ from scipy.signal import periodogram
 # Find peaks in data
 from scipy.signal import find_peaks
 
+# Squareform and distance matrix functions
+from scipy.spatial.distance import squareform, pdist
 
 ### UTILITY FUNCTIONS ###
 
@@ -770,9 +772,9 @@ def dist(x: np.ndarray, y: np.ndarray, m_norm = False, m = None):
 
     d = np.sqrt(np.sum((x - y)**2, axis = 0))
 
-    if m_norm == True and m != None:
+    if m_norm and (m is not None):
 
-        d = d/m
+        d /= m
 
     return d
 
@@ -1044,18 +1046,25 @@ def multi_embedding(c_ts: list, embedding: int, tau: str|int):
 
 def distance_matrix(emb_ts: np.ndarray, m_norm = None, m = None):
 
-    N = emb_ts.shape[1]
+    emb_ts = emb_ts.T
 
-    dist_matrix = np.full((N,N), 0, dtype = np.float64)
+    dist_matrix = squareform(pdist(emb_ts, metric="euclidean"))
+
+    if m_norm and (m is not None):
+        dist_matrix /= m
+
+    #N = emb_ts.shape[1]
+
+    #dist_matrix = np.full((N,N), 0, dtype = np.float64)
 
     # Cycle through all different couples of points
-    for i in range(0,N):
-        for j in range(0,i + 1):
+    #for i in range(0,N):
+    #    for j in range(0,i + 1):
 
-            dij = dist(x = emb_ts[:,i], y = emb_ts[:,j], m_norm = m_norm, m = m)
+    #        dij = dist(x = emb_ts[:,i], y = emb_ts[:,j], m_norm = m_norm, m = m)
 
-            dist_matrix[i,j] = dij
-            dist_matrix[j,i] = dij
+    #        dist_matrix[i,j] = dij
+    #        dist_matrix[j,i] = dij
 
     return dist_matrix
 
@@ -1210,29 +1219,20 @@ def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, sca
     return  ce, e_ce
 
 # Largest Lyapunov exponent for a single embedded time series [Rosenstein et al.]
-def lyap(emb_ts: np.ndarray, dt: int, w: int, sfreq: int, verbose = False):
+def lyap(dist_matrix: np.ndarray, dt: int, w: int, sfreq: int, T: int, verbose = False):
 
-    N = emb_ts.shape[1]
-
-    ds = np.zeros((N,N), dtype = np.float64)
-
-    # Cycle through all different couples of points
-    for i in range(0,N):
-        for j in range(0,i):
-            dij = dist(emb_ts[:,i],emb_ts[:,j])
-            ds[i,j] = dij
-            ds[j,i] = dij
+    ds = dist_matrix
 
     # Construct separations trajectories with embedded data
     lnd = []
     for i, el in enumerate(ds):
 
-        if i < N - dt:
+        if i < T - dt:
 
             # Select only distant points on the trajectory but not too far on the end
             jt = []
-            for j in range(0,N):
-                if abs(j-i) > w and j < N - dt:
+            for j in range(0,T):
+                if abs(j-i) > w and j < T - dt:
                     jt.append(j)
 
             if len(jt) != 0:
@@ -1243,12 +1243,12 @@ def lyap(emb_ts: np.ndarray, dt: int, w: int, sfreq: int, verbose = False):
             # Construct separation data
             for delta in range(0,dt):
                 if len(jt) != 0:
-                    lnd.append(np.log(dist(emb_ts[:,i + delta],emb_ts[:,js + delta])))
+                    lnd.append(np.log(ds[i +delta,js + delta]))
                 else:
                     lnd.append(np.nan)
 
     # Reshape results
-    lnd = np.asarray(lnd).reshape((N - dt,dt))
+    lnd = np.asarray(lnd).reshape((T - dt,dt))
 
     # Get slope for largest Lyapunov exponent
     x = np.asarray([i for i in range (0,dt)])
@@ -1621,7 +1621,7 @@ def delay_time(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
 def correlation_sum(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, w: int, rvals: list, 
-                    m_norm: bool, window = None, cython = False):
+                    m_norm = False, window = None, cython = False):
 
     if cython == True:
 
@@ -1670,7 +1670,7 @@ def correlation_sum(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 # Recurrence Plot of channel time series of a specific trial
 def recurrence_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, rvals: list, 
-                    m_norm: bool, window = None, cython = False):
+                    m_norm = False, window = None, cython = False):
 
     if cython == True:
 
@@ -1719,7 +1719,7 @@ def recurrence_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
 def separation_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, percentiles: list,
-                    m_norm: bool, window = None, cython = False):
+                    m_norm = False, window = None, cython = False):
 
     percentiles = np.asarray(percentiles, dtype = np.int8)
 
@@ -1746,13 +1746,13 @@ def separation_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
                     dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
-                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
+                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = emb_ts.shape[1])
 
                 else:
 
                     dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
-                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = T)
+                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = emb_ts.shape[1])
 
                 SP.append(sp)
 
@@ -1808,7 +1808,11 @@ def information_dimension(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|
 # Largest lyapunov exponent of channel time series
 def lyapunov(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple, 
              embeddings: list, tau: str|int, w: int, dt = None,
-             window = None, verbose = False):
+             m_norm = False, window = None, cython = False, verbose = False):
+
+    if cython == True:
+
+        from cython_modules import c_core
 
     # Get sampling frequency
     sfreq = MNE.info['sfreq']
@@ -1839,7 +1843,16 @@ def lyapunov(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple,
             for m in embeddings:
 
                 emb_ts = multi_embedding(c_ts = t, embedding = m, tau = tau)
-                ly, e_ly, _, _, _ = lyap(emb_ts, dt = dt, w = w, sfreq = sfreq, verbose = verbose)
+
+                if cython == False:
+
+                    dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                else:
+
+                    dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
+
+                ly, e_ly, _, _, _ = lyap(dist_matrix = dist_matrix, dt = dt, w = w, sfreq = sfreq, T = emb_ts.shape[1], verbose = verbose)
 
                 LY.append(ly)
                 E_LY.append(e_ly)

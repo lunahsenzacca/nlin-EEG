@@ -203,11 +203,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
         pp(variables, depth = 1, width = 60)
         print('')
 
-    clst = variables['clustered']
-
-    conditions = variables['conditions']
-
-    if info['obs_name'] in ['corrsum','correxp','peaks','plateaus']:
+    if info['obs_name'] in ['corrsum','correxp','llyap','peaks','plateaus']:
 
         # Initzialize list of labels for data
         labels = [variables['subjects'],[cond_dict[i] for i in variables['conditions']],variables['pois'],variables['embeddings'],[instructions['e_title']]]
@@ -372,9 +368,13 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
 
         multi_idxs = instructions['reduce_multi']
 
-    else:
+    elif instructions['avg'] == 'none':
 
         multi_idxs = [i for i in range(0,len(plot_l))]
+
+    elif instructions['avg'] == 'sub' and instructions['multiplot'] == 'subjects':
+
+        multi_idxs = [0]
 
     if info['obs_name'] in ['delay']:
 
@@ -512,7 +512,7 @@ def plot_1dfunction(OBS: np.ndarray, E_OBS: np.ndarray, X: list, multi_idxs: lis
         ax_iter = [axs]
     else:
         ax_iter = axs.flat[:len(multi_idxs)]
-    
+
     first = True
     for j, ax in zip(multi_idxs, ax_iter):
 

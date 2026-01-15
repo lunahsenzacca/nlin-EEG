@@ -134,7 +134,7 @@ def mp_ce_plateaus():
     variables['max_points'] = max_points
 
     with open(sv_path + 'variables.json', 'w') as f:
-        json.dump(variables, f, indent = 3)
+        json.dump(variables, f, indent = 2)
 
     print('\nResults common shape: ', P[0].shape[1:])
 
@@ -149,7 +149,7 @@ def mp_ce_plateaus():
 
     return
 
-# Launch script with 'python -m idim' in appropriate conda enviroment
+# Script main method
 if __name__ == '__main__':
 
     print('\n    CORRELATION EXPONENT PLATEAUS SCRIPT')
