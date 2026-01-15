@@ -12,19 +12,23 @@
 
   enterShell = ''
     hello
-    cd Compute
     source .aliases
   '';
 
   packages = with pkgs; [
+
+    kitty
+    micro
+
     gcc
     libz
-    micro
     python313Packages.qtpy
     python313Packages.pyqt6
     python313Packages.pyside6
     python313Packages.pyqtgraph
+
   ];
+
   languages.python.enable = true;
   languages.python.version = "3.13";
   languages.python.venv.enable = true;
