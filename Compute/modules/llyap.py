@@ -163,8 +163,7 @@ def mp_loadMNEs():
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
-                       leave = False)
-                       )
+                       leave = False))
 
     # Create flat iterable list of evokeds images
     MNEs_iters, points = flatMNEs(MNEs = MNEs)

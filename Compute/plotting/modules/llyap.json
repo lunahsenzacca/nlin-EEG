@@ -7,8 +7,8 @@
 	"reduce_method": "trivial",
 	"ylabel": "$\\lambda_{max}(m)$",
 	"xlim": [null,null],
-	"ylim": [0,30],
+	"ylim": [0,20],
 	"style": "curve",
 	"legend_t": "Condition",
-  "colormap": "tab20c"
+ 	"colormap": "tab20c"
 }

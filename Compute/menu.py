@@ -510,8 +510,9 @@ def launch():
     os.makedirs('.tmp/modules/', exist_ok = True)
 
     # Experiment info
-    with open('.tmp/info.json', 'w') as f:
+    with open('.tmp/info.json', 'w') as f, open('.tmp/last.json') as l:
         json.dump(info, f, indent = 2)
+        json.dump(info, l, indent = 2)
 
     # Script parameters
     with open(f'.tmp/modules/{obs_name}.json', 'w') as f:
@@ -578,13 +579,20 @@ def plot():
 
         import subprocess
 
-        default_opt = inq.prompt(input[2])['default_opt']
+        keep_editing = 0
+        while keep_editing == 0:
 
-        if default_opt != 'basic':
+            default_opt = inq.prompt(input[2])['default_opt']
 
-            default_opt = 'modules/' + default_opt
+            if default_opt != 'basic':
 
-        subprocess.call(['micro', f'plotting/{default_opt}.json'])
+                default_opt = 'modules/' + default_opt
+
+            subprocess.call(['micro', f'plotting/{default_opt}.json'])
+
+            keep_editing = not inq.confirm('Edit another?', default = True)
+
+            print('')
 
     if 'Edi' not in plot_opt:
 
@@ -647,7 +655,7 @@ if __name__ == '__main__':
             plot()
         elif 'Relau' in mode:
             # Experiment info
-            with open('./.tmp/info.json', 'r') as f:
+            with open('./.tmp/last.json', 'r') as f:
                 info = json.load(f)
 
             cmd = f'python -m modules.{info['obs_name']}'
@@ -662,3 +670,5 @@ if __name__ == '__main__':
                 os.system(cmd)
 
         keep_open = not inq.confirm('Keep messing around?')
+
+        print('')
