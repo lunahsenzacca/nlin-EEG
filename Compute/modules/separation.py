@@ -89,9 +89,9 @@ avg_trials = True
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
-    clt = True
+    clst = True
 else:
-    clt = False
+    clst = False
 
 # Get method string
 if avg_trials == True:
@@ -121,15 +121,18 @@ percentiles = parameters['percentiles']
 
 # Dictionary for computation variables
 variables = {   
+                'obs_name': obs_name,
+                'calc_lb': calc_lb,
+
                 'tau' : tau,
-                'window' : window,
                 'm_norm': m_norm,
-                'clustered' : clt,
+                'percentiles' : percentiles,
+
+                'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
-                'embeddings' : embeddings,
-                'percentiles' : percentiles
+                'window' : window
             }
 
 ### DATA PATHS ###

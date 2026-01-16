@@ -9,4 +9,4 @@ alias menu='cd Compute && python -m menu; cd ..'
 alias convert='cd Compute && python -m makedata.toMNE; cd ..'
 
 # Launch t.py in a ipython shell
-alias nb='cd Compute && ipython -i Compute/t.py; cd ..'
+alias nb='cd Compute && ipython -i t.py; cd ..'

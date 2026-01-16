@@ -1,12 +1,21 @@
 import json
+from os.path import isfile
 
 # Print data with wrapper
 # Info dictionary about observable
-with open('./.tmp/info.json', 'r') as f:
+with open('.tmp/info.json', 'r') as f:
 
     info = json.load(f)
 
-extra_instructions = {}
+# Plotting instructions ovverides
+if isfile('.tmp/extra_instructions.json') == True and info['extra_instructions'] == True:
+
+    with open('.tmp/extra_instructions.json', 'r') as f:
+        extra_instructions = json.load(f)
+
+else:
+
+    extra_instructions = {}
 
 # Import the wrapper 
 from plotting.wrappers import simple_plot

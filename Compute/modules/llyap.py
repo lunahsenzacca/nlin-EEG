@@ -74,9 +74,9 @@ window = info['window']
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
-    clt = True
+    clst = True
 else:
-    clt = False
+    clst = False
 
 # Get method string
 if avg_trials == True:
@@ -89,11 +89,11 @@ else:
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
 
-# Embedding dimensions
-embeddings = parameters['embeddings']
-
 # Set different time delay for each time series
 tau = parameters['tau']
+
+# Embedding dimensions
+embeddings = parameters['embeddings']
 
 # Theiler window
 w = parameters['w']
@@ -106,16 +106,20 @@ m_norm = parameters['m_norm']
 
 # Dictionary for computation variables
 variables = {   
-                'tau' : tau,
+                'obs_name': obs_name,
+                'calc_lb': calc_lb,
+
+                'tau': tau,
+                'embeddings': embeddings,
                 'w': w,
                 'dt': dt,
-                'window' : window,
                 'm_norm': m_norm,
-                'clustered' : clt,
+
+                'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
-                'embeddings' : embeddings
+                'window' : window
             }
 
 ### DATA PATHS ###

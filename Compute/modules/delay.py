@@ -77,9 +77,9 @@ calc_lb = parameters['calc_lb']
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
-    clt = True
+    clst = True
 else:
-    clt = False
+    clst = False
 
 if avg_trials == True:
     method = 'avg_data'
@@ -88,13 +88,17 @@ else:
 
 # Dictionary for computation variables
 variables = {   
+                'obs_name': obs_name,
+                'calc_lb': calc_lb,
+
                 'tau_method': tau_method,
-                'window' : window,
-                'clustered' : clt,
                 'clst_method': clst_method,
+
+                'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
+                'window' : window
             }
 
 ### DATA PATHS ###

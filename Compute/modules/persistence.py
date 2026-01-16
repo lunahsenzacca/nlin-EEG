@@ -85,12 +85,16 @@ max_pairs = parameters['max_pairs']
 
 # Dictionary for computation variables
 variables = {   
-                'window' : window,
+                'obs_name': obs_name,
+                'calc_lb': calc_lb,
+
+                'max_pairs': max_pairs,
+
                 'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
-                'max_pairs': max_pairs,
+                'window' : window
             }
 
 ### DATA PATHS ###

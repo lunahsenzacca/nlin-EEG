@@ -1599,7 +1599,7 @@ def delay_time(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
     # Loop around pois time series
     for ts in TS:
-
+    ### FIX
         ctau = []
 
         for t in ts:

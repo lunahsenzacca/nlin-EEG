@@ -92,28 +92,32 @@ N = parameters['N']
 wf = parameters['wf']
 
 # Load frequency domain informations and get freqencies array
-info, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
+exp_info, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
 
 # Make a fake fft to get the same frequency binning
 f_ts = np.zeros(len(times))
 
 _, freqs = mne.time_frequency.psd_array_welch(f_ts,
-                    sfreq = info['sfreq'],  # Sampling frequency from the evoked data
-                    fmin = info['highpass'], fmax = info['lowpass'],  # Focus on the filter range
+                    sfreq = exp_info['sfreq'],  # Sampling frequency from the evoked data
+                    fmin = exp_info['highpass'], fmax = exp_info['lowpass'],  # Focus on the filter range
                     n_fft = int(len(f_ts)*wf),  # Length of FFT (controls frequency resolution)
                     n_per_seg = int(len(f_ts)/wf),
                     verbose = False)
 
 # Dictionary for computation variables
 variables = {   
-                'window' : window,
+                'obs_name': obs_name,
+                'calc_lb': calc_lb,
+
+                'N': N,
+                'window_factor': wf,
+                'freqs': list(freqs),
+
                 'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
-                'freqs': list(freqs),
-                'N': N,
-                'window_factor': wf,
+                'window' : window
             }
 
 ### DATA PATHS ###
@@ -155,9 +159,8 @@ def mp_loadMNE():
                        unit = 'sub',
                        total = len(sub_list),
                        leave = False,
-                       dynamic_ncols = True)
-                       )
-    
+                       dynamic_ncols = True))
+
     # Create flat iterable list of MNE objects
     MNEs_iters, points = flatMNEs(MNEs = loaded)
 

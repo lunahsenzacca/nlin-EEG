@@ -386,51 +386,55 @@ def i_launch_opt(info: dict):
 
     return plot_opt, quit_opt
 
-# Plot option input
+# Plot options input
 def i_plot_opt():
 
     defaults = os.listdir('plotting/modules')
 
+    saved = []
+    for root, dirs, files in os.walk('../Cargo/results', topdown = False):
+        for name in files:
+            if name == 'info.json':
+
+                relpath = os.path.relpath(root, start = '../Cargo/results')
+                saved.append(relpath)
+
     for i, d in enumerate(defaults):
         defaults[i] = d.split('.')[0]
 
-    input = [
+    if len(saved) == 0:
+        opt = ['Edit plotting defaults...']
+    else:
+        opt = [f'Choose from saved... ({len(saved)} found)', 'Edit plotting defaults...']
+
+    if os.path.isfile('.tmp/info.json') == True:
+
+        opt = ['Last computation'] + opt
+
+    inputs = [
         [
             inq.List('plot_opt',
                     message = 'What do you want to plot?',
-                    choices = ['Last computation', 'Choose from saved...','Edit plotting defaults...'],
+                    choices = opt,
+            )
+        ],[
+            inq.List('saved_opt',
+                    message = 'Found the following saved results',
+                    choices = saved,
             )
         ],[
             inq.List('default_opt',
                     message = 'Choose defaults to edit',
-                    choices = defaults,
+                    choices = ['basic'] + defaults,
             )
         ],[
             inq.Confirm('plot_def',
-                    message = 'Edit plotting options?',
+                    message = 'Edit plotting options? (Without changing defaults)',
             )
         ]
     ]
 
-    plot_opt = inq.prompt(input[0])['plot_opt']
-
-    if 'Las' in plot_opt:
-
-        info_path = '.tmp/info.json'
-
-    elif 'Choo' in plot_opt:
-
-        print('Hehe')
-
-    elif 'Edi' in plot_opt:
-
-        import subprocess
-
-        default_opt = inq.prompt(input[1])['default_opt']
-
-        subprocess.call(['micro', f'plotting/modules/{default_opt}.json'])
-
-    return
+    return inputs
 
 # Initial selection, choose between launch and plot
 def cmode():
@@ -493,22 +497,26 @@ def launch():
     ## Prompt for compute or plot or both
     plot_opt, quit_opt = i_launch_opt(info)
     if quit_opt == True:
-        return
+        keep_open = 1
+        return keep_open
 
     # Add plot opt to info for relaunch option
     info['plot_opt'] = plot_opt
 
+    # Set extra instructions for plotting to false FOR NOW
+    info['extra_instructions'] = False
+
     ## Dump choices in .tmp folder for execution
-    os.makedirs('./.tmp/modules/', exist_ok = True)
-    
+    os.makedirs('.tmp/modules/', exist_ok = True)
+
     # Experiment info
-    with open('./.tmp/info.json', 'w') as f:
+    with open('.tmp/info.json', 'w') as f:
         json.dump(info, f, indent = 2)
 
     # Script parameters
-    with open(f'./.tmp/modules/{obs_name}.json', 'w') as f:
+    with open(f'.tmp/modules/{obs_name}.json', 'w') as f:
         json.dump(parameters, f, indent = 2)
-    
+
     cmd = f'python -m modules.{obs_name}'
 
     os.system(cmd)
@@ -516,40 +524,110 @@ def launch():
     ## Launch compiled plotting
 
     if plot_opt == True:
-    
+
         cmd = 'python -m plotting.plot'
 
         os.system(cmd)
-    
-    return
+
+    return 0
 
 # Plot some results
 def plot():
 
-    print('\n\tPLOTTING\n')
-    
-    ## Prompt for preprocessed dataset name, and clust_lb of saved data
+    # Import plotting options menu
+    input = i_plot_opt()
 
-    i_plot_opt()
+    plot_opt = inq.prompt(input[0])['plot_opt']
 
-    ## Prompt for existing calculations for selected
+    info_path = ''
 
-    '''ADD LIST SELECTION'''
-    
-    ## Print default parameters and prompt for changing
+    if 'Las' in plot_opt:
 
-    '''ADD PARAMETER INPUTS'''
+        info_file = '.tmp/info.json'
 
-    ## PLACEHOLDER, WILL LAUNCH PLOTTING WITH SIMPLE_PLOT
-    cmd = 'python -m t_plotting'
+    elif 'Choo' in plot_opt:
 
-    os.system(cmd)
+        keep_choosing = 0
+        while keep_choosing == 0:
 
-    ## Launch compiled plotting    
-    #from plotting import simple_plot
-    
-    #simple_plot
-    
+            info_path = '../Cargo/results/' + inq.prompt(input[1])['saved_opt']
+            info_file = info_path + '/info.json'
+
+            with open(info_path + '/variables.json', 'r') as f:
+                variables = json.load(f)
+
+            print('     CALCULATION INFO:\n')
+
+            print(f'Module: {variables['obs_name']}')
+            if variables['calc_lb'] is not None:
+                print(f'Calculation: {variables['calc_lb']}')
+
+            print('')
+
+            for key in list(variables.keys())[2:]:  
+
+                pp({key: variables[key]}, depth = 1, width = 30, compact = True)
+
+            print('')
+
+            keep_choosing = not inq.confirm('Choose another?')
+
+            print('')
+
+    elif 'Edi' in plot_opt:
+
+        import subprocess
+
+        default_opt = inq.prompt(input[2])['default_opt']
+
+        if default_opt != 'basic':
+
+            default_opt = 'modules/' + default_opt
+
+        subprocess.call(['micro', f'plotting/{default_opt}.json'])
+
+    if 'Edi' not in plot_opt:
+
+        with open(info_file, 'r') as f:
+            info = json.load(f)
+
+        plot_def = inq.prompt(input[3])['plot_def']
+
+        if plot_def == True:
+
+            import subprocess
+
+            info['extra_instructions'] = True
+
+            with open('plotting/basic.json', 'r') as f:
+
+                instructions = json.load(f)
+
+            with open(f'plotting/modules/{info['obs_name'] + '.json'}', 'r') as f:
+
+                obs_instructions = json.load(f)
+
+            for key in obs_instructions.keys():
+
+                instructions[key] = obs_instructions[key]
+
+            with open('.tmp/extra_instructions.json', 'w') as f:
+
+                json.dump(instructions, f, indent = 2)
+
+            subprocess.call(['micro','.tmp/extra_instructions.json'])
+
+        else:
+
+            info['extra_instructions'] = False
+
+        with open('.tmp/info.json', 'w') as f:
+            json.dump(info, f, indent = 2)
+
+        cmd = 'python -m plotting.plot'
+
+        os.system(cmd)
+
     return
 
 if __name__ == '__main__':
@@ -559,24 +637,28 @@ if __name__ == '__main__':
 
     print('\n\n\n',logo,'\n\n\n')
 
-    mode = cmode()
+    keep_open = 0
+    while keep_open == 0:
+        mode = cmode()
 
-    if 'Lau' in mode:
-        launch()
-    elif 'Plo' in mode:
-        plot()
-    elif 'Relau' in mode:
-        # Experiment info
-        with open('./.tmp/info.json', 'r') as f:
-            info = json.load(f)
+        if 'Lau' in mode:
+            keep_open = launch()
+        elif 'Plo' in mode:
+            plot()
+        elif 'Relau' in mode:
+            # Experiment info
+            with open('./.tmp/info.json', 'r') as f:
+                info = json.load(f)
 
-        cmd = f'python -m modules.{info['obs_name']}'
-
-        os.system(cmd)
-
-        ## Launch compiled plotting
-        if info['plot_opt'] == True:
-        
-            cmd = 'python -m plotting.plot'
+            cmd = f'python -m modules.{info['obs_name']}'
 
             os.system(cmd)
+
+            ## Launch compiled plotting
+            if info['plot_opt'] == True:
+
+                cmd = 'python -m plotting.plot'
+
+                os.system(cmd)
+
+        keep_open = not inq.confirm('Keep messing around?')

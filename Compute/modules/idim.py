@@ -90,19 +90,23 @@ frc = [0, 1]
 
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
-    clt = True
+    clst = True
 else:
-    clt = False
+    clst = False
 
 # Dictionary for computation variables
 variables = {   
+                'obs_name': obs_name,
+                'calc_lb': calc_lb,
+
                 'tau' : tau,
-                'window' : frc,
-                'clustered' : clt,
+                'embeddings' : embeddings,
+
+                'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
-                'embeddings' : embeddings
+                'window' : window
             }
 
 ### SCRIPT FOR COMPUTATION ###

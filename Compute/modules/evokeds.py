@@ -85,12 +85,16 @@ _, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = wind
 
 # Dictionary for computation variables
 variables = {   
-                'window' : window,
+                'obs_name': obs_name,
+                'calc_lb': calc_lb,
+
+                't': list(times),
+
                 'clustered' : clst,
                 'subjects' : sub_list,
                 'conditions' : conditions,
                 'pois' : ch_list,
-                't': list(times)
+                'window' : window
             }
 
 ### DATA PATHS ###
