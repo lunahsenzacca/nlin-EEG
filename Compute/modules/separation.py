@@ -37,7 +37,7 @@ chunksize = 1
 ### CYTHON DEBUG PARAMETERS ###
 
 # Cython implementation of the script
-cython = True
+cython = False
 cython_verbose = False
 
 ### SCRIPT PARAMETERS ###

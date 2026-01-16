@@ -1599,22 +1599,22 @@ def delay_time(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
     # Loop around pois time series
     for ts in TS:
-    ### FIX
-        ctau = []
 
         for t in ts:
 
-            if tau_method == 'mutual_information':
-                ctau.append(MI_for_delay(t))
+            ctau = []
+            for t_ in t:
+                if tau_method == 'mutual_information':
+                    ctau.append(MI_for_delay(t_))
 
-            elif tau_method == 'autocorrelation':
-                ctau.append(autoCorrelation_tau(t))
+                elif tau_method == 'autocorrelation':
+                    ctau.append(autoCorrelation_tau(t_))
 
-        if clst_method == 'mean':
-            tau.append(np.asarray(ctau).mean())
+            if clst_method == 'mean':
+                tau.append(np.asarray(ctau).mean())
 
-        elif clst_method == 'append':
-            tau.append(np.asarray(ctau).max())
+            elif clst_method == 'append':
+                tau.append(np.asarray(ctau).max())
 
     return tau
 

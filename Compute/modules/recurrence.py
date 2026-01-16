@@ -36,7 +36,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Cython implementation of the script
-cython = True
+cython = False
 cython_verbose = False
 
 # Dataset name

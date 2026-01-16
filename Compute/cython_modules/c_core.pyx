@@ -49,7 +49,9 @@ cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] distance_matrix(cnp.ndarray[DTYPEfloat
 
     cdef:
 
-        cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix = np.full((N,N), 0, dtype = DTYPEfloat)
+        int T = emb_ts.shape[1]
+
+        cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix = np.full((T,T), 0, dtype = DTYPEfloat)
 
         Py_ssize_t N = emb_ts.shape[1]
         Py_ssize_t i, j
@@ -98,8 +100,10 @@ cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] sep_plt(cnp.ndarray[DTYPEfloat_t, ndim
 
     cdef:
 
-        cnp.ndarray[DTYPEfloat_t, ndim = 1] perc = np.full((n), 0, dtype = DTYPEfloat)
-        cnp.ndarray[DTYPEfloat_t, ndim = 2] splt = np.full((n,T), 0, dtype = DTYPEfloat)
+        int m = percentiles.shape[0]
+
+        cnp.ndarray[DTYPEfloat_t, ndim = 1] perc = np.full((m), 0, dtype = DTYPEfloat)
+        cnp.ndarray[DTYPEfloat_t, ndim = 2] splt = np.full((m,T), 0, dtype = DTYPEfloat)
 
         Py_ssize_t N = dist_matrix.shape[0]
         Py_ssize_t n = percentiles.shape[0]
@@ -115,7 +119,7 @@ cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] sep_plt(cnp.ndarray[DTYPEfloat_t, ndim
 
             dist.append(dist_matrix[j][i + j])
 
-        if (N - i) > 2*n:
+        if (N - i) > 2*m:
 
             perc = np.percentile(dist, percentiles)
 
