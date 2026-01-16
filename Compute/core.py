@@ -37,7 +37,7 @@ from teaspoon.SP.information.entropy import PE
 # Zero Dimensional Sublevel Set Persistance Diagrams
 from teaspoon.TDA.SLSP import Persistence0D
 
-# Compute cutoff for Persistence Features
+# Compute cutoff for Persistence Features (Not Used For Now...)
 from teaspoon.TDA.SLSP_tools import cutoff
 
     # Scipy library #

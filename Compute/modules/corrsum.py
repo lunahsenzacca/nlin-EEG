@@ -203,8 +203,7 @@ def mp_correlation_sum(MNEs_iters: list, points: list):
                             unit = 'trl',
                             total = len(MNEs_iters),
                             leave = True,
-                            dynamic_ncols = True)
-                        )
+                            dynamic_ncols = True))
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r)]
@@ -220,6 +219,9 @@ def mp_correlation_sum(MNEs_iters: list, points: list):
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', CS[0].shape[1:])
 

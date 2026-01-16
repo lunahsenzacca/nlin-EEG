@@ -26,7 +26,7 @@ maind = get_maind()
 
 ### MULTIPROCESSIN PARAMETERS ###
 
-workers = 14
+workers = 10
 chunksize = 1
 
 ### LOAD PARAMETERS ###
@@ -99,13 +99,12 @@ def mp_ce_plateaus():
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results_ = list(tqdm(p.imap(it_ce_plateaus, CE_iters), #chunksize = chunksize),
-                       desc = 'Computing trials ',
-                       unit = 'trl',
-                       total = len(CE_iters),
-                       leave = True,
-                       dynamic_ncols = True)
-                        )
+        results_ = list(tqdm(p.imap(it_ce_plateaus, CE_iters, chunksize = chunksize),
+                            desc = 'Computing trials ',
+                            unit = 'trl',
+                            total = len(CE_iters),
+                            leave = True,
+                            dynamic_ncols = True))
 
     p_results = []
     e_p_results = []

@@ -64,6 +64,12 @@ ch_list = info['ch_list']
 # Time window
 window = info['window']
 
+# Get method string
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
 ### DATA PATHS ###
 
 # Label of Correlation Sum calculation
@@ -74,6 +80,10 @@ calc_lb = parameters['calc_lb']
 
 # Processed data
 path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = load_calc_lb)
+
+# Get parameters for initzialization
+with open(path + 'variables.json', 'r') as f:
+    variables = json.load(f)
 
 # Directory for saved results
 sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
@@ -93,10 +103,6 @@ cutoff = parameters['cutoff'] #5
 if gauss_filter == False:
     scale = None
     cutoff = None
-
-# Get log_r for initzialization
-with open(path + 'variables.json', 'r') as f:
-    variables = json.load(f)
 
 # Get available embeddings 
 embeddings = variables['embeddings']
@@ -139,13 +145,12 @@ def mp_correlation_exponent():
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results_ = list(tqdm(p.imap(it_correlation_exponent, log_CS_iters), #chunksize = chunksize),
+        results_ = list(tqdm(p.imap(it_correlation_exponent, log_CS_iters, chunksize = chunksize),
                        desc = 'Computing subjects ',
                        unit = 'sub',
                        total = len(log_CS_iters),
                        leave = True,
-                       dynamic_ncols = True)
-                        )
+                       dynamic_ncols = True))
 
     results = []
     e_results = []
@@ -177,6 +182,9 @@ def mp_correlation_exponent():
 
     with open(sv_path + 'variables.json', 'w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', CE[0].shape[1:])
 

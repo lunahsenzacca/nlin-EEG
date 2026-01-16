@@ -167,7 +167,7 @@ def i_channels(exp_name: str):
             )
         ],[
             inq.Text('ch_list',
-                     message = 'Type desired Channels names separated by \',\'',
+                     message = 'Type desired Clusters separated by \'#\' and individual Channels by \',\'',
                      validate = list_validator(pois)
             )
         ],[
@@ -278,6 +278,7 @@ def i_avg_trials():
     ]
 
     avg_trials = inq.prompt(input)['avg_trials']
+
     print('')
 
     return avg_trials
@@ -371,7 +372,7 @@ def i_launch_opt(info: dict):
     ]
 
     mode_opt = inq.prompt(input)['mode_opt']
-    
+
     quit_opt = False
     plot_opt = False
 
@@ -384,6 +385,52 @@ def i_launch_opt(info: dict):
         plot_opt = True
 
     return plot_opt, quit_opt
+
+# Plot option input
+def i_plot_opt():
+
+    defaults = os.listdir('plotting/modules')
+
+    for i, d in enumerate(defaults):
+        defaults[i] = d.split('.')[0]
+
+    input = [
+        [
+            inq.List('plot_opt',
+                    message = 'What do you want to plot?',
+                    choices = ['Last computation', 'Choose from saved...','Edit plotting defaults...'],
+            )
+        ],[
+            inq.List('default_opt',
+                    message = 'Choose defaults to edit',
+                    choices = defaults,
+            )
+        ],[
+            inq.Confirm('plot_def',
+                    message = 'Edit plotting options?',
+            )
+        ]
+    ]
+
+    plot_opt = inq.prompt(input[0])['plot_opt']
+
+    if 'Las' in plot_opt:
+
+        info_path = '.tmp/info.json'
+
+    elif 'Choo' in plot_opt:
+
+        print('Hehe')
+
+    elif 'Edi' in plot_opt:
+
+        import subprocess
+
+        default_opt = inq.prompt(input[1])['default_opt']
+
+        subprocess.call(['micro', f'plotting/modules/{default_opt}.json'])
+
+    return
 
 # Initial selection, choose between launch and plot
 def cmode():
@@ -483,19 +530,7 @@ def plot():
     
     ## Prompt for preprocessed dataset name, and clust_lb of saved data
 
-    # Get exp_name
-    exp_name = inq.prompt(m_input(0))['exp_name']
-
-    # Get clust_lb [ADD DEFAULT COLLECTION OF CLUSTERS]
-    #clust_lb = inq.prompt(c_input)['clust_lb']
-    
-    ## Prompt for trial averaging
-
-    avg_trials = inq.prompt(m_input(10, exp_name))['avg_trials']
-
-    ## Prompt for module
-
-    obs_name = inq.prompt(m_input(11))['obs_name']
+    i_plot_opt()
 
     ## Prompt for existing calculations for selected
 

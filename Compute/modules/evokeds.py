@@ -75,6 +75,11 @@ if type(ch_list) == tuple:
 else:
     clst = False
 
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
 # Load frequency domain informations and get freqencies array
 _, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
 
@@ -89,11 +94,6 @@ variables = {
             }
 
 ### DATA PATHS ###
-
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
 
 # Processed data
 path = maind[exp_name]['directories'][method]
@@ -159,8 +159,9 @@ def mp_evokeds(MNEs_iters: list, points: list):
                             unit = 'trl',
                             total = len(MNEs_iters),
                             leave = True,
-                            dynamic_ncols = True)
-                        )
+                            dynamic_ncols = True))
+
+    # Get separate results lists
     results = []
     e_results = []
     for r in results_:
@@ -184,6 +185,9 @@ def mp_evokeds(MNEs_iters: list, points: list):
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', EV[0].shape[1:])
 

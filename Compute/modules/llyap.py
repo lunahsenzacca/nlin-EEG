@@ -144,7 +144,7 @@ def it_lyapunov(MNE_l: list):
                         dt = dt, w = w, m_norm = m_norm,
                         cython= cython, window = window, verbose = False)
 
-    return [LY, E_LY]
+    return LY, E_LY
 
 # Build evoked loading multiprocessing function
 def mp_loadMNEs():
@@ -187,41 +187,48 @@ def mp_lyapunov(MNEs_iters: list, points: list):
     # Launch Pool multiprocessing
     from multiprocessing import Pool
     with Pool(workers) as p:
-        
-        results = list(tqdm(p.imap(it_lyapunov, MNEs_iters), #chunksize = chunksize),
-                                        desc = 'Computing channels time series',
-                                        unit = 'trl',
-                                        total = len(MNEs_iters),
-                                        leave = True,
-                                        dynamic_ncols = True)
-                                    )
+
+        results_ = list(tqdm(p.imap(it_lyapunov, MNEs_iters, chunksize = chunksize),
+                            desc = 'Computing channels time series',
+                            unit = 'trl',
+                            total = len(MNEs_iters),
+                            leave = True,
+                            dynamic_ncols = True))
 
     # Get separate results lists
-    r = [[ly for ly in trial[0]] for trial in results]
-    e_r = [[e_ly for e_ly in trial[1]] for trial in results]
+    results = []
+    e_results = []
+    for r in results_:
+
+        results.append(r[0])
+        e_results.append(r[1])
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
 
-    LY = collapse_trials(results = r, points = points, fshape = fshape, e_results = e_r)
+    LY = collapse_trials(results = results, points = points, fshape = fshape, e_results = e_results)
 
     print('\nDONE!')
 
-   # Save results to local
+    # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
     np.savez(sv_path + f'{obs_name}.npz', *LY)
 
     with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables,f, indent = 2)
+        json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', LY[0].shape[1:])
 
     if avg_trials == False:
 
         print('\nTrials\n')
-    
+
         for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
+
             print(f'{prod}: ', LY[c].shape[0])
 
     print('')

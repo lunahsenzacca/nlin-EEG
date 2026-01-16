@@ -196,8 +196,7 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
                             unit = 'trl',
                             total = len(evoks_iters),
                             leave = True,
-                            dynamic_ncols = True)
-                        )
+                            dynamic_ncols = True))
 
     lenght = int(frc[1]*maind[exp_name]['T']) - int(frc[0]*maind[exp_name]['T']) - 1
 
@@ -215,6 +214,9 @@ def mp_recurrence_plot(evoks_iters: list, points: list):
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', RP[0].shape[1:])
 

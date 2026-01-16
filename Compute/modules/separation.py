@@ -39,6 +39,7 @@ chunksize = 1
 # Cython implementation of the script
 cython = True
 cython_verbose = False
+
 ### SCRIPT PARAMETERS ###
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
@@ -212,8 +213,7 @@ def mp_separation_plot(MNEs_iters: list, points: list):
                             unit = 'trl',
                             total = len(MNEs_iters),
                             leave = True,
-                            dynamic_ncols = True)
-                        )
+                            dynamic_ncols = True))
 
     lenght = int(i_window[1]*maind[exp_name]['T']) - int(i_window[0]*maind[exp_name]['T']) - 1
 
@@ -227,12 +227,16 @@ def mp_separation_plot(MNEs_iters: list, points: list):
     # Save results to local
     os.makedirs(sv_path, exist_ok = True)
 
-    np.savez(sv_path + 'separation.npz', *SP)
+    np.savez(sv_path + f'{obs_name}.npz', *SP)
 
     variables['dt'] = [i for i in range(0,lenght)]
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
+
 
     print('\nResults common shape: ', SP[0].shape[1:])
 

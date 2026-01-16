@@ -81,6 +81,11 @@ if type(ch_list) == tuple:
 else:
     clt = False
 
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
 # Dictionary for computation variables
 variables = {   
                 'tau_method': tau_method,
@@ -93,11 +98,6 @@ variables = {
             }
 
 ### DATA PATHS ###
-
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
 
 # Processed data
 path = maind[exp_name]['directories'][method]
@@ -164,9 +164,8 @@ def mp_delay_time(MNEs_iters: list, points: list):
                             unit = 'trl',
                             total = len(MNEs_iters),
                             leave = True,
-                            dynamic_ncols = True)
-                        )
-    
+                            dynamic_ncols = True))
+
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list)]
 
@@ -181,6 +180,9 @@ def mp_delay_time(MNEs_iters: list, points: list):
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', tau[0].shape[1:])
 

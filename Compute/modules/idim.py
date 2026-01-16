@@ -167,7 +167,7 @@ def mp_information_dimension(evoks_iters: list, points: list):
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results = list(tqdm(p.imap(it_information_dimension, evoks_iters), #chunksize = chunksize),
+        results = list(tqdm(p.imap(it_information_dimension, evoks_iters, chunksize = chunksize),
                                         desc = 'Computing channels time series',
                                         unit = 'trl',
                                         total = len(evoks_iters),
@@ -195,6 +195,9 @@ def mp_information_dimension(evoks_iters: list, points: list):
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults shape: ', d2.shape, '\n')
 

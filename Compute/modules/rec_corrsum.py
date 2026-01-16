@@ -92,7 +92,7 @@ def mp_correlation_sum():
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results_ = list(tqdm(p.imap(it_correlation_sum, RP_iters), #chunksize = chunksize),
+        results_ = list(tqdm(p.imap(it_correlation_sum, RP_iters, chunksize = chunksize),
                        desc = 'Computing trials ',
                        unit = 'trl',
                        total = len(RP_iters),

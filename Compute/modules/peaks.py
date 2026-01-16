@@ -95,13 +95,12 @@ def mp_ce_peaks():
     from multiprocessing import Pool
     with Pool(workers) as p:
         
-        results_ = list(tqdm(p.imap(it_ce_peaks, CE_iters), #chunksize = chunksize),
-                       desc = 'Computing subjects ',
-                       unit = 'sub',
-                       total = len(CE_iters),
-                       leave = True,
-                       dynamic_ncols = True)
-                        )
+        results_ = list(tqdm(p.imap(it_ce_peaks, CE_iters, chunksize = chunksize),
+                            desc = 'Computing subjects ',
+                            unit = 'sub',
+                            total = len(CE_iters),
+                            leave = True,
+                            dynamic_ncols = True))
 
     p_results = []
     e_p_results = []
@@ -132,12 +131,15 @@ def mp_ce_peaks():
     with open(sv_path + 'variables.json', 'w') as f:
         json.dump(variables, f, indent = 2)
 
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
+
     print('\nResults common shape: ', P[0].shape[1:])
 
     if avg_trials == False:
 
         print('\nTrials\n')
-    
+
         for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
             print(f'{prod}: ', P[c].shape[0])
 

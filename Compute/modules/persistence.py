@@ -64,20 +64,24 @@ ch_list = info['ch_list']
 # Time window
 window = info['window']
 
-### PARAMETERS FOR FREQUENCY SPECTRUM COMPUTATION ###
-
-# Label for parameter selection
-calc_lb = parameters['calc_lb']
-
-### ADD PARAMETERS
-
-max_pairs = parameters['max_pairs']
-
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
     clst = True
 else:
     clst = False
+
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
+### PARAMETERS FOR PERSISTENCE COMPUTATION ###
+
+# Label for parameter selection
+calc_lb = parameters['calc_lb']
+
+# Maximum number of persistance feature returned
+max_pairs = parameters['max_pairs']
 
 # Dictionary for computation variables
 variables = {   
@@ -87,7 +91,6 @@ variables = {
                 'conditions' : conditions,
                 'pois' : ch_list,
                 'max_pairs': max_pairs,
-### ADD PARAMETERS
             }
 
 ### DATA PATHS ###
@@ -159,15 +162,15 @@ def mp_persistence(MNEs_iters: list, points: list):
                             unit = 'trl',
                             total = len(MNEs_iters),
                             leave = True,
-                            dynamic_ncols = True)
-                        )
+                            dynamic_ncols = True))
+
     resultsPS = []
     resultsTPS = []
     for r in results_:
 
         resultsPS.append(r[0])
         resultsTPS.append(r[1])
-    
+
     # Create homogeneous arrays for results
     fshape = [len(sub_list),len(conditions),len(ch_list),max_pairs,4]
 
@@ -187,6 +190,9 @@ def mp_persistence(MNEs_iters: list, points: list):
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', PS[0].shape[1:])
 

@@ -68,6 +68,18 @@ ch_list = info['ch_list']
 # Time window
 window = info['window']
 
+# Check if we are clustering electrodes
+if type(ch_list) == tuple:
+    clst = True
+else:
+    clst = False
+
+# Get method string
+if avg_trials == True:
+    method = 'avg_data'
+else:
+    method = 'trl_data'
+
 ### PARAMETERS FOR FREQUENCY SPECTRUM COMPUTATION ###
 
 # Label for parameter selection
@@ -78,12 +90,6 @@ N = parameters['N']
 
 # Window factor for frequency space resolution
 wf = parameters['wf']
-
-# Check if we are clustering electrodes
-if type(ch_list) == tuple:
-    clst = True
-else:
-    clst = False
 
 # Load frequency domain informations and get freqencies array
 info, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
@@ -111,11 +117,6 @@ variables = {
             }
 
 ### DATA PATHS ###
-
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
 
 # Processed data
 path = maind[exp_name]['directories'][method]
@@ -179,8 +180,8 @@ def mp_spectrum(MNEs_iters: list, points: list):
                             unit = 'trl',
                             total = len(MNEs_iters),
                             leave = True,
-                            dynamic_ncols = True)
-                        )
+                            dynamic_ncols = True))
+
     results = []
     e_results = []
     for r in results_:
@@ -204,6 +205,9 @@ def mp_spectrum(MNEs_iters: list, points: list):
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
+
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
 
     print('\nResults common shape: ', SP[0].shape[1:])
 
