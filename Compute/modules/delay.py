@@ -1,11 +1,11 @@
 # Usual suspects
 import os
 import json
-import mne
 
 import numpy as np
 
-from tqdm import tqdm
+# Multiprocessing wrapper
+from core import mp_wrapper
 
 # Sub-wise function for MNE file loading
 from core import loadMNE
@@ -132,22 +132,16 @@ def it_delay_time(MNE: list):
 # Build MNE loading multiprocessing function
 def mp_loadMNE():
 
-    print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
+    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
+    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
+                      workers = workers,
+                      chunksize = chunksize,
+                      desc = 'Loading data',
+                      unit = 'sub')
 
-        loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
-    
     # Create flat iterable list of MNE objects
-    MNEs_iters, points = flatMNEs(MNEs = loaded)
+    MNEs_iters, points = flatMNEs(MNEs = MNEs)
 
     print('\nDONE!')
 
@@ -159,21 +153,16 @@ def mp_delay_time(MNEs_iters: list, points: list):
     print('\nComputing Delay Time over each trial')
     print('\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-        
-        results = list(tqdm(p.imap(it_delay_time, MNEs_iters, chunksize = chunksize),
-                            desc = 'Computing channels time series',
-                            unit = 'trl',
-                            total = len(MNEs_iters),
-                            leave = True,
-                            dynamic_ncols = True))
+    results_ = mp_wrapper(it_delay_time, iterable = MNEs_iters,
+                          workers = workers,
+                          chunksize = chunksize,
+                          desc = 'Computing',
+                          unit = 'trl')
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list)]
 
-    tau = collapse_trials(results = results, points = points, fshape = fshape)
+    tau = collapse_trials(results = results_, points = points, fshape = fshape)
     
     print('\nDONE!')
 

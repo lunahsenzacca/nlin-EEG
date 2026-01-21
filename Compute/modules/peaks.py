@@ -99,8 +99,7 @@ def mp_ce_peaks():
                             desc = 'Computing subjects ',
                             unit = 'sub',
                             total = len(CE_iters),
-                            leave = True,
-                            dynamic_ncols = True))
+                            leave = True))
 
     p_results = []
     e_p_results = []

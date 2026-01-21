@@ -4,7 +4,8 @@ import json
 
 import numpy as np
 
-from tqdm import tqdm
+# Multiprocessing wrapper
+from core import mp_wrapper
 
 # Sub-wise function for evoked file loading
 from core import loadMNE
@@ -130,22 +131,16 @@ def it_persistence(MNE_l: list):
 # Build evoked/epochs loading multiprocessing function
 def mp_loadMNE():
 
-    print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
+    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
+    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
+                      workers = workers,
+                      chunksize = chunksize,
+                      desc = 'Loading data',
+                      unit = 'sub')
     
     # Create flat iterable list of MNE objects
-    MNEs_iters, points = flatMNEs(MNEs = loaded)
+    MNEs_iters, points = flatMNEs(MNEs = MNEs)
 
     print('\nDONE!')
 
@@ -157,16 +152,11 @@ def mp_persistence(MNEs_iters: list, points: list):
     print('\nComputing Fourier Transform over each trial')
     print('\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-        
-        results_ = list(tqdm(p.imap(it_persistence, MNEs_iters, chunksize = chunksize),
-                            desc = 'Computing channels time series',
-                            unit = 'trl',
-                            total = len(MNEs_iters),
-                            leave = True,
-                            dynamic_ncols = True))
+    results_ = mp_wrapper(it_persistence, iterable = MNEs_iters,
+                          workers = workers,
+                          chunksize = chunksize,
+                          desc = 'Computing',
+                          unit = 'trl')
 
     resultsPS = []
     resultsTPS = []

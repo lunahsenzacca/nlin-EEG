@@ -141,9 +141,7 @@ def mp_loadevokeds():
                        desc = 'Loading subjects ',
                        unit = 'sub',
                        total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
+                       leave = False))
 
     # Create flat iterable list of evokeds images
     evoks_iters, points = flat_evokeds(evokeds = evokeds)
@@ -175,10 +173,8 @@ def mp_information_dimension(evoks_iters: list, points: list):
                                         desc = 'Computing channels time series',
                                         unit = 'trl',
                                         total = len(evoks_iters),
-                                        leave = True,
-                                        dynamic_ncols = True)
-                                    )
-    
+                                        leave = True))
+
     # Get separate results lists
     r = [[D2 for D2 in trial[0]] for trial in results]
     e_r = [[e_D2 for e_D2 in trial[1]] for trial in results]

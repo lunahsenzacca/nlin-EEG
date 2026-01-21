@@ -149,8 +149,7 @@ def mp_correlation_exponent():
                        desc = 'Computing subjects ',
                        unit = 'sub',
                        total = len(log_CS_iters),
-                       leave = True,
-                       dynamic_ncols = True))
+                       leave = True))
 
     results = []
     e_results = []

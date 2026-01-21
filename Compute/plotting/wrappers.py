@@ -385,15 +385,6 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
     obs = np.permute_dims(OBS, rearrange)
     e_obs = np.permute_dims(E_OBS, rearrange)
 
-    if info['obs_name'] == 'spectrum':
-
-        o = obs.copy()
-
-        obs = np.log10(o)/10
-        e_obs = e_obs/(np.log(10)*o*10)
-
-        del o
-
     if instructions['X_transform'] != None:
 
         x_res = np.permute_dims(X_results, rearrange)

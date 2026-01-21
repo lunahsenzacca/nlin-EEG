@@ -96,11 +96,11 @@ cpdef cnp.ndarray[DTYPEint_t, ndim = 2] rec_plt(cnp.ndarray[DTYPEfloat_t, ndim =
 # Spacetime Separation Plot for a single embedded time series
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] sep_plt(cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix, cnp.ndarray[DTYPEint_t, ndim = 1] percentiles, int T):
+cpdef cnp.ndarray[DTYPEfloat_t, ndim = 2] sep_plt(cnp.ndarray[DTYPEfloat_t, ndim = 2] dist_matrix, list percentiles, int T):
 
     cdef:
 
-        int m = percentiles.shape[0]
+        int m = len(percentiles)
 
         cnp.ndarray[DTYPEfloat_t, ndim = 1] perc = np.full((m), 0, dtype = DTYPEfloat)
         cnp.ndarray[DTYPEfloat_t, ndim = 2] splt = np.full((m,T), 0, dtype = DTYPEfloat)

@@ -5,7 +5,8 @@ import mne
 
 import numpy as np
 
-from tqdm import tqdm
+# Multiprocessing wrapper
+from core import mp_wrapper
 
 # Sub-wise function for evoked file loading
 from core import loadMNE
@@ -134,35 +135,31 @@ sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_tr
 def it_loadMNE(subID: str):
 
     MNEs = loadMNE(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions, with_std = True)
+                   avg_trials = avg_trials, conditions = conditions,
+                   with_std = True)
 
     return MNEs
 
 # Build Spectrum Plotting iterable function
 def it_spectrum(MNE_l: list):
 
-    SP, E_SP = spectrum(MNE = MNE_l[0], s_MNE = MNE_l[1], ch_list = ch_list, N = N, wf = wf, window = window)
+    SP, E_SP = spectrum(MNE = MNE_l[0], sMNE = MNE_l[1], ch_list = ch_list, N = N, wf = wf, window = window)
 
     return SP, E_SP
 
 # Build evoked loading multiprocessing function
 def mp_loadMNE():
 
-    print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
+    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True))
+    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
+                      workers = workers,
+                      chunksize = chunksize,
+                      desc = 'Loading data',
+                      unit = 'sub')
 
     # Create flat iterable list of MNE objects
-    MNEs_iters, points = flatMNEs(MNEs = loaded)
+    MNEs_iters, points = flatMNEs(MNEs = MNEs)
 
     print('\nDONE!')
 
@@ -174,16 +171,11 @@ def mp_spectrum(MNEs_iters: list, points: list):
     print('\nComputing Fourier Transform over each trial')
     print('\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-        
-        results_ = list(tqdm(p.imap(it_spectrum, MNEs_iters, chunksize = chunksize),
-                            desc = 'Computing channels time series',
-                            unit = 'trl',
-                            total = len(MNEs_iters),
-                            leave = True,
-                            dynamic_ncols = True))
+    results_ = mp_wrapper(it_spectrum, iterable = MNEs_iters,
+                          workers = workers,
+                          chunksize = chunksize,
+                          desc = 'Computing',
+                          unit = 'trl')
 
     results = []
     e_results = []
@@ -193,6 +185,8 @@ def mp_spectrum(MNEs_iters: list, points: list):
         e_results.append(r[1])
 
     lenght = len(freqs)
+
+    print(len(results),len(results[0]),len(results[0][0]))
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),lenght]

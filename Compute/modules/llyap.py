@@ -4,7 +4,8 @@ import json
 
 import numpy as np
 
-from tqdm import tqdm
+# Multiprocessing wrapper
+from core import mp_wrapper
 
 # Cython file compile wrapper
 from core import cython_compile
@@ -153,17 +154,13 @@ def it_lyapunov(MNE_l: list):
 # Build evoked loading multiprocessing function
 def mp_loadMNEs():
 
-    print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
+    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        MNEs = list(tqdm(p.imap(it_loadMNE, sub_list), #chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False))
+    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
+                      workers = workers,
+                      chunksize = chunksize,
+                      desc = 'Loading data',
+                      unit = 'sub')
 
     # Create flat iterable list of evokeds images
     MNEs_iters, points = flatMNEs(MNEs = MNEs)
@@ -175,7 +172,13 @@ def mp_loadMNEs():
 # Build multiprocessing function
 def mp_lyapunov(MNEs_iters: list, points: list):
 
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)
+    # FIX THIS
+    if window[0] is None:
+        i_window = maind[exp_name]['window']
+    else:
+        i_window = window
+
+    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*(((maind[exp_name]['T'])**2)*(i_window[1]-i_window[0])**2)
 
     velocity = 0.7
 
@@ -187,16 +190,11 @@ def mp_lyapunov(MNEs_iters: list, points: list):
     print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        results_ = list(tqdm(p.imap(it_lyapunov, MNEs_iters, chunksize = chunksize),
-                            desc = 'Computing channels time series',
-                            unit = 'trl',
-                            total = len(MNEs_iters),
-                            leave = True,
-                            dynamic_ncols = True))
+    results_ = mp_wrapper(it_lyapunov, iterable = MNEs_iters,
+                          workers = workers,
+                          chunksize = chunksize,
+                          desc = 'Computing',
+                          unit = 'trl')
 
     # Get separate results lists
     results = []

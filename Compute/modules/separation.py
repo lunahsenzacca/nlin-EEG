@@ -4,7 +4,8 @@ import json
 
 import numpy as np
 
-from tqdm import tqdm
+# Multiprocessing wrapper
+from core import mp_wrapper
 
 # Cython file compile wrapper
 from core import cython_compile
@@ -104,11 +105,11 @@ else:
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
 
-# Embedding dimensions
-embeddings = parameters['embeddings']
-
 # Set different time delay for each time series
 tau = parameters['tau']
+
+# Embedding dimensions
+embeddings = parameters['embeddings']
 
 # Theiler window
 w = parameters['w']
@@ -125,6 +126,7 @@ variables = {
                 'calc_lb': calc_lb,
 
                 'tau' : tau,
+                'embeddings': embeddings,
                 'm_norm': m_norm,
                 'percentiles' : percentiles,
 
@@ -165,19 +167,13 @@ def it_separation_plot(MNE_l: list):
 # Build evoked loading multiprocessing function
 def mp_loadMNE():
 
-    print('\nPreparing evoked data')#\n\nSpawning ' + str(workers) + ' processes...')
+    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        MNEs = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
-                       desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
+    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
+                      workers = workers,
+                      chunksize = chunksize,
+                      desc = 'Loading data',
+                      unit = 'sub')
 
     # Create flat iterable list of evokeds images
     MNEs_iters, points = flatMNEs(MNEs= MNEs)
@@ -189,7 +185,7 @@ def mp_loadMNE():
 # Build Spacetime Separation Plot multiprocessing function
 def mp_separation_plot(MNEs_iters: list, points: list):
     
-    if window is None:
+    if window[0] is None:
         i_window = maind[exp_name]['window']
     else:
         i_window = window
@@ -207,23 +203,18 @@ def mp_separation_plot(MNEs_iters: list, points: list):
     print('\nEstimated completion time < ~' + eta)
     print('\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-        
-        results = list(tqdm(p.imap(it_separation_plot, MNEs_iters, chunksize = chunksize),
-                            desc = 'Computing channels time series',
-                            unit = 'trl',
-                            total = len(MNEs_iters),
-                            leave = True,
-                            dynamic_ncols = True))
+    results_ = mp_wrapper(it_separation_plot, iterable = MNEs_iters,
+                          workers = workers,
+                          chunksize = chunksize,
+                          desc = 'Computing',
+                          unit = 'trl')
 
-    lenght = int(i_window[1]*maind[exp_name]['T']) - int(i_window[0]*maind[exp_name]['T']) - 1
+    lenght = int((i_window[1] - i_window[0])*maind[exp_name]['f'] + 0.5)
 
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(percentiles),lenght]
 
-    SP = collapse_trials(results = results, points = points, fshape = fshape, dtype = np.float64)
+    SP = collapse_trials(results = results_, points = points, fshape = fshape, dtype = np.float64)
 
     print('\nDONE!')
 

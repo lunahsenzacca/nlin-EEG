@@ -20,6 +20,8 @@ import pandas as pd
 
 from tqdm import tqdm
 
+from multiprocessing import Pool
+
     # Teaspoon library functions #
 
 # Autocorrelation time according to first minimum of Mutual Information (FMMI)
@@ -509,7 +511,7 @@ def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_
     if avg_trials == True:
 
         file_p = maind[exp_name]['directories']['avg_data']
-        
+
         ext = '-ave.fif'
         if with_std == True:
             s_ext = '-std' + ext
@@ -563,22 +565,33 @@ def flatMNEs(MNEs: list):
 
     return flat, points
 
+# Multiprocessing helper function
+def mp_wrapper(function, iterable: list, workers: int, desc: str, unit: str, leave = False, chunksize = 1):
+
+    with Pool(workers) as p:
+
+        results = list(tqdm(p.imap(function, iterable, chunksize = chunksize),
+                       desc = desc,
+                       unit = unit,
+                       total = len(iterable),
+                       leave = leave))
+
+    return results
+
 # Extract time series from MNE data structure in a convenient manner
 # Returns a nested list of time series with the following hierarchy
 # 
 #   [Trials][Electrodes in cluster][Time points]
 # 
 # Each function needs 2 for loops to get to the individual time series 1-d vector, just 1 for the cluster
-def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, sMNE = None, window = None, clst_method = 'append'):
+def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window: list, sMNE = None, clst_method = 'append'):
 
     # Apply fraction to evoked objects
-    if window is list:
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+    MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-        if sMNE != None:
-            sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+    if sMNE != None:
+        sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-    
     TS = []
     E_TS = []
 
@@ -593,7 +606,7 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, sMNE = 
             if sMNE != None:
                 e_ts = sMNE.get_data(picks = cl)
             else:
-                e_ts = np.empty(ts.shape)
+                e_ts = np.zeros(ts.shape)
 
             if len(ts.shape) < 3:
                 ts = ts[np.newaxis]
@@ -615,11 +628,11 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, sMNE = 
             if sMNE != None:
                 e_ts = sMNE.get_data(picks = poi)
             else:
-                e_ts = np.empty(ts.shape)
+                e_ts = np.zeros(ts.shape)
 
             if len(ts.shape) < 3:
                 ts = ts[np.newaxis]
-                e_ts = ts[np.newaxis]
+                e_ts = e_ts[np.newaxis]
 
             TS.append(ts)
             E_TS.append(e_ts)
@@ -1042,6 +1055,50 @@ def multi_embedding(c_ts: list, embedding: int, tau: str|int):
 
     return emb_ts
 
+# Frequency spectrum of a cluster of electrodes
+def spec(ts: np.ndarray, e_ts: np.ndarray, info: mne.Info, wf: float, N: None | int, n: None|int):
+
+    ts = ts.mean(axis = 0)
+    e_ts = e_ts.mean(axis = 0)
+
+    psd, _ = mne.time_frequency.psd_array_welch(ts,
+    sfreq = info['sfreq'],  # Sampling frequency from the evoked data
+    fmin = info['highpass'], fmax = info['lowpass'],  # Focus on the filter range
+    n_fft = int(len(ts)*wf),
+    n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
+    verbose = False)
+
+    if type(n) is int and type(N) is int:
+
+        psd_ = []
+        for i in range(0,N):
+
+            ts_r = np.random.normal(loc = ts, scale = e_ts*np.sqrt(n))
+
+            psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
+            sfreq = info['sfreq'],  # Sampling frequency from the evoked data
+            fmin = info['highpass'], fmax = info['lowpass'],  # Focus on the filter range
+            n_fft = int(len(ts)*wf),
+            n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
+            verbose = False)
+
+            psd_.append(psd_r)
+
+        e_psd = np.asarray(psd_).std(axis = 0)/np.sqrt(N)
+
+    else:
+
+        e_psd = np.zeros(len(psd))
+
+    c_psd = psd.copy()
+
+    psd = np.log10(c_psd)/10
+    e_psd = e_psd/(np.log(10)*c_psd*10)
+
+    del c_psd
+
+    return psd, e_psd
+
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
 def distance_matrix(emb_ts: np.ndarray, m_norm = None, m = None):
@@ -1052,19 +1109,6 @@ def distance_matrix(emb_ts: np.ndarray, m_norm = None, m = None):
 
     if m_norm and (m is not None):
         dist_matrix /= m
-
-    #N = emb_ts.shape[1]
-
-    #dist_matrix = np.full((N,N), 0, dtype = np.float64)
-
-    # Cycle through all different couples of points
-    #for i in range(0,N):
-    #    for j in range(0,i + 1):
-
-    #        dij = dist(x = emb_ts[:,i], y = emb_ts[:,j], m_norm = m_norm, m = m)
-
-    #        dist_matrix[i,j] = dij
-    #        dist_matrix[j,i] = dij
 
     return dist_matrix
 
@@ -1119,11 +1163,11 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
     return rplt
 
 # Spacetime Separation Plot for a single embeddend time series
-def sep_plt(dist_matrix: np.ndarray, percentiles: np.ndarray, T: int):
+def sep_plt(dist_matrix: np.ndarray, percentiles: list, T: int):
 
     N = dist_matrix.shape[0]
 
-    n = percentiles.shape[0]
+    n = len(percentiles)
 
     splt = np.full((n,T), 0, dtype = np.float64)
 
@@ -1135,7 +1179,7 @@ def sep_plt(dist_matrix: np.ndarray, percentiles: np.ndarray, T: int):
 
             dist.append(dist_matrix[j,i + j])
 
-        if (N - i) > 2*n:
+        if (N - i) > 10:
 
             perc = np.percentile(dist, percentiles)
 
@@ -1227,12 +1271,12 @@ def lyap(dist_matrix: np.ndarray, dt: int, w: int, sfreq: int, T: int, verbose =
     lnd = []
     for i, el in enumerate(ds):
 
-        if i < T - dt:
+        if i < T - w:
 
             # Select only distant points on the trajectory but not too far on the end
             jt = []
             for j in range(0,T):
-                if abs(j-i) > w and j < T - dt:
+                if abs(j-i) > dt and j < T - w:
                     jt.append(j)
 
             if len(jt) != 0:
@@ -1241,17 +1285,17 @@ def lyap(dist_matrix: np.ndarray, dt: int, w: int, sfreq: int, T: int, verbose =
                 js = int(np.argwhere(el == d0))
 
             # Construct separation data
-            for delta in range(0,dt):
+            for delta in range(0,w):
                 if len(jt) != 0:
                     lnd.append(np.log(ds[i +delta,js + delta]))
                 else:
                     lnd.append(np.nan)
 
     # Reshape results
-    lnd = np.asarray(lnd).reshape((T - dt,dt))
+    lnd = np.asarray(lnd).reshape((T - w,w))
 
     # Get slope for largest Lyapunov exponent
-    x = np.asarray([i for i in range (0,dt)])
+    x = np.asarray([i for i in range (0,w)])
 
     with warnings.catch_warnings():
         if verbose == False:
@@ -1417,13 +1461,13 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
 # Get evoked signals 
-def evokeds(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, window = None):
+def evokeds(MNE: mne.Evoked, sMNE: mne.Evoked, ch_list: list|tuple, window = None):
+
+    TS, E_TS = extractTS(MNE = MNE, sMNE = sMNE, ch_list = ch_list, window = window, clst_method = 'mean')
 
     # Initzialize result array
     EP = []
     E_EP = []
-    
-    TS, E_TS = extractTS(MNE = MNE, sMNE = s_MNE, ch_list = ch_list, window = window, clst_method = 'mean')
 
     # Loop around pois time series
     for ts, e_ts in zip(TS, E_TS):
@@ -1435,113 +1479,27 @@ def evokeds(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, window = No
     return EP, E_EP
 
 # Get epochs frequency spectrum
-def spectrum(MNE: mne.Evoked, s_MNE: mne.Evoked, ch_list: list|tuple, N: int, wf: float, window = None):
+def spectrum(MNE: mne.Evoked | mne.epochs.EpochsFIF, sMNE: None | mne.Evoked, ch_list: list | tuple, N: int, wf: float, window: None | list):
 
-    # Apply fraction to time series
-    if type(window) == list:   
-        MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
-        s_MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+    # Extract time series from data
+    TS, E_TS = extractTS(MNE = MNE, sMNE = sMNE, ch_list = ch_list, window = window, clst_method = 'mean')
+
+    if type(MNE) is mne.Evoked:
+        n = MNE.nave
+
+    else:
+        n = None
 
     # Initzialize result array
     SP = []
     E_SP = []
 
-    n = MNE.nave
+    # Cycle around trials
+    for ts, e_ts in zip(TS, E_TS):
+        # Cycle around clusters
+        for t, e_t in zip(ts, e_ts):
 
-
-
-    # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
-
-        TS = []
-        E_TS = []
-        for cl in ch_list:
-            
-            # Get average time series of the clster
-            ts = MNE.get_data(picks = cl)
-            e_ts = s_MNE.get_data(picks = cl)
-
-            ts = ts.mean(axis = 0)
-            e_ts = e_ts.mean(axis = 0)
-            
-            TS.append(ts)
-            E_TS.append(e_ts)
-
-        # Loop around pois time series
-        for ts, e_ts in zip(TS, E_TS):
-
-            psd, _ = mne.time_frequency.psd_array_welch(ts,
-            sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
-            fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
-            n_fft = int(len(ts)*wf),
-            n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
-            verbose = False)
-            
-            # Generate time series on a gaussian noise hypotheses if we have more than one trial
-            if n != 1:
-                
-                psd_ = []
-                for i in range(0,N):
-
-                    ts_r = np.random.normal(loc = ts, scale = e_ts*np.sqrt(n))
-
-                    psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
-                    sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
-                    fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
-                    n_fft = int(len(ts)*wf),
-                    n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
-                    verbose = False)
-
-                    psd_.append(psd_r)
-
-                e_psd = np.asarray(psd_).std(axis = 0)/np.sqrt(N)
-
-            # Otherwise compute fft without any error output
-            else:
-
-                e_psd = np.zeros(len(psd))
-
-            SP.append(psd)
-            E_SP.append(e_psd)
-
-    else:
-
-        TS = MNE.get_data(picks = ch_list)
-        E_TS = s_MNE.get_data(picks = ch_list)
-
-        # Loop around pois time series
-        for ts, e_ts in zip(TS, E_TS):
-
-            psd, _ = mne.time_frequency.psd_array_welch(ts,
-            sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
-            fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
-            n_fft = int(len(ts)*wf),
-            n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution)
-            verbose = False)
-
-            # Generate time series on a gaussian noise hypotheses if we have more than one trial
-            if n != 1:
-                
-                psd_ = []
-                for i in range(0,N):
-
-                    ts_r = np.random.normal(loc = ts, scale = e_ts*np.sqrt(n))
-
-                    psd_r, _ = mne.time_frequency.psd_array_welch(ts_r,
-                    sfreq = MNE.info['sfreq'],  # Sampling frequency from the evoked data
-                    fmin = MNE.info['highpass'], fmax = MNE.info['lowpass'],  # Focus on the filter range
-                    n_fft = int(len(ts)*wf),
-                    n_per_seg = int(len(ts)/wf),  # Length of FFT (controls frequency resolution) # Length of FFT (controls frequency resolution)
-                    verbose = False)
-
-                    psd_.append(psd_r)
-
-                e_psd = np.asarray(psd_).std(axis = 0)/np.sqrt(N)
-
-            # Otherwise compute fft without any error output
-            else:
-
-                e_psd = np.zeros(len(psd))
+            psd, e_psd = spec(ts = t, e_ts = e_t, info = MNE.info, wf = wf, N = N, n = n)
 
             SP.append(psd)
             E_SP.append(e_psd)
@@ -1597,12 +1555,14 @@ def delay_time(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
     TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = clst_method)
 
-    # Loop around pois time series
+    # Cycle around trials
     for ts in TS:
-
+        # Cycle around clusters
         for t in ts:
 
             ctau = []
+
+            # Cycle around electrodes
             for t_ in t:
                 if tau_method == 'mutual_information':
                     ctau.append(MI_for_delay(t_))
@@ -1721,8 +1681,6 @@ def separation_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, percentiles: list,
                     m_norm = False, window = None, cython = False):
 
-    percentiles = np.asarray(percentiles, dtype = np.int8)
-
     if cython == True:
 
         from cython_modules import c_core
@@ -1746,13 +1704,13 @@ def separation_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
                     dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
-                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = emb_ts.shape[1])
+                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = t.shape[-1])
 
                 else:
 
                     dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
-                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = emb_ts.shape[1])
+                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = t.shape[-1])
 
                 SP.append(sp)
 

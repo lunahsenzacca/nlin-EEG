@@ -4,7 +4,8 @@ import json
 
 import numpy as np
 
-from tqdm import tqdm
+# Multiprocessing wrapper
+from core import mp_wrapper
 
 # Sub-wise function for evoked file loading
 from core import loadMNE
@@ -111,38 +112,31 @@ sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_tr
 def it_loadMNE(subID: str):
 
     MNEs = loadMNE(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions, with_std = True)
+                   avg_trials = avg_trials, conditions = conditions,
+                   with_std = True)
 
     return MNEs
 
 # Build Evoked Plotting iterable function
 def it_evokeds(MNE_l: list):
 
-    EP, E_EP = evokeds(MNE = MNE_l[0], s_MNE = MNE_l[1], ch_list = ch_list, window = window)
+    EP, E_EP = evokeds(MNE = MNE_l[0], sMNE = MNE_l[1], ch_list = ch_list, window = window)
 
     return EP, E_EP
 
 # Build evoked loading multiprocessing function
 def mp_loadMNE():
 
-    print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
+    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
+    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
+                      workers = workers,
+                      chunksize = chunksize,
+                      desc = 'Loading data',
+                      unit = 'sub')
 
-        loaded = list(tqdm(p.imap(it_loadMNE, sub_list),#, chunksize = chunksize),
-                      desc = 'Loading subjects ',
-                       unit = 'sub',
-                       total = len(sub_list),
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
-    
     # Create flat iterable list of MNE objects
-    MNEs_iters, points = flatMNEs(MNEs = loaded)
-
-    print(len(MNEs_iters),len(MNEs_iters[0]))
+    MNEs_iters, points = flatMNEs(MNEs = MNEs)
 
     print('\nDONE!')
 
@@ -154,16 +148,11 @@ def mp_evokeds(MNEs_iters: list, points: list):
     print('\nExtracting Evoked Signal')
     print('\nSpawning ' + str(workers) + ' processes...')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-        
-        results_ = list(tqdm(p.imap(it_evokeds, MNEs_iters, chunksize = chunksize),
-                            desc = 'Computing channels time series',
-                            unit = 'trl',
-                            total = len(MNEs_iters),
-                            leave = True,
-                            dynamic_ncols = True))
+    results_ = mp_wrapper(it_evokeds, iterable = MNEs_iters,
+                          workers = workers,
+                          chunksize = chunksize,
+                          desc = 'Computing',
+                          unit = 'trl')
 
     # Get separate results lists
     results = []

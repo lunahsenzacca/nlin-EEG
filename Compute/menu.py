@@ -89,7 +89,7 @@ def i_sub_list(exp_name: str):
             )
         ],[
             inq.Text('sub_list',
-                     message = 'Type desired subject IDs separated by \',\'',
+                     message = 'Subjects',
                      validate = list_validator(sub_list)
             )
         ]       
@@ -98,7 +98,9 @@ def i_sub_list(exp_name: str):
     sub_opt = inq.prompt(inputs[0])['sub_opt']
 
     if 'All' not in sub_opt: 
-        
+
+        print('Type desired subject IDs separated by \',\'\n')
+
         c = inq.prompt(inputs[1])['sub_list'].split(',')
         sub_list = list(c)
         print('')
@@ -167,7 +169,7 @@ def i_channels(exp_name: str):
             )
         ],[
             inq.Text('ch_list',
-                     message = 'Type desired Clusters separated by \'#\' and individual Channels by \',\'',
+                     message = 'Electrodes',
                      validate = list_validator(pois)
             )
         ],[
@@ -193,6 +195,8 @@ def i_channels(exp_name: str):
         ch_list = inq.prompt(inputs[1])['ch_list']
 
     elif 'Ty' in pois_opt:
+
+        print('Type desired Clusters separated by \'#\' and individual Channels by \',\'\n')
 
         ch_str = inq.prompt(inputs[2])['ch_list']
 
@@ -262,8 +266,7 @@ def i_window(exp_name: str):
 
     else:
 
-        window = None
-
+        window = [None,None]
 
     return window
 
@@ -510,7 +513,7 @@ def launch():
     os.makedirs('.tmp/modules/', exist_ok = True)
 
     # Experiment info
-    with open('.tmp/info.json', 'w') as f, open('.tmp/last.json') as l:
+    with open('.tmp/info.json', 'w') as f, open('.tmp/last.json', 'w') as l:
         json.dump(info, f, indent = 2)
         json.dump(info, l, indent = 2)
 
@@ -640,6 +643,10 @@ def plot():
 
 if __name__ == '__main__':
 
+    os.system('setterm -linewrap off')
+
+    os.makedirs('.tmp', exist_ok = True)
+
     with open('logo.txt', 'r') as file:
         logo = file.read()
 
@@ -669,6 +676,16 @@ if __name__ == '__main__':
 
                 os.system(cmd)
 
+        elif 'quit' in mode:
+
+            keep_open = 1
+
+        if keep_open != 0:
+
+            break
+
         keep_open = not inq.confirm('Keep messing around?')
 
         print('')
+
+    os.system('setterm -linewrap on')
