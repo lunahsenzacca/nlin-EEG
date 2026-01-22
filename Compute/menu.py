@@ -264,6 +264,8 @@ def i_window(exp_name: str):
         c = inq.prompt(inputs[1])['window'].split(',')
         window = [float(i) for i in c]
 
+        print('')
+
     else:
 
         window = [None,None]
@@ -594,8 +596,6 @@ def plot():
             subprocess.call(['micro', f'plotting/{default_opt}.json'])
 
             keep_editing = not inq.confirm('Edit another?', default = True)
-
-            print('')
 
     if 'Edi' not in plot_opt:
 
