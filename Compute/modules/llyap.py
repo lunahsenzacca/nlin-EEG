@@ -1,26 +1,14 @@
 # Usual suspects
-import os
 import json
-
-import numpy as np
-
-# Multiprocessing wrapper
-from core import mp_wrapper
 
 # Cython file compile wrapper
 from core import cython_compile
 
-# Sub-wise function for evoked file loading
-from core import loadMNE
-
 # Sub-wise function for Largest Lyapunov Exponent (LLE) computation
 from core import lyapunov
 
-# Utility function for observables directories
-from core import obs_path
-
-# Utility functions for trial data averaging
-from core import flatMNEs, collapse_trials
+# Multiprocessing wrappers
+from parallelizer import loader, calculator
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -29,10 +17,6 @@ maind = get_maind()
 
 # Module name
 obs_name = 'llyap'
-
-### MULTIPROCESSIN PARAMETERS ###
-workers = 10
-chunksize = 1
 
 ### CYTHON DEBUG PARAMETERS ###
 
@@ -79,12 +63,6 @@ if type(ch_list) == tuple:
 else:
     clst = False
 
-# Get method string
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
-
 ### PARAMETERS FOR LARGEST LYAPUNOV EXPONENT COMPUTATION ###
 
 # Label for parameter selection
@@ -123,23 +101,7 @@ variables = {
                 'window' : window
             }
 
-### DATA PATHS ###
-
-# Processed data
-path = maind[exp_name]['directories'][method]
-
-# Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
-
 ### COMPUTATION ###
-
-# Build evokeds loading iterable function
-def it_loadMNE(subID: str):
-
-    evokeds = loadMNE(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions)
-
-    return evokeds
 
 # Build Largest Lyapunov Exponent iterable function
 def it_lyapunov(MNE_l: list):
@@ -151,92 +113,10 @@ def it_lyapunov(MNE_l: list):
 
     return LY, E_LY
 
-# Build evoked loading multiprocessing function
-def mp_loadMNEs():
+# Define shape of results
+fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
 
-    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
-
-    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
-                      workers = workers,
-                      chunksize = chunksize,
-                      desc = 'Loading data',
-                      unit = 'sub')
-
-    # Create flat iterable list of evokeds images
-    MNEs_iters, points = flatMNEs(MNEs = MNEs)
-
-    print('\nDONE!')
-
-    return MNEs_iters, points
-
-# Build multiprocessing function
-def mp_lyapunov(MNEs_iters: list, points: list):
-
-    # FIX THIS
-    if window[0] is None:
-        i_window = maind[exp_name]['window']
-    else:
-        i_window = window
-
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*(((maind[exp_name]['T'])**2)*(i_window[1]-i_window[0])**2)
-
-    velocity = 0.7
-
-    import datetime
-    eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
-
-    print('\nComputing Largest Lyapunov Exponent over each trial')
-    print('\nNumber of single computations: ' + str(complexity))
-    print('\nEstimated completion time < ~' + eta)
-    print('\nSpawning ' + str(workers) + ' processes...')
-
-    results_ = mp_wrapper(it_lyapunov, iterable = MNEs_iters,
-                          workers = workers,
-                          chunksize = chunksize,
-                          desc = 'Computing',
-                          unit = 'trl')
-
-    # Get separate results lists
-    results = []
-    e_results = []
-    for r in results_:
-
-        results.append(r[0])
-        e_results.append(r[1])
-
-    # Create homogeneous array averaging across trial results
-    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
-
-    LY = collapse_trials(results = results, points = points, fshape = fshape, e_results = e_results)
-
-    print('\nDONE!')
-
-    # Save results to local
-    os.makedirs(sv_path, exist_ok = True)
-
-    np.savez(sv_path + f'{obs_name}.npz', *LY)
-
-    with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables, f, indent = 2)
-
-    with open(sv_path + 'info.json','w') as f:
-        json.dump(info, f, indent = 2)
-
-    print('\nResults common shape: ', LY[0].shape[1:])
-
-    if avg_trials == False:
-
-        print('\nTrials\n')
-
-        for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
-
-            print(f'{prod}: ', LY[c].shape[0])
-
-    print('')
-
-    return
-
-# Launch script with 'python -m llyap' in appropriate conda enviroment
+# Launch script with 'python -m llyap'
 if __name__ == '__main__':
 
     print('\n    LARGEST LYAPUNOV EXPONENT SCRIPT')
@@ -245,7 +125,8 @@ if __name__ == '__main__':
 
         cython_compile(verbose = cython_verbose)
 
-    MNEs_iters, points = mp_loadMNEs()
+    MNEs_iters, points = loader(info = info)
 
-    mp_lyapunov(MNEs_iters = MNEs_iters, points = points)
-
+    calculator(it_lyapunov, MNEs_iters = MNEs_iters, points = points,
+               info = info, variables = variables, fshape = fshape,
+               with_err = True)

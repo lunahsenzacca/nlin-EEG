@@ -1,26 +1,17 @@
 # Usual suspects
-import os
 import json
-
-import numpy as np
-
-# Multiprocessing wrapper
-from core import mp_wrapper
 
 # Cython file compile wrapper
 from core import cython_compile
 
-# Sub-wise function for MNE file loading
-from core import loadMNE
-
 # Evoked-wise function for Spacetime Separation Plot (SP) computation
-from core import separation_plot
+from core import separation
 
-# Utility function for observables directories
-from core import obs_path
+# Utility function for dimensional time and frequency domain of the experiment
+from core import get_tinfo
 
-# Utility functions for trial data averaging
-from core import flatMNEs, collapse_trials
+# Multiprocessing wrappers
+from parallelizer import loader, calculator
 
 #Our Very Big Dictionary
 from init import get_maind
@@ -29,11 +20,6 @@ maind = get_maind()
 
 # Module name
 obs_name = 'separation'
-
-### MULTIPROCESSING PARAMETERS ###
-
-workers = 10
-chunksize = 1
 
 ### CYTHON DEBUG PARAMETERS ###
 
@@ -94,11 +80,8 @@ if type(ch_list) == tuple:
 else:
     clst = False
 
-# Get method string
-if avg_trials == True:
-    method = 'avg_data'
-else:
-    method = 'trl_data'
+# Load times for results array
+_, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
 
 ### PARAMETERS FOR SEPARATION PLOT COMPUTATION ###
 
@@ -137,124 +120,31 @@ variables = {
                 'window' : window
             }
 
-### DATA PATHS ###
-
-# Processed data
-path = maind[exp_name]['directories'][method]
-
-# Directory for saved results
-sv_path = obs_path(exp_name = exp_name, obs_name = obs_name, avg_trials = avg_trials, clst_lb = clst_lb, calc_lb = calc_lb)
-
 ### COMPUTATION ###
 
-# Build evokeds loading iterable function
-def it_loadMNE(subID: str):
-
-    MNEs = loadMNE(subID = subID, exp_name = exp_name,
-                          avg_trials = avg_trials, conditions = conditions)
-
-    return MNEs
-
 # Build Spacetime Separation Plot iterable function
-def it_separation_plot(MNE_l: list):
+def it_separation(MNE_l: list):
 
-    SP = separation_plot(MNE = MNE_l[0], ch_list = ch_list,
+    SP = separation(MNE = MNE_l[0], ch_list = ch_list,
                          embeddings = embeddings, tau = tau, window = window,
                          percentiles = percentiles, m_norm = m_norm, cython = cython)
 
     return SP
 
-# Build evoked loading multiprocessing function
-def mp_loadMNE():
-
-    #print('\nLoading data')#\n\nSpawning ' + str(workers) + ' processes...')
-
-    MNEs = mp_wrapper(it_loadMNE, iterable = sub_list,
-                      workers = workers,
-                      chunksize = chunksize,
-                      desc = 'Loading data',
-                      unit = 'sub')
-
-    # Create flat iterable list of evokeds images
-    MNEs_iters, points = flatMNEs(MNEs= MNEs)
-
-    print('\nDONE!')
-
-    return MNEs_iters, points
-
-# Build Spacetime Separation Plot multiprocessing function
-def mp_separation_plot(MNEs_iters: list, points: list):
-    
-    if window[0] is None:
-        i_window = maind[exp_name]['window']
-    else:
-        i_window = window
-
-    # Get absolute complexity of the script and estimated completion time
-    complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*(((maind[exp_name]['T'])**2)*(i_window[1]-i_window[0])**2)
-
-    velocity = 26e-7
-
-    import datetime
-    eta = str(datetime.timedelta(seconds = int(complexity*velocity/workers)))
-
-    print('\nComputing Spacetime Separation Plots over each trial')
-    print('\nNumber of single computations: ' + str(int(complexity)))
-    print('\nEstimated completion time < ~' + eta)
-    print('\nSpawning ' + str(workers) + ' processes...')
-
-    results_ = mp_wrapper(it_separation_plot, iterable = MNEs_iters,
-                          workers = workers,
-                          chunksize = chunksize,
-                          desc = 'Computing',
-                          unit = 'trl')
-
-    lenght = int((i_window[1] - i_window[0])*maind[exp_name]['f'] + 0.5)
-
-    # Create homogeneous array averaging across trial results
-    fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(percentiles),lenght]
-
-    SP = collapse_trials(results = results_, points = points, fshape = fshape, dtype = np.float64)
-
-    print('\nDONE!')
-
-    # Save results to local
-    os.makedirs(sv_path, exist_ok = True)
-
-    np.savez(sv_path + f'{obs_name}.npz', *SP)
-
-    variables['dt'] = [i for i in range(0,lenght)]
-
-    with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables, f, indent = 2)
-
-    with open(sv_path + 'info.json','w') as f:
-        json.dump(info, f, indent = 2)
-
-
-    print('\nResults common shape: ', SP[0].shape[1:])
-
-    if avg_trials == False:
-
-        print('\nTrials\n')
-    
-        for c, prod in enumerate([i + '_' + j for i in sub_list for j in conditions]):
-            print(f'{prod}: ', SP[c].shape[0])
-
-    print('')
-
-    return
+# Define shape of results
+fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(percentiles),len(times)]
 
 # Script main method
 if __name__ == '__main__':
 
-    print('\n    SPACETIME SEPARATION PLOT SCRIPT')
+    print('\n    SPACETIME SEPARATION SCRIPT')
 
     if cython == True:
 
         cython_compile(verbose = cython_verbose)
 
-    MNEs_iters, points = mp_loadMNE()
+    MNEs_iters, points = loader(info = info)
 
-    mp_separation_plot(MNEs_iters = MNEs_iters, points = points)
-
+    calculator(it_separation, MNEs_iters = MNEs_iters, points = points,
+               info = info, variables = variables, fshape = fshape,
+               with_err = False)

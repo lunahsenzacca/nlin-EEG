@@ -291,14 +291,20 @@ def i_avg_trials():
 # obs_name input
 def i_obs_name():
 
+    rev = {v: k for k, v in maind['obs_nm'].items()}
+
+    pnames = list(rev.keys())
+
     input = [
         inq.List('obs_name',
                  message = 'Choose module to run',
-                 choices = [str(i) for i in maind['obs_lb'].keys()]
+                 choices = pnames
         )
     ]
 
-    obs_name = inq.prompt(input)['obs_name']
+    obs_pname = inq.prompt(input)['obs_name']
+
+    obs_name = rev[obs_pname]
 
     return obs_name
 
@@ -460,6 +466,9 @@ def launch():
 
     ## Prompt for preprocessed dataset name, subjects, conditions, channels and time window
 
+    ## Prompt for module
+    obs_name = i_obs_name()
+
     # Get exp_name
     exp_name = i_exp_name()
 
@@ -477,9 +486,6 @@ def launch():
 
     ## Prompt for trial averaging
     avg_trials = i_avg_trials()
-
-    ## Prompt for module
-    obs_name = i_obs_name()
 
     ## Prompt for module parameters
     parameters = i_parameters(obs_name)

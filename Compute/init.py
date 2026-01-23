@@ -55,6 +55,18 @@ obs_lb = {
     'llyap': 'LLE'
 
 }
+obs_nm = {
+    'evokeds': 'Evoked Signals',
+#    'epochs': 'EP',
+    'spectrum': 'Frequency Spectrum',
+    'delay': 'Time Delay',
+#    'persistence': 'PS',
+#    'recurrence': 'RP',
+    'separation': 'Spacetime Separation',
+    'corrsum': 'Correlation Sum',
+    'correxp': 'Correlation Exponent',
+    'llyap': 'Largest Lyapunov Exponent'
+}
 
 def paths(exp_name: str, old = False):
 
@@ -327,7 +339,8 @@ maind = {
     'lorenz': LZ_info,
     'noise': NZ_info,
     'exp_lb': exp_lb,
-    'obs_lb': obs_lb
+    'obs_lb': obs_lb,
+    'obs_nm': obs_nm
 }
 
 import json

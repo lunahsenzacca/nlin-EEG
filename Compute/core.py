@@ -20,6 +20,8 @@ import pandas as pd
 
 from tqdm import tqdm
 
+from rich.progress import Progress
+
 from multiprocessing import Pool
 
     # Teaspoon library functions #
@@ -298,7 +300,7 @@ def tuplinator(list: list):
     return tup
 
 # Get time array for a specific crop
-def get_tinfo(exp_name: str, avg_trials: bool, window = None):
+def get_tinfo(exp_name: str, avg_trials: bool, window = [None,None]):
 
     if avg_trials == True:
         method = 'avg_data'
@@ -321,9 +323,8 @@ def get_tinfo(exp_name: str, avg_trials: bool, window = None):
         data = mne.read_evokeds(fpath + '-ave.fif', verbose = False)[0]
     else:
         data = mne.read_epochs(fpath + '-epo.fif', verbose = False)
-    
-    if type(window) == list:
-        data.crop(tmin = window[0], tmax = window[1], include_tmax = False)
+
+    data.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
     times = data.times
 
@@ -1163,7 +1164,7 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
     return rplt
 
 # Spacetime Separation Plot for a single embeddend time series
-def sep_plt(dist_matrix: np.ndarray, percentiles: list, T: int):
+def sep(dist_matrix: np.ndarray, percentiles: list, T: int):
 
     N = dist_matrix.shape[0]
 
@@ -1677,7 +1678,7 @@ def recurrence_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
     return RP
 
 # Correlation sum of channel time series of a specific trial [NOW IT USES RECURRENCE PLOTS]
-def separation_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
+def separation(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, percentiles: list,
                     m_norm = False, window = None, cython = False):
 
@@ -1704,13 +1705,13 @@ def separation_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
                     dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
-                    sp = sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = t.shape[-1])
+                    sp = sep(dist_matrix = dist_matrix, percentiles = percentiles, T = t.shape[-1])
 
                 else:
 
                     dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
 
-                    sp = c_core.sep_plt(dist_matrix = dist_matrix, percentiles = percentiles, T = t.shape[-1])
+                    sp = c_core.sep(dist_matrix = dist_matrix, percentiles = percentiles, T = t.shape[-1])
 
                 SP.append(sp)
 
@@ -1763,10 +1764,16 @@ def information_dimension(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|
 
     return D2, e_D2
 
+def recursive_len(item):
+    if type(item) == list or type(item) == np.ndarray:
+        return sum(recursive_len(subitem) for subitem in item)
+    else:
+        return 1
+
 # Largest lyapunov exponent of channel time series
 def lyapunov(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple, 
              embeddings: list, tau: str|int, w: int, dt = None,
-             m_norm = False, window = None, cython = False, verbose = False):
+             m_norm = False, window = [None,None], cython = False, verbose = False):
 
     if cython == True:
 
@@ -1815,7 +1822,7 @@ def lyapunov(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple,
                 LY.append(ly)
                 E_LY.append(e_ly)
 
-     # Returns list in -C style ordering
+    # Returns list in -C style ordering
 
     return LY, E_LY
 
