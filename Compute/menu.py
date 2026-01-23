@@ -7,7 +7,9 @@ import json
 # Inquirer library for menu selection
 import inquirer as inq
 
-from pprint import pp
+from rich import print as rprint
+from rich.pretty import Pretty
+from rich.panel import Panel
 
 from core import obs_path
 
@@ -69,7 +71,6 @@ def i_exp_name():
                  message = 'Choose a preprocessed dataset to work with',
                  choices = [str(i) for i in maind['exp_lb'].keys()]
                 )
-
     ]
 
     exp_name = inq.prompt(input)['exp_name']
@@ -318,10 +319,13 @@ def i_parameters(obs_name: str):
         txt = f.read()
 
     if len(d) > 1:
-        print('The selected module has the following default parameters:\n')
+        title = maind['obs_nm'][obs_name] + ' module parameters'
 
-        for key in list(d.keys())[1:]:
-            pp({key: d[key]}, width = 10)
+        d.pop('calc_lb')
+
+        pretty = Pretty(d)
+        panel = Panel(pretty, title = title)
+        rprint(panel)
         print('')
 
     else:
@@ -565,20 +569,21 @@ def plot():
             info_path = '../Cargo/results/' + inq.prompt(input[1])['saved_opt']
             info_file = info_path + '/info.json'
 
+            print('')
+
             with open(info_path + '/variables.json', 'r') as f:
                 variables = json.load(f)
 
-            print('     CALCULATION INFO:\n')
-
-            print(f'Module: {variables['obs_name']}')
+            title = maind['obs_nm'][variables['obs_name']]
             if variables['calc_lb'] is not None:
-                print(f'Calculation: {variables['calc_lb']}')
+                title = title + f'\n({variables['calc_lb']})'
 
-            print('')
+            variables.pop('obs_name')
+            variables.pop('calc_lb')
 
-            for key in list(variables.keys())[2:]:  
-
-                pp({key: variables[key]}, depth = 1, width = 30, compact = True)
+            pretty = Pretty(variables, max_length = 14)
+            panel = Panel(pretty, title = title)
+            rprint(panel)
 
             print('')
 
@@ -649,8 +654,6 @@ def plot():
 
 if __name__ == '__main__':
 
-    os.system('setterm -linewrap off')
-
     os.makedirs('.tmp', exist_ok = True)
 
     with open('logo.txt', 'r') as file:
@@ -693,5 +696,3 @@ if __name__ == '__main__':
         keep_open = not inq.confirm('Keep messing around?')
 
         print('')
-
-    os.system('setterm -linewrap on')

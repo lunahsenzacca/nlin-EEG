@@ -7,7 +7,7 @@ authors = [
 ]
 license = {text = "?"}
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<4.0"
 dependencies = [
     "teaspoon (>=1.5.29,<2.0.0)",
     "mne (>=1.11.0,<2.0.0)",
@@ -21,7 +21,7 @@ dependencies = [
     "tqdm (>=4.67.1,<5.0.0)",
     "mne-qt-browser (>=0.7.4,<0.8.0)",
     "ipympl (>=0.9.8,<0.10.0)",
-    "rich (>=14.2.0,<15.0.0)"
+    "rich (>=14.2.0,<15.0.0)",
 ]
 
 [dependency-groups]
