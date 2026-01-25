@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Terminal=false
+Name=shell-EEG
+Exec=/home/lunis/nlin-EEG/launch.sh

@@ -6,6 +6,14 @@ from rich.columns import Columns
 from rich.style import Style
 from rich.table import Table, Column
 
+from subprocess import run, DEVNULL
+
+def micro(file: str):
+
+    run(['kitten','@','launch','--wait-for-child-to-exit=yes','micro',file], stdout = DEVNULL)
+
+    return
+
 def pdict(d: dict, max_length = 14, **kwargs):
 
     pretty = Pretty(d, max_length = max_length, indent_size = 2)

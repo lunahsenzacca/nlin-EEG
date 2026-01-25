@@ -7,7 +7,7 @@ import json
 # Inquirer library for menu selection
 import inquirer as inq
 
-from style import pdict, pdict_leg
+from style import pdict, pdict_leg, micro
 
 from core import obs_path
 
@@ -309,12 +309,11 @@ def i_obs_name():
 
 # Choose to use defaults parameters for module printing it's values
 def i_parameters(obs_name: str):
-    
-    with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
-        d = json.load(f)
 
-        f.seek(0)
+    with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
         txt = f.read()
+        f.seek(0)
+        d = json.load(f)
 
     if len(d) > 1:
 
@@ -322,7 +321,7 @@ def i_parameters(obs_name: str):
 
             leg = json.load(f)
 
-        title = maind['obs_nm'][obs_name] + ' module parameters'
+        title = '[magenta]' + maind['obs_nm'][obs_name] + ' module parameters'
 
         d.pop('calc_lb')
 
@@ -346,16 +345,17 @@ def i_parameters(obs_name: str):
         import tempfile
         import subprocess
 
-        temporary = tempfile.NamedTemporaryFile(mode='w+t', prefix = f'tmp_{obs_name}', suffix = ".json", delete=True, dir = ".tmp")
+        temporary = tempfile.NamedTemporaryFile(mode='w+t', prefix = f'{obs_name}_', suffix = ".json", delete=False, dir = ".tmp")
 
         n = temporary.name
 
         with open(n, 'a') as f:
+
             f.write(txt)
 
         temporary.close
 
-        subprocess.call(['micro', n])
+        micro(n)
 
         with open(n, 'r') as f:
             parameters = json.load(f)
@@ -600,7 +600,7 @@ def plot():
 
                 default_opt = 'modules/' + default_opt
 
-            subprocess.call(['micro', f'plotting/{default_opt}.json'])
+            micro(f'plotting/{default_opt}.json')
 
             keep_editing = not inq.confirm('Edit another?', default = True)
 
@@ -633,7 +633,7 @@ def plot():
 
                 json.dump(instructions, f, indent = 2)
 
-            subprocess.call(['micro','.tmp/extra_instructions.json'])
+            micro('.tmp/extra_instructions.json')
 
         else:
 

@@ -1,12 +1,15 @@
-#!/bin/bash
+#!.devenv/bash/bin/bash
 
 #echo 'Loaded some aliases'
 
 # Quick launch menu.py script
-alias menu='cd Compute && python -m menu; cd ..'
+alias menu='kitty -d Compute -e python -m menu'
 
 # Quick launch toMNE.py script
-alias convert='cd Compute && python -m makedata.toMNE; cd ..'
+alias convert='kitty -d Compute -e python -m makedata.toMNE;'
 
 # Launch t.py in a ipython shell
-alias nb='cd Compute && ipython -i t.py; cd ..'
+alias nb='kitty -d Compute -e ipython -i t.py'
+
+# Alias for kitty with local config
+alias kitty='kitty -c .home/kitty/kitty.conf'

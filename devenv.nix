@@ -12,11 +12,22 @@
 
   enterShell = ''
     hello
+    export SHELL=${pkgs.bashInteractive}/bin/bash
     source .aliases
   '';
 
+  profiles = {
+    dev.module = {
+      enterShell = ''
+        kitten @ new-window --keep-focus=yes devenv shell
+        nvim
+      '';
+    };
+  };
+
   packages = with pkgs; [
 
+    bashInteractive
     kitty
     micro
 
