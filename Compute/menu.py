@@ -7,9 +7,7 @@ import json
 # Inquirer library for menu selection
 import inquirer as inq
 
-from rich import print as rprint
-from rich.pretty import Pretty
-from rich.panel import Panel
+from style import pdict, pdict_leg
 
 from core import obs_path
 
@@ -319,14 +317,16 @@ def i_parameters(obs_name: str):
         txt = f.read()
 
     if len(d) > 1:
+
+        with open('./modules/defaults/legend.json', 'r') as f:
+
+            leg = json.load(f)
+
         title = maind['obs_nm'][obs_name] + ' module parameters'
 
         d.pop('calc_lb')
 
-        pretty = Pretty(d)
-        panel = Panel(pretty, title = title)
-        rprint(panel)
-        print('')
+        pdict_leg(d, leg, title = title)
 
     else:
 
@@ -581,11 +581,7 @@ def plot():
             variables.pop('obs_name')
             variables.pop('calc_lb')
 
-            pretty = Pretty(variables, max_length = 14)
-            panel = Panel(pretty, title = title)
-            rprint(panel)
-
-            print('')
+            pdict(variables, title = title)
 
             keep_choosing = not inq.confirm('Choose another?')
 
