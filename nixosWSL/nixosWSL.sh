@@ -31,6 +31,6 @@ printf '\nInstalling python dependencies...\n'
 
 cd ~/nlin-EEG && devenv shell poetry install
 
-printf '\nAll done! After the environment loads try running "menu"\n'
+printf '\nAll done! After the environment loads try running "menu"\n\n'
 
 cd ~/nlin-EEG && devenv shell
