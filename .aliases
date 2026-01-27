@@ -3,13 +3,13 @@
 #echo 'Loaded some aliases'
 
 # Quick launch menu.py script
-alias menu='kitty -d Compute -e python -m menu'
+alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu'
 
 # Quick launch toMNE.py script
-alias convert='kitty -d Compute -e python -m makedata.toMNE;'
+alias convert='kitty -d $HOME/nlin-EEG/Compute -e python -m makedata.toMNE;'
 
 # Launch t.py in a ipython shell
-alias nb='kitty -d Compute -e ipython -i t.py'
+alias nb='kitty -d $HOME/nlin-EEG/Compute -e ipython -i t.py'
 
 # Alias for kitty with local config
-alias kitty='kitty -c .home/kitty/kitty.conf'
+alias kitty='kitty -c $HOME/nlin-EEG/.home/kitty/kitty.conf'
