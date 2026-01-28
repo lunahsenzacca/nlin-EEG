@@ -20,7 +20,6 @@
     dev.module = {
       enterShell = ''
         kitten @ new-window --keep-focus=yes devenv shell
-        nvim
       '';
     };
   };
