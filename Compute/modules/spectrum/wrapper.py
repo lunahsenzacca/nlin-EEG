@@ -4,8 +4,8 @@ import mne
 
 import numpy as np
 
-# Evoked-wise function for Spectrum Plotting (SP)
-from core import spectrum
+# Frequency Spectrum computation functions
+from modules.spectrum import spectrum
 
 # Utility function for dimensional time and frequency domain of the experiment
 from core import get_tinfo
@@ -106,15 +106,6 @@ variables = {
                 'window' : window
             }
 
-### COMPUTATION ###
-
-# Build Spectrum Plotting iterable function
-def it_spectrum(MNE_l: list):
-
-    SP, E_SP = spectrum(MNE = MNE_l[0], sMNE = MNE_l[1], ch_list = ch_list, N = N, wf = wf, window = window)
-
-    return SP, E_SP
-
 # Define shape of results
 fshape = [len(sub_list),len(conditions),len(ch_list),len(freqs)]
 
@@ -125,6 +116,7 @@ if __name__ == '__main__':
 
     MNEs_iters, points = loader(info = info, with_std = True)
 
-    calculator(it_spectrum, MNEs_iters = MNEs_iters, points = points,
+    calculator(spectrum.it_spectrum(info = info, parameters = parameters),
+               MNEs_iters = MNEs_iters, points = points,
                info = info, variables = variables, fshape = fshape,
                with_err = True)

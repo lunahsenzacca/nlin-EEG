@@ -1,22 +1,24 @@
 # Usual suspects
 import json
 
+import numpy as np
+
+# Correlation Sum computation functions
+from modules.corrsum import corrsum
+
 # Cython file compile wrapper
 from core import cython_compile
-
-# Sub-wise function for Largest Lyapunov Exponent (LLE) computation
-from core import lyapunov
 
 # Multiprocessing wrappers
 from parallelizer import loader, calculator
 
-# Our Very Big Dictionary
+#Our Very Big Dictionary
 from init import get_maind
 
 maind = get_maind()
 
 # Module name
-obs_name = 'llyap'
+obs_name = 'corrsum'
 
 ### CYTHON DEBUG PARAMETERS ###
 
@@ -63,36 +65,39 @@ if type(ch_list) == tuple:
 else:
     clst = False
 
-### PARAMETERS FOR LARGEST LYAPUNOV EXPONENT COMPUTATION ###
+### PARAMETERS FOR CORRELATION SUM COMPUTATION ###
 
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
 
-# Set different time delay for each time series
-tau = parameters['tau']
-
 # Embedding dimensions
 embeddings = parameters['embeddings']
+
+# Set different time delay for each time series
+tau = parameters['tau']
 
 # Theiler window
 w = parameters['w']
 
-# Lenght of expansion phase
-dt = parameters['dt']
-
 # Apply embedding normalization when computing distances
 m_norm = parameters['m_norm']
+
+# Distances for sampling the dependance
+log_span = parameters['log_span']
+
+r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
 
 # Dictionary for computation variables
 variables = {   
                 'obs_name': obs_name,
                 'calc_lb': calc_lb,
 
-                'tau': tau,
-                'embeddings': embeddings,
+                'tau' : tau,
                 'w': w,
-                'dt': dt,
+                'embeddings' : embeddings,
                 'm_norm': m_norm,
+                'log_span': log_span,
+                'log_r': list(np.log(r)),
 
                 'clustered' : clst,
                 'subjects' : sub_list,
@@ -101,25 +106,13 @@ variables = {
                 'window' : window
             }
 
-### COMPUTATION ###
-
-# Build Largest Lyapunov Exponent iterable function
-def it_lyapunov(MNE_l: list):
-
-    LY, E_LY = lyapunov(MNE = MNE_l[0], ch_list = ch_list,
-                        embeddings = embeddings, tau = tau,
-                        dt = dt, w = w, m_norm = m_norm,
-                        cython= cython, window = window, verbose = False)
-
-    return LY, E_LY
-
 # Define shape of results
-fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
+fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r)]
 
-# Launch script with 'python -m llyap'
+# Script main method
 if __name__ == '__main__':
 
-    print('\n    LARGEST LYAPUNOV EXPONENT SCRIPT')
+    print('\n    CORRELATION SUM SCRIPT')
 
     if cython == True:
 
@@ -127,6 +120,7 @@ if __name__ == '__main__':
 
     MNEs_iters, points = loader(info = info)
 
-    calculator(it_lyapunov, MNEs_iters = MNEs_iters, points = points,
+    calculator(corrsum.it_correlation_sum(info = info, parameters = parameters, cython = cython),
+               MNEs_iters = MNEs_iters, points = points,
                info = info, variables = variables, fshape = fshape,
-               with_err = True)
+               with_err = False)

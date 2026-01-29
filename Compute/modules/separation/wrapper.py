@@ -1,11 +1,11 @@
 # Usual suspects
 import json
 
+# Spacetime Separation computation function
+from modules.separation import separation
+
 # Cython file compile wrapper
 from core import cython_compile
-
-# Evoked-wise function for Spacetime Separation Plot (SP) computation
-from core import separation
 
 # Utility function for dimensional time and frequency domain of the experiment
 from core import get_tinfo
@@ -94,9 +94,6 @@ tau = parameters['tau']
 # Embedding dimensions
 embeddings = parameters['embeddings']
 
-# Theiler window
-w = parameters['w']
-
 # Apply embedding normalization when computing distances
 m_norm = parameters['m_norm']
 
@@ -112,6 +109,7 @@ variables = {
                 'embeddings': embeddings,
                 'm_norm': m_norm,
                 'percentiles' : percentiles,
+                'dt': list(times),
 
                 'clustered' : clst,
                 'subjects' : sub_list,
@@ -119,17 +117,6 @@ variables = {
                 'pois' : ch_list,
                 'window' : window
             }
-
-### COMPUTATION ###
-
-# Build Spacetime Separation Plot iterable function
-def it_separation(MNE_l: list):
-
-    SP = separation(MNE = MNE_l[0], ch_list = ch_list,
-                         embeddings = embeddings, tau = tau, window = window,
-                         percentiles = percentiles, m_norm = m_norm, cython = cython)
-
-    return SP
 
 # Define shape of results
 fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(percentiles),len(times)]
@@ -145,6 +132,7 @@ if __name__ == '__main__':
 
     MNEs_iters, points = loader(info = info)
 
-    calculator(it_separation, MNEs_iters = MNEs_iters, points = points,
+    calculator(separation.it_separation(info = info, parameters = parameters, cython = cython),
+               MNEs_iters = MNEs_iters, points = points,
                info = info, variables = variables, fshape = fshape,
                with_err = False)

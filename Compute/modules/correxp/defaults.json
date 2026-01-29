@@ -1,0 +1,6 @@
+{
+  "n_points": 4,
+  "gauss_filter": false,
+  "scale": 0.01,
+  "cutoff": 7
+}

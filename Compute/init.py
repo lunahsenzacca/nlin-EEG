@@ -46,7 +46,7 @@ obs_lb = {
     'delay': 'TAU',
 #    'persistence': 'PS',
 #    'recurrence': 'RP',
-    'separation': 'SP',
+    'separation': 'STP',
     'corrsum': 'CS',
     'correxp': 'CE',
     'peaks': 'PK',

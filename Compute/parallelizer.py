@@ -45,19 +45,6 @@ def mp_wrapper(function, iterable: list, workers: int, description: str, transie
 
     return results
 
-# Iterable loading function generation
-def generate_load(info: dict, with_std = False):
-
-    def it_loadMNE(subID: str):
-
-        MNEs = loadMNE(subID = subID, exp_name = info['exp_name'],
-                       avg_trials = info['avg_trials'], conditions = info['conditions'],
-                       with_std = with_std)
-
-        return MNEs
-
-    return it_loadMNE
-
 # Parallelized subject data loading
 def loader(info: dict, with_std = False):
 
@@ -88,7 +75,8 @@ def loader(info: dict, with_std = False):
 # Parallelized Observable computation
 def calculator(it_observable, MNEs_iters: list, points: list,
                info: dict, variables: dict, fshape: list,
-               with_err = False, dtype = np.float64):
+               with_err = False, dtype = np.float64,
+               extra_res = False, extra_lb = None, extra_dtype = None):
 
     # IMPLEMENT A SMARTER WAY OF COMPUTING ETA
 
@@ -115,7 +103,7 @@ def calculator(it_observable, MNEs_iters: list, points: list,
                           description = '[red]Processing:',
                           transient = False)
 
-    if with_err == True:
+    if with_err == True or extra_res == True:
 
         # Get separate results lists
         results = []
@@ -130,7 +118,17 @@ def calculator(it_observable, MNEs_iters: list, points: list,
         results = results_
         e_results = None
 
-    R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results)
+    if with_err == False:
+
+        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results)
+
+    elif with_err == False and extra_res == True:
+
+        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = None)
+        R1 = collapse_trials(results = e_results, points = points, fshape = fshape, dtype = extra_dtype, e_results = None)
+
+    else:
+        raise ValueError('Only error or extra value can be saved!')
 
     print('\nDONE!')
 
@@ -141,6 +139,10 @@ def calculator(it_observable, MNEs_iters: list, points: list,
     os.makedirs(sv_path, exist_ok = True)
 
     np.savez(sv_path + f'{info['obs_name']}.npz', *R)
+
+    if extra_res == True:
+
+        np.savez(sv_path + f'{info['obs_name']}_{extra_lb}.npz', *R)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)

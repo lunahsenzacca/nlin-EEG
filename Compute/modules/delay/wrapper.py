@@ -1,11 +1,8 @@
 # Usual suspects
 import json
 
-# Evoked-wise function for Evokeds Plotting (EV)
-from core import evokeds
-
-# Utility function for dimensional time and frequency domain of the experiment
-from core import get_tinfo
+# Delay Time computation functions
+from modules.delay import delay
 
 # Multiprocessing wrappers
 from parallelizer import loader, calculator
@@ -15,7 +12,7 @@ from init import get_maind
 
 maind = get_maind()
 
-obs_name = 'evokeds'
+obs_name = 'delay'
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
 
@@ -50,24 +47,30 @@ ch_list = info['ch_list']
 # Time window
 window = info['window']
 
+### PARAMETERS FOR DELAY TIME COMPUTATION ###
+
+# Label for parameter selection
+calc_lb = parameters['calc_lb']
+
+# Choose delay time computation method
+tau_method = parameters['tau_method']
+
+# Choose clustering method
+clst_method = parameters['clst_method']
+
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
     clst = True
 else:
     clst = False
 
-# Load times for results array
-_, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
-
-# Label for parameter selection
-calc_lb = parameters['calc_lb']
-
 # Dictionary for computation variables
 variables = {   
                 'obs_name': obs_name,
                 'calc_lb': calc_lb,
 
-                't': list(times),
+                'tau_method': tau_method,
+                'clst_method': clst_method,
 
                 'clustered' : clst,
                 'subjects' : sub_list,
@@ -76,25 +79,17 @@ variables = {
                 'window' : window
             }
 
-### COMPUTATION ###
-
-# Build Evoked Plotting iterable function
-def it_evokeds(MNE_l: list):
-
-    EP, E_EP = evokeds(MNE = MNE_l[0], sMNE = MNE_l[1], ch_list = ch_list, window = window)
-
-    return EP, E_EP
-
 # Define shape of results
-fshape = [len(sub_list),len(conditions),len(ch_list),len(times)]
+fshape = [len(sub_list),len(conditions),len(ch_list)]
 
 # Script main method
 if __name__ == '__main__':
 
-    print('\n    EVOKEDS PLOT SCRIPT')
+    print('\n    DELAY TIME SCRIPT')
 
-    MNEs_iters, points = loader(info = info, with_std = True)
+    MNEs_iters, points = loader(info = info)
 
-    calculator(it_evokeds, MNEs_iters = MNEs_iters, points = points,
+    calculator(delay.it_delay_time(info = info, parameters = parameters),
+               MNEs_iters = MNEs_iters, points = points,
                info = info, variables = variables, fshape = fshape,
-               with_err = True)
+               with_err = False)

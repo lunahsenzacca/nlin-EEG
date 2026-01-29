@@ -310,14 +310,14 @@ def i_obs_name():
 # Choose to use defaults parameters for module printing it's values
 def i_parameters(obs_name: str):
 
-    with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
+    with open(f'./modules/{obs_name}/defaults.json', 'r') as f:
         txt = f.read()
         f.seek(0)
         d = json.load(f)
 
     if len(d) > 1:
 
-        with open('./modules/defaults/legend.json', 'r') as f:
+        with open('./modules/legend.json', 'r') as f:
 
             leg = json.load(f)
 
@@ -361,7 +361,7 @@ def i_parameters(obs_name: str):
             parameters = json.load(f)
 
     else:
-        with open(f'./modules/defaults/{obs_name}.json', 'r') as f:
+        with open(f'./modules/{obs_name}/defaults.json', 'r') as f:
             parameters = json.load(f)
 
     return parameters
@@ -533,7 +533,7 @@ def launch():
     with open(f'.tmp/modules/{obs_name}.json', 'w') as f:
         json.dump(parameters, f, indent = 2)
 
-    cmd = f'python -m modules.{obs_name}'
+    cmd = f'python -m modules.{obs_name}.wrapper'
 
     os.system(cmd)
 
@@ -588,8 +588,6 @@ def plot():
             print('')
 
     elif 'Edi' in plot_opt:
-
-        import subprocess
 
         keep_editing = 0
         while keep_editing == 0:
@@ -670,7 +668,7 @@ if __name__ == '__main__':
             with open('./.tmp/last.json', 'r') as f:
                 info = json.load(f)
 
-            cmd = f'python -m modules.{info['obs_name']}'
+            cmd = f'python -m modules.{info['obs_name']}.wrapper'
 
             os.system(cmd)
 
