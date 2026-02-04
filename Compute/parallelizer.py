@@ -118,9 +118,15 @@ def calculator(it_observable, MNEs_iters: list, points: list,
         results = results_
         e_results = None
 
-    if with_err == False:
+    if with_err == False and extra_res == False:
 
         R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results)
+        R1 = []
+
+    elif with_err == True and extra_res == False:
+
+        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results)
+        R1 = []
 
     elif with_err == False and extra_res == True:
 
@@ -140,9 +146,9 @@ def calculator(it_observable, MNEs_iters: list, points: list,
 
     np.savez(sv_path + f'{info['obs_name']}.npz', *R)
 
-    if extra_res == True:
+    if with_err == False and extra_res == True:
 
-        np.savez(sv_path + f'{info['obs_name']}_{extra_lb}.npz', *R)
+        np.savez(sv_path + f'{info['obs_name']}_{extra_lb}.npz', *R1)
 
     with open(sv_path + 'variables.json','w') as f:
         json.dump(variables, f, indent = 2)
