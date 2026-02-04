@@ -1,14 +1,14 @@
 {
-	"title": "$\\lambda_{max}(m)$",
-	"figure": "pois",
-	"multiplot": "subjects",
-	"legend": "conditions",
-	"axis": "embeddings",
-	"reduce_method": "trivial",
-	"ylabel": "$\\lambda_{max}(m)$",
-	"xlim": [null,null],
-	"ylim": [0,20],
-	"style": "curve",
-	"legend_t": "Condition",
- 	"colormap": "tab20c"
+  "title": "$\\lambda_{max}(m)$",
+  "figure": "pois",
+  "multiplot": "subjects",
+  "legend": "conditions",
+  "axis": "embeddings",
+  "reduce_method": "trivial",
+  "ylabel": "$\\lambda_{max}(m)$",
+  "xlim": [null,null],
+  "ylim": [0,20],
+  "style": "curve",
+  "legend_t": "Condition",
+  "colormap": "tab20c"
 }

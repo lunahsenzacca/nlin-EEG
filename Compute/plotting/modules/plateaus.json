@@ -1,14 +1,14 @@
 {
-	"title": "$\\nu_{p}$",
-	"figure": "conditions",
-	"multiplot": "subjects",  
-	"legend": "embeddings",
-	"isolines": null,
-	"axis": "pois",
-	"reduce_method": "trivial",
-	"ylabel": "$\\nu_{p}$",
-	"xlim": [null,null],
-	"ylim": [0.8,2.1],
-	"style": "marker",
-	"legend_t": "Embedding\ndimension"
+  "title": "$\\nu_{p}$",
+  "figure": "conditions",
+  "multiplot": "subjects",  
+  "legend": "embeddings",
+  "isolines": null,
+  "axis": "pois",
+  "reduce_method": "trivial",
+  "ylabel": "$\\nu_{p}$",
+  "xlim": [null,null],
+  "ylim": [0.8,2.1],
+  "style": "marker",
+  "legend_t": "Embedding\ndimension"
 }

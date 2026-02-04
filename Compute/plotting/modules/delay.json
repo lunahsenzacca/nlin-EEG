@@ -1,13 +1,13 @@
 {
-	"title": "$\\tau$",
-	"figure": "one",
-	"multiplot": "subjects",
-	"legend": "conditions",
-	"axis": "pois",
-	"reduce_method": "trivial",
-	"ylabel": "$\\tau$",
-	"xlim": [0,null],
-	"ylim": [null,null],
-	"style": "marker",
-	"legend_t": "Condition"
+  "title": "$\\tau$",
+  "figure": "one",
+  "multiplot": "subjects",
+  "legend": "conditions",
+  "axis": "pois",
+  "reduce_method": "trivial",
+  "ylabel": "$\\tau$",
+  "xlim": [0,null],
+  "ylim": [null,null],
+  "style": "marker",
+  "legend_t": "Condition"
 }

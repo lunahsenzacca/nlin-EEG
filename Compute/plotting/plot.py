@@ -28,7 +28,7 @@ extra_instructions['backend'] = 'kitcat'
 
 # Set lower dpi and dimension multiplier for reasonable dimensions
 extra_instructions['dpi'] = 200
-extra_instructions['dim_m'] = 0.5
+extra_instructions['dim_m'] = 0.6
 
 # Define main wrapper
 def plot():
