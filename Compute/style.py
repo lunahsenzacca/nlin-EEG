@@ -10,7 +10,7 @@ from subprocess import run, DEVNULL
 
 def micro(file: str):
 
-    run(['kitten','@','launch','--wait-for-child-to-exit=yes','micro',file], stdout = DEVNULL)
+    run(['kitten','@','launch','--wait-for-child-to-exit=yes','micro', '-colorscheme', 'cmc-16',file], stdout = DEVNULL)
 
     return
 
