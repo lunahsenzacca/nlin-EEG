@@ -645,8 +645,8 @@ def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
     M, X, info = obs_data(obs_path = obs_path, obs_name = obs_name)
 
-    len_s = len(variables['subjects'])
-    len_c = len(variables['conditions'])
+    len_s = len(info['sub_list'])
+    len_c = len(info['conditions'])
 
     results = []
     for s in range(0, len_s):
@@ -675,6 +675,36 @@ def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
     return results, X, info
 
+# Save numpy array in temporary path and return the latter as a string
+def to_disk(arr: np.ndarray, tmp_path: str):
+
+    svd = sorted(os.listdir(tmp_path))
+
+    if len(svd) == 0:
+
+        id = 100000
+
+    else:
+
+        id = int(svd[-1].split('.')[0]) + 1
+
+    path = tmp_path + str(id) + '.npy'
+
+    np.save(path, arr)
+
+    return path
+
+# Load list of numpy objects from list of paths
+def from_disk(paths: list):
+
+    arrays = []
+
+    for path in paths:
+
+        arrays.append(np.load(path))
+
+    return arrays
+
 # Create one dimensional list of results per subject per condition
 def flat_results(results: list):
 
@@ -687,17 +717,21 @@ def flat_results(results: list):
     return flat, points
 
 # Function for trials averaging and homogeneous array generation (works for already averaged trials as well)
-def collapse_trials(results: list, points: list, fshape: list, e_results = None, dtype = np.float64):
+def collapse_trials(results: list, points: list, fshape: list, e_results = None, dtype = np.float64, memory_safe = False):
 
     # Initzialize list of homegenous arrays
     RES = []
 
-    # Make homogeneous arrays for each subject
+    # Make homogeneous arrays for each subject-condition combination
     count = 0
     for s in range(0,fshape[0]):
         for c in range(0,fshape[1]):
 
             shape = [len(results[count:count + points[s][c]])]
+
+            if memory_safe == True:
+
+                results[count:count + points[s][c]] = from_disk(paths = results[count:count + points[s][c]])
 
             trials = np.asarray(results[count:count + points[s][c]], dtype = dtype)
 
@@ -707,6 +741,10 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
 
             # Get error from computation uncertainty
             if e_results != None:
+
+                if memory_safe == True:
+
+                    e_results[count:count + points[s][c]] = from_disk(paths = e_results[count:count + points[s][c]])
 
                 e_trials = np.asarray(e_results[count:count + points[s][c]], dtype = dtype)
 

@@ -4,7 +4,7 @@ import numpy as np
 
 from scipy.spatial.distance import squareform
 
-from core import extractTS, multi_embedding, distance_matrix
+from core import extractTS, multi_embedding, distance_matrix, to_disk
 
 # Recurrence Plot for a single distance matrix
 def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
@@ -33,7 +33,8 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
 # Recurrence Plot of channel time series of a specific trial
 def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                embeddings: list, tau: str|int, th_method: str, th_values: list,
-               m_norm = False, window = [None,None], cython = False):
+               m_norm = False, window = [None,None],
+               cython = False, memory_safe = False, tmp_path = None):
 
     if cython == True:
 
@@ -83,8 +84,12 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     else:
 
                         rp = c_core.rec_plt(dist_matrix = dist_matrix, r = r, T = t.shape[-1])
-                    
+
                     rp = squareform(rp, checks = False)
+
+                    if memory_safe == True and type(tmp_path) == str:
+
+                        rp = to_disk(arr = rp, tmp_path = tmp_path)
 
                     RP.append(rp)
 
@@ -93,7 +98,7 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
     return RP
 
 # Iterable function generator
-def it_recurrence(info: dict, parameters: dict, cython = False):
+def it_recurrence(info: dict, parameters: dict, cython = False, memory_safe = False, tmp_path = None):
 
     global iterable
 
@@ -108,7 +113,9 @@ def it_recurrence(info: dict, parameters: dict, cython = False):
                         m_norm = parameters['m_norm'],
                         th_method = parameters['th_method'],
                         th_values = parameters['th_values'],
-                        cython = cython)
+                        cython = cython,
+                        memory_safe = memory_safe,
+                        tmp_path = tmp_path)
 
         return RP
 

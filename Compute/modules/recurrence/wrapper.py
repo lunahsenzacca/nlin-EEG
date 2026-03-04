@@ -28,6 +28,12 @@ obs_name = 'recurrence'
 cython = False
 cython_verbose = False
 
+### MEMORY SAFE PARAMETER ###
+
+# Whether to save results to disk to avoid RAM saturation
+memory_safe = True
+tmp_path = None
+
 ### SCRIPT PARAMETERS ###
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
@@ -126,9 +132,17 @@ if __name__ == '__main__':
 
         cython_compile(verbose = cython_verbose)
 
+    if memory_safe == True:
+
+        import os, tempfile
+
+        os.makedirs('.tmp/memory_safe', exist_ok = True)
+
+        tmp_path = tempfile.TemporaryDirectory(prefix = obs_name, dir = '.tmp/memory_safe').name
+
     MNEs_iters, points = loader(info)
 
-    calculator(recurrence.it_recurrence(info = info, parameters = parameters, cython = cython),
+    calculator(recurrence.it_recurrence(info = info, parameters = parameters, cython = cython, memory_safe = memory_safe, tmp_path = tmp_path),
                MNEs_iters = MNEs_iters, points = points,
                info = info, fshape = fshape,
                dtype = np.int8, with_err = False)

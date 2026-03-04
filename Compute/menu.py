@@ -343,9 +343,8 @@ def i_parameters(obs_name: str):
     if 'Ch' in default_opt:
 
         import tempfile
-        import subprocess
 
-        temporary = tempfile.NamedTemporaryFile(mode='w+t', prefix = f'{obs_name}_', suffix = ".json", delete=False, dir = ".tmp")
+        temporary = tempfile.NamedTemporaryFile(mode='w+t', prefix = f'{obs_name}_', suffix = ".json", dir = ".tmp")
 
         n = temporary.name
 

@@ -5,8 +5,6 @@ import numpy as np
 
 from core import loadMNE, collapse_trials, obs_path
 
-from tqdm import tqdm
-
 from rich.progress import track
 
 from multiprocessing import Pool
@@ -76,6 +74,7 @@ def loader(info: dict, with_std = False):
 def calculator(it_observable, MNEs_iters: list, points: list,
                info: dict, fshape: list,
                with_err = False, dtype = np.float64,
+               memory_safe = False, tmp_path = None,
                extra_res = False, extra_lb = None, extra_dtype = None):
 
     # IMPLEMENT A SMARTER WAY OF COMPUTING ETA
@@ -120,13 +119,13 @@ def calculator(it_observable, MNEs_iters: list, points: list,
 
     if extra_res == False:
 
-        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results)
+        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results, memory_safe = memory_safe, tmp_path = tmp_path)
         R1 = []
 
     elif with_err == False and extra_res == True:
 
-        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = None)
-        R1 = collapse_trials(results = e_results, points = points, fshape = fshape, dtype = extra_dtype, e_results = None)
+        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = None, memory_safe = memory_safe, tmp_path = tmp_path)
+        R1 = collapse_trials(results = e_results, points = points, fshape = fshape, dtype = extra_dtype, e_results = None, memory_safe = memory_safe, tmp_path = tmp_path)
 
     else:
         raise ValueError('Only error or extra value can be saved!')
