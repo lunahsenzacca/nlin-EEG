@@ -64,19 +64,23 @@ calc_lb = parameters['calc_lb']
 # Maximum number of persistance feature returned
 max_pairs = parameters['max_pairs']
 
-# Dictionary for computation variables
-variables = {   
-                'obs_name': obs_name,
-                'calc_lb': calc_lb,
+# Updated info dictionary
+info = {
+        'obs_name': obs_name,
+        'calc_lb': calc_lb,
 
-                'max_pairs': max_pairs,
+        'max_pairs': max_pairs,
 
-                'clustered' : clst,
-                'subjects' : sub_list,
-                'conditions' : conditions,
-                'pois' : ch_list,
-                'window' : window
-            }
+        'clustered' : clst,
+        'sub_list' : sub_list,
+        'conditions' : conditions,
+        'ch_list' : ch_list,
+        'window' : window,
+
+        'exp_name' : exp_name,
+        'avg_trials': avg_trials,
+        'clst_lb' : clst_lb
+        }
 
 # Define shape of results
 fshape = [len(sub_list),len(conditions),len(ch_list),max_pairs,2]
@@ -90,6 +94,6 @@ if __name__ == '__main__':
 
     calculator(persistence.it_persistence(info = info, parameters = parameters),
                MNEs_iters = MNEs_iters, points = points,
-               info = info, variables = variables, fshape = fshape,
+               info = info, fshape = fshape,
                with_err = False,
                extra_res = True, extra_lb = 'times', extra_dtype = np.int32)

@@ -83,23 +83,27 @@ dt = parameters['dt']
 # Apply embedding normalization when computing distances
 m_norm = parameters['m_norm']
 
-# Dictionary for computation variables
-variables = {   
-                'obs_name': obs_name,
-                'calc_lb': calc_lb,
+# Updated info dictionary
+info = {
+        'obs_name': obs_name,
+        'calc_lb': calc_lb,
 
-                'tau': tau,
-                'embeddings': embeddings,
-                'w': w,
-                'dt': dt,
-                'm_norm': m_norm,
+        'tau': tau,
+        'embeddings': embeddings,
+        'w': w,
+        'dt': dt,
+        'm_norm': m_norm,
 
-                'clustered' : clst,
-                'subjects' : sub_list,
-                'conditions' : conditions,
-                'pois' : ch_list,
-                'window' : window
-            }
+        'clustered' : clst,
+        'sub_list' : sub_list,
+        'conditions' : conditions,
+        'ch_list' : ch_list,
+        'window' : window,
+
+        'exp_name' : exp_name,
+        'avg_trials': avg_trials,
+        'clst_lb' : clst_lb
+        }
 
 # Define shape of results
 fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings)]
@@ -117,5 +121,5 @@ if __name__ == '__main__':
 
     calculator(llyap.it_lyapunov(info = info, parameters = parameters, cython = cython),
                MNEs_iters = MNEs_iters, points = points,
-               info = info, variables = variables, fshape = fshape,
+               info = info, fshape = fshape,
                with_err = True)

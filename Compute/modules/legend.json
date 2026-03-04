@@ -10,5 +10,7 @@
   "max_pairs": "Number of persistence pairs to keep",
   "percentiles": "Percentiles for isoline calculations",
   "N": "Number of simulated time series for uncertainty estimation",
-  "wf": "Window factor for Fourier spectrum calculation"
+  "wf": "Window factor for Fourier spectrum calculation",
+  "th_method": "Method for distance matrix thresholding",
+  "th_values": "Values for distance matrix thresholding"
 }

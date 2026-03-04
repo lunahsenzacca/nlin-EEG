@@ -62,18 +62,6 @@ ch_list = info['ch_list']
 # Time window
 window = info['window']
 
-# Dataset name
-exp_name = 'bmasking_dense'
-
-# Cluster label
-clust_lb = 'CFPO'
-
-# Calcultation parameters label
-calc_lb = 'F'
-
-# Get data averaged across trials
-avg_trials = True
-
 # Check if we are clustering electrodes
 if type(ch_list) == tuple:
     clst = True
@@ -100,23 +88,27 @@ m_norm = parameters['m_norm']
 # Set desired percentiles for isolines
 percentiles = parameters['percentiles']
 
-# Dictionary for computation variables
-variables = {   
-                'obs_name': obs_name,
-                'calc_lb': calc_lb,
+# Updated info dictionary
+info = {
+        'obs_name': obs_name,
+        'calc_lb': calc_lb,
 
-                'tau' : tau,
-                'embeddings': embeddings,
-                'm_norm': m_norm,
-                'percentiles' : percentiles,
-                'dt': list(times),
+        'tau' : tau,
+        'embeddings': embeddings,
+        'm_norm': m_norm,
+        'percentiles' : percentiles,
+        'dt': list(times),
 
-                'clustered' : clst,
-                'subjects' : sub_list,
-                'conditions' : conditions,
-                'pois' : ch_list,
-                'window' : window
-            }
+        'clustered' : clst,
+        'sub_list' : sub_list,
+        'conditions' : conditions,
+        'ch_list' : ch_list,
+        'window' : window,
+
+        'exp_name' : exp_name,
+        'avg_trials': avg_trials,
+        'clst_lb' : clst_lb
+        }
 
 # Define shape of results
 fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(percentiles),len(times)]
@@ -134,5 +126,5 @@ if __name__ == '__main__':
 
     calculator(separation.it_separation(info = info, parameters = parameters, cython = cython),
                MNEs_iters = MNEs_iters, points = points,
-               info = info, variables = variables, fshape = fshape,
+               info = info, fshape = fshape,
                with_err = False)

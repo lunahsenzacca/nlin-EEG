@@ -76,7 +76,7 @@ cpdef cnp.ndarray[DTYPEint_t, ndim = 2] rec_plt(cnp.ndarray[DTYPEfloat_t, ndim =
 
     cdef:
 
-        cnp.ndarray[DTYPEint_t, ndim = 2] rplt = np.full((T,T), 0, dtype = DTYPEint)
+        cnp.ndarray[DTYPEint_t, ndim = 2] rplt = np.full((T,T), 2, dtype = DTYPEint)
 
         Py_ssize_t N = dist_matrix.shape[0]
         Py_ssize_t i, j
@@ -90,6 +90,11 @@ cpdef cnp.ndarray[DTYPEint_t, ndim = 2] rec_plt(cnp.ndarray[DTYPEfloat_t, ndim =
 
                 rplt[i][j] = 1
                 rplt[j][i] = 1
+
+            else:
+
+                rplt[i][j] = 0
+                rplt[j][i] = 0
 
     return rplt
 

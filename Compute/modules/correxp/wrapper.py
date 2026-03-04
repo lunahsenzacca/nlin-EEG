@@ -73,7 +73,7 @@ gauss_filter = parameters['gauss_filter']
 scale = parameters['scale'] #0.01
 cutoff = parameters['cutoff'] #5
 
-add_variables = {
+add_info = {
     'calc_lb': calc_lb,
 
     'n_points': n_points,
@@ -87,10 +87,10 @@ if __name__ == '__main__':
 
     print('\n    CORRELATION EXPONENT SCRIPT')
 
-    log_CS_iters, points, variables = correxp.correxp_getcorrsum(info = info, load_calc_lb = load_calc_lb)
+    log_CS_iters, points, info = correxp.correxp_getcorrsum(info = info, load_calc_lb = load_calc_lb)
 
-    embeddings = variables['embeddings']
-    log_r = variables['log_r']
+    embeddings = info['embeddings']
+    log_r = info['log_r']
 
     # Check if mobile average leaves more than three cooridnates
     rlen = len(log_r) - n_points + 1
@@ -105,11 +105,12 @@ if __name__ == '__main__':
     # Create homogeneous array averaging across trial results
     fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r_log_r)]
 
-    variables = variables | add_variables
+    # Updated info dictionary
+    info = info | add_info
 
     calculator(correxp.it_correlation_exponent(variables),
                MNEs_iters = log_CS_iters, points = points,
-               info = info, variables = variables, fshape = fshape,
+               info = info, fshape = fshape,
                with_err = True)
 
 

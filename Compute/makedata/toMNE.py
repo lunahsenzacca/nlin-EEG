@@ -1,11 +1,7 @@
 # Usual suspects
 import os
-import numpy as np
 
 from tqdm import tqdm
-
-# MNE library for evoked file format use
-import mne
 
 # Sub-wise function for MNE file type conversion
 from core import toMNE
@@ -25,7 +21,7 @@ chunksize = 1
 exp_name = 'bmasking_dense'
 
 # Average across trials
-avg_trials = False
+avg_trials = True
 
 # Subject IDs
 sub_list = maind[exp_name]['subIDs']

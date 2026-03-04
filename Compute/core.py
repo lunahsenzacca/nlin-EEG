@@ -153,67 +153,67 @@ def obs_data(obs_path: str, obs_name: str):
     M = None
     X = None
 
-    # Load result variables
-    with open(obs_path + 'variables.json', 'r') as f:
-        variables = json.load(f)
+    # Load result info
+    with open(obs_path + 'info.json', 'r') as f:
+        info = json.load(f)
 
     if obs_name == 'evokeds':
 
         M = np.load(obs_path + 'evokeds.npz')
-        x = variables['t']
+        x = info['t']
 
         X = [x]
 
     elif obs_name == 'spectrum':
 
         M = np.load(obs_path + 'spectrum.npz')
-        x = variables['freqs']
+        x = info['freqs']
 
         X = [x]
 
     elif obs_name == 'delay':
 
         M = np.load(obs_path + 'delay.npz')
-        x = variables['pois']
+        x = info['pois']
 
         X = [x]
 
     elif obs_name == 'recurrence':
 
         M = np.load(obs_path + 'recurrence.npz')
-        x = variables['embeddings']
-        y = variables['log_r']
+        x = info['embeddings']
+        y = info['log_r']
 
         X = [x,y]
 
     elif obs_name == 'separation':
 
         M = np.load(obs_path + 'separation.npz')
-        x = variables['embeddings']
-        y = variables['dt']
+        x = info['embeddings']
+        y = info['dt']
 
         X = [x,y]
 
     elif obs_name == 'corrsum':
 
         M = np.load(obs_path + 'corrsum.npz')
-        x = variables['embeddings']
-        y = variables['log_r']
+        x = info['embeddings']
+        y = info['log_r']
 
         X = [x,y]
 
     elif obs_name == 'correxp':
 
         M = np.load(obs_path + 'correxp.npz')
-        x = variables['embeddings']
-        y = variables['log_r']
+        x = info['embeddings']
+        y = info['log_r']
 
         X = [x,y]
 
     elif obs_name == 'peaks':
 
         M = np.load(obs_path + 'peaks.npz')
-        x = variables['embeddings']
+        x = info['embeddings']
 
         # See if you want to implement it later
         #y = np.load(obs_path + 'peaks_r.npz')
@@ -223,8 +223,8 @@ def obs_data(obs_path: str, obs_name: str):
     elif obs_name == 'plateaus':
 
         M = np.load(obs_path + 'plateaus.npz')
-        x = variables['embeddings']
-        y = variables['log_r']
+        x = info['embeddings']
+        y = info['log_r']
 
         # See if you want to implement it later
         z = np.load(obs_path + 'plateaus_r.npz')
@@ -234,18 +234,18 @@ def obs_data(obs_path: str, obs_name: str):
     elif obs_name == 'idim':
 
         M = np.load(obs_path + 'idim.npz')
-        x = variables['embeddings']
+        x = info['embeddings']
 
         X = [x]
 
     elif obs_name == 'llyap':
 
         M = np.load(obs_path + 'llyap.npz')
-        x = variables['embeddings']
+        x = info['embeddings']
 
         X = [x]
 
-    return M, X, variables
+    return M, X, info
 
 # Convert channel names to appropriate .mat data index
 def name_toidx(names: list| tuple, exp_name: str):
@@ -643,7 +643,7 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
 # Open results .npz file and convert it to nested list structure
 def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
-    M, X, variables = obs_data(obs_path = obs_path, obs_name = obs_name)
+    M, X, info = obs_data(obs_path = obs_path, obs_name = obs_name)
 
     len_s = len(variables['subjects'])
     len_c = len(variables['conditions'])
@@ -673,7 +673,7 @@ def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
         X[X_transform] = X_results
 
-    return results, X, variables
+    return results, X, info
 
 # Create one dimensional list of results per subject per condition
 def flat_results(results: list):
@@ -689,9 +689,6 @@ def flat_results(results: list):
 # Function for trials averaging and homogeneous array generation (works for already averaged trials as well)
 def collapse_trials(results: list, points: list, fshape: list, e_results = None, dtype = np.float64):
 
-    if e_results == None:
-        print('\nNo observable error in input, zeros will be appended in results along trial error')
-
     # Initzialize list of homegenous arrays
     RES = []
 
@@ -704,21 +701,22 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
 
             trials = np.asarray(results[count:count + points[s][c]], dtype = dtype)
 
+            shape_ = [*shape, *fshape[2:]]
+
+            trials = trials.reshape(shape_)
+
             # Get error from computation uncertainty
             if e_results != None:
 
                 e_trials = np.asarray(e_results[count:count + points[s][c]], dtype = dtype)
 
+                e_trials = e_trials.reshape(shape_)
+
+                trials = np.concatenate((trials[:,np.newaxis], e_trials[:,np.newaxis]), axis = 1)
+
             else:
 
-                e_trials = np.zeros(trials.shape, dtype = dtype)
-
-            shape_ = [*shape, *fshape[2:]]
-
-            trials = trials.reshape(shape_)
-            e_trials = e_trials.reshape(shape_)
-
-            trials = np.concatenate((trials[:,np.newaxis], e_trials[:,np.newaxis]), axis = 1)
+                trials = trials[:,np.newaxis]
 
             count = count + points[s][c]
 
@@ -993,7 +991,7 @@ def td_embedding(ts: np.ndarray, embedding: int, tau: str|int):
         tau = int(autoCorrelation_tau(ts))
 
     else:
-        if tau is not int:
+        if type(tau) != int:
             raise ValueError('tau method not \'mutual_information\' or \'autocorrelation\' or int')
 
     min_len = (embedding - 1)*tau + 1
@@ -1050,25 +1048,6 @@ def distance_matrix(emb_ts: np.ndarray, m_norm = None, m = None):
 
     return dist_matrix
 
-# Recurrence Plot for a single embeddend time series
-def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
-
-    N = dist_matrix.shape[0]
-
-    rplt = np.full((T,T), 0, dtype = np.int8)
-
-    # Cycle through all different couples of points
-    for i in range(0,N):
-        for j in range(0,i + 1):
-
-            # Get value of theta
-            if dist_matrix[i,j] < r:
-                
-                rplt[i,j] = 1
-                rplt[j,i] = 1
-
-    return rplt
-
 # Correlation Sum from a Recurrence Plot
 def rec_corr_sum(recurrence_plot: np.ndarray, w: int):
 
@@ -1106,8 +1085,6 @@ def rec_corr_sum(recurrence_plot: np.ndarray, w: int):
         csum = (2/((N-w)*(N-w-1)))*c
 
     return csum
-
-
 
 # Trial-wise function for correlation exponent computation
 def rec_correlation_sum(trial_RP: list, log_r: list, w = None):
@@ -1258,54 +1235,6 @@ def ce_peaks(trial_CE: np.ndarray, log_r: list, distance: int, height: list, pro
 
 ### SUB-TRIAL WISE FUNCTIONS FOR OBSERVABLES COMPUTATION ###
 
-# Recurrence Plot of channel time series of a specific trial
-def recurrence_plot(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
-                    embeddings: list, tau: str|int, rvals: list, 
-                    m_norm = False, window = None, cython = False):
-
-    if cython == True:
-
-        from cython_modules import c_core
-
-    # Extract time series from data
-    TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'append')
-
-    # Initzialize result array
-    RP = []
-
-    # Cycle around trials
-    for ts in TS:
-        # Cycle around clusters
-        for t in ts:
-
-            # Cycle around embeddings
-            for m in embeddings:
-                emb_ts = multi_embedding(c_ts = t, embedding = m, tau = tau)
-
-                if cython == False:
-
-                    dist_matrix = distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
-                else:
-
-                    dist_matrix = c_core.distance_matrix(emb_ts = emb_ts, m_norm = m_norm, m = np.sqrt(len(emb_ts)))
-
-                # Cycle around r-values
-                for r in rvals:
-
-                    if cython == False:
-
-                        rp = rec_plt(dist_matrix = dist_matrix, r = r, T = emb_ts.shape[1])
-
-                    else:
-
-                        rp = c_core.rec_plt(dist_matrix = dist_matrix, r = r, T = emb_ts.shape[1])
-
-                    RP.append(rp)
-
-    # Returns list in -C style ordering
-
-    return RP
 
 # NEEDS REVISING # Information dimension of channel time series of a specific trial
 def information_dimension(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,

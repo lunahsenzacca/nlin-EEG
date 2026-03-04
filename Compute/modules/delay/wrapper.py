@@ -64,20 +64,24 @@ if type(ch_list) == tuple:
 else:
     clst = False
 
-# Dictionary for computation variables
-variables = {   
-                'obs_name': obs_name,
-                'calc_lb': calc_lb,
+# Updated info dictionary
+info = {
+        'obs_name': obs_name,
+        'calc_lb': calc_lb,
 
-                'tau_method': tau_method,
-                'clst_method': clst_method,
+        'tau_method': tau_method,
+        'clst_method': clst_method,
 
-                'clustered' : clst,
-                'subjects' : sub_list,
-                'conditions' : conditions,
-                'pois' : ch_list,
-                'window' : window
-            }
+        'clustered' : clst,
+        'sub_list' : sub_list,
+        'conditions' : conditions,
+        'ch_list' : ch_list,
+        'window' : window,
+
+        'exp_name' : exp_name,
+        'avg_trials': avg_trials,
+        'clst_lb' : clst_lb
+        }
 
 # Define shape of results
 fshape = [len(sub_list),len(conditions),len(ch_list)]
@@ -91,5 +95,5 @@ if __name__ == '__main__':
 
     calculator(delay.it_delay_time(info = info, parameters = parameters),
                MNEs_iters = MNEs_iters, points = points,
-               info = info, variables = variables, fshape = fshape,
+               info = info, fshape = fshape,
                with_err = False)

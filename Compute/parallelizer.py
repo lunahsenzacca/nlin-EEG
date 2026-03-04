@@ -74,7 +74,7 @@ def loader(info: dict, with_std = False):
 
 # Parallelized Observable computation
 def calculator(it_observable, MNEs_iters: list, points: list,
-               info: dict, variables: dict, fshape: list,
+               info: dict, fshape: list,
                with_err = False, dtype = np.float64,
                extra_res = False, extra_lb = None, extra_dtype = None):
 
@@ -118,12 +118,7 @@ def calculator(it_observable, MNEs_iters: list, points: list,
         results = results_
         e_results = None
 
-    if with_err == False and extra_res == False:
-
-        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results)
-        R1 = []
-
-    elif with_err == True and extra_res == False:
+    if extra_res == False:
 
         R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results)
         R1 = []
@@ -149,9 +144,6 @@ def calculator(it_observable, MNEs_iters: list, points: list,
     if with_err == False and extra_res == True:
 
         np.savez(sv_path + f'{info['obs_name']}_{extra_lb}.npz', *R1)
-
-    with open(sv_path + 'variables.json','w') as f:
-        json.dump(variables, f, indent = 2)
 
     with open(sv_path + 'info.json','w') as f:
         json.dump(info, f, indent = 2)

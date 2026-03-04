@@ -87,24 +87,28 @@ log_span = parameters['log_span']
 
 r = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
 
-# Dictionary for computation variables
-variables = {   
-                'obs_name': obs_name,
-                'calc_lb': calc_lb,
+# Updated info dictionary
+info = {
+        'obs_name': obs_name,
+        'calc_lb': calc_lb,
 
-                'tau' : tau,
-                'w': w,
-                'embeddings' : embeddings,
-                'm_norm': m_norm,
-                'log_span': log_span,
-                'log_r': list(np.log(r)),
+        'tau' : tau,
+        'w': w,
+        'embeddings' : embeddings,
+        'm_norm': m_norm,
+        'log_span': log_span,
+        'log_r': list(np.log(r)),
 
-                'clustered' : clst,
-                'subjects' : sub_list,
-                'conditions' : conditions,
-                'pois' : ch_list,
-                'window' : window
-            }
+        'clustered' : clst,
+        'sub_list' : sub_list,
+        'conditions' : conditions,
+        'ch_list' : ch_list,
+        'window' : window,
+
+        'exp_name' : exp_name,
+        'avg_trials': avg_trials,
+        'clst_lb' : clst_lb
+        }
 
 # Define shape of results
 fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(r)]
@@ -122,5 +126,5 @@ if __name__ == '__main__':
 
     calculator(corrsum.it_correlation_sum(info = info, parameters = parameters, cython = cython),
                MNEs_iters = MNEs_iters, points = points,
-               info = info, variables = variables, fshape = fshape,
+               info = info, fshape = fshape,
                with_err = False)

@@ -1,8 +1,12 @@
 # Usual suspects
 import json
+import numpy as np
 
-# Evokeds extraction functions
-from modules.evokeds import evokeds
+# Recurrence Plot computation function
+from modules.recurrence import recurrence
+
+# Cython file compile wrapper
+from core import cython_compile
 
 # Utility function for dimensional time and frequency domain of the experiment
 from core import get_tinfo
@@ -15,7 +19,16 @@ from init import get_maind
 
 maind = get_maind()
 
-obs_name = 'evokeds'
+# Module name
+obs_name = 'recurrence'
+
+### CYTHON DEBUG PARAMETERS ###
+
+# Cython implementation of the script
+cython = False
+cython_verbose = False
+
+### SCRIPT PARAMETERS ###
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
 
@@ -59,15 +72,36 @@ else:
 # Load times for results array
 _, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
 
+### PARAMETERS FOR SEPARATION PLOT COMPUTATION ###
+
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
 
+# Set different time delay for each time series
+tau = parameters['tau']
+
+# Embedding dimensions
+embeddings = parameters['embeddings']
+
+# Apply embedding normalization when computing distances
+m_norm = parameters['m_norm']
+
+# Set threshold method
+th_method = parameters['th_method']
+
+# Set threshold values
+th_values = parameters['th_values']
+
 # Updated info dictionary
 info = {
-        'obs_name': obs_name,
-        'calc_lb': calc_lb,
+        'obs_name' : obs_name,
+        'calc_lb' : calc_lb,
 
-        't': list(times),
+        'tau' : tau,
+        'embeddings' : embeddings,
+        'm_norm' : m_norm,
+        'th_method' : th_method,
+        'th_values' : th_values,
 
         'clustered' : clst,
         'sub_list' : sub_list,
@@ -81,16 +115,20 @@ info = {
         }
 
 # Define shape of results
-fshape = [len(sub_list),len(conditions),len(ch_list),len(times)]
+fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(th_values),int(len(times)*(len(times) - 1)/2)]
 
 # Script main method
 if __name__ == '__main__':
 
-    print('\n    EVOKEDS PLOT SCRIPT')
+    print('\n    RECURRENCE PLOT SCRIPT')
 
-    MNEs_iters, points = loader(info = info, with_std = True)
+    if cython == True:
 
-    calculator(evokeds.it_evokeds(info),
+        cython_compile(verbose = cython_verbose)
+
+    MNEs_iters, points = loader(info)
+
+    calculator(recurrence.it_recurrence(info = info, parameters = parameters, cython = cython),
                MNEs_iters = MNEs_iters, points = points,
                info = info, fshape = fshape,
-               with_err = True)
+               dtype = np.int8, with_err = False)

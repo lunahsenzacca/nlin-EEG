@@ -215,7 +215,7 @@ def i_channels(exp_name: str):
 
     else:
 
-        clst_lb = 'all'
+        clst_lb = 'Global'
         ch_list = pois
 
     if 'Ch' in pois_opt or 'Ty' in pois_opt:

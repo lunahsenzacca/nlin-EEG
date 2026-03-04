@@ -48,7 +48,7 @@ def correxp_getcorrsum(info: dict, load_calc_lb: str):
     path = obs_path(exp_name = info['exp_name'], obs_name = 'corrsum', avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = load_calc_lb)
 
     # Load correlation sum results
-    CS, _, variables = loadresults(obs_path = path, obs_name = 'corrsum', X_transform = None)
+    CS, _, info = loadresults(obs_path = path, obs_name = 'corrsum', X_transform = None)
 
     flat_CS, points = flat_results(CS)
 
@@ -61,7 +61,7 @@ def correxp_getcorrsum(info: dict, load_calc_lb: str):
         # Build trial-wise iterable
         log_CS_iters.append([log_CS[0],log_CS[1]])
 
-    return log_CS_iters, points, variables
+    return log_CS_iters, points, info
 
 # Sub-wise function for Correlation Exponent computation
 def correlation_exponent(log_CS_iters: list, n_points: int, log_r: list,

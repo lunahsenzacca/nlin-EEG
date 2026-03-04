@@ -29,7 +29,7 @@ def sep(dist_matrix: np.ndarray, percentiles: list, T: int):
 
     return splt
 
-# Correlation sum of channel time series of a specific trial
+# Spacetime Separation of channel time series of a specific trial
 def separation(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                     embeddings: list, tau: str|int, percentiles: list,
                     m_norm = False, window = [None,None], cython = False):
