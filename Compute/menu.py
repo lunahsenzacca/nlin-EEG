@@ -144,9 +144,9 @@ def i_channels(exp_name: str):
 
     pois = maind[exp_name]['pois']
 
-    if os.path.isfile(path = './.tmp/clst.json') == True:
+    if os.path.isfile(path = '.tmp/clst.json') == True:
 
-        with open('./.tmp/clst.json', 'r') as f:
+        with open('.tmp/clst.json', 'r') as f:
             saved_clst = json.load(f)
 
         opt = [f'All ({len(pois)} channels)', f'Saved Clusters ({len(saved_clst)})', 'Check...', 'Type...']
@@ -232,7 +232,7 @@ def i_channels(exp_name: str):
 
             saved_clst[clst_lb] = ch_list
 
-            with open('./.tmp/clst.json', 'w') as f:
+            with open('.tmp/clst.json', 'w') as f:
                 json.dump(saved_clst, f, indent = 2)
 
     return ch_list, clst_lb
@@ -514,9 +514,6 @@ def launch():
         keep_open = 1
         return keep_open
 
-    # Add plot opt to info for relaunch option
-    info['plot_opt'] = plot_opt
-
     # Set extra instructions for plotting to false FOR NOW
     info['extra_instructions'] = False
 
@@ -524,13 +521,16 @@ def launch():
     os.makedirs('.tmp/modules/', exist_ok = True)
 
     # Experiment info
-    with open('.tmp/info.json', 'w') as f, open('.tmp/last.json', 'w') as l:
+    with open('.tmp/info.json', 'w') as f:
         json.dump(info, f, indent = 2)
-        json.dump(info, l, indent = 2)
 
     # Script parameters
     with open(f'.tmp/modules/{obs_name}.json', 'w') as f:
         json.dump(parameters, f, indent = 2)
+
+    # Opts
+    with open('.tmp/opts.json', 'w') as f:
+        json.dump({'plot_opt': plot_opt}, f, indent = 2)
 
     cmd = f'python -m modules.{obs_name}.wrapper'
 
@@ -663,16 +663,21 @@ if __name__ == '__main__':
         elif 'Plo' in mode:
             plot()
         elif 'Relau' in mode:
+
             # Experiment info
-            with open('./.tmp/last.json', 'r') as f:
+            with open('.tmp/last.json', 'r') as f:
                 info = json.load(f)
+
+            # Opts
+            with open('.tmp/opts.json', 'r') as f:
+                opts = json.load(f)
 
             cmd = f'python -m modules.{info['obs_name']}.wrapper'
 
             os.system(cmd)
 
             ## Launch compiled plotting
-            if info['plot_opt'] == True:
+            if opts['plot_opt'] == True:
 
                 cmd = 'python -m plotting.plot'
 

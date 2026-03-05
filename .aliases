@@ -3,7 +3,7 @@
 #echo 'Loaded some aliases'
 
 # Quick launch menu.py script
-alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu'
+alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu & disown'
 
 # Quick launch toMNE.py script
 alias convert='kitty -d $HOME/nlin-EEG/Compute -e python -m makedata.toMNE;'

@@ -38,11 +38,11 @@ tmp_path = None
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
 
-with open('./.tmp/info.json', 'r') as f:
+with open('.tmp/info.json', 'r') as f:
 
     info = json.load(f)
 
-with open(f'./.tmp/modules/{obs_name}.json', 'r') as f:
+with open(f'.tmp/modules/{obs_name}.json', 'r') as f:
 
     parameters = json.load(f)
 
