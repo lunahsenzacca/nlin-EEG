@@ -181,10 +181,9 @@ def obs_data(obs_path: str, obs_name: str):
     elif obs_name == 'recurrence':
 
         M = np.load(obs_path + 'recurrence.npz')
-        x = info['embeddings']
-        y = info['log_r']
+        x = info['t']
 
-        X = [x,y]
+        X = [x]
 
     elif obs_name == 'separation':
 
@@ -675,6 +674,23 @@ def loadresults(obs_path: str, obs_name: str, X_transform = None):
 
     return results, X, info
 
+# Load last computed results
+def load_last(X_transform = None):
+
+    with open('.tmp/last.json','r') as f:
+
+        info = json.load(f)
+
+    path = obs_path(exp_name = info['exp_name'],
+                    obs_name = info['obs_name'],
+                    clst_lb = info['clst_lb'],
+                    avg_trials = info['avg_trials'],
+                    calc_lb = info['calc_lb'])
+
+    results, X, info = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = X_transform)
+
+    return results, X, info
+
 # Save numpy array in temporary path and return the latter as a string
 def to_disk(arr: np.ndarray, tmp_path: str):
 
@@ -688,7 +704,7 @@ def to_disk(arr: np.ndarray, tmp_path: str):
 
         id = int(svd[-1].split('.')[0]) + 1
 
-    path = tmp_path + str(id) + '.npy'
+    path = os.path.join(tmp_path, str(id) + '.npy')
 
     np.save(path, arr)
 
@@ -697,13 +713,12 @@ def to_disk(arr: np.ndarray, tmp_path: str):
 # Load list of numpy objects from list of paths
 def from_disk(paths: list):
 
-    arrays = []
+    for i, path in enumerate(paths):
+        for j, p in enumerate(path):
 
-    for path in paths:
+            paths[i][j] = np.load(p)
 
-        arrays.append(np.load(path))
-
-    return arrays
+    return paths
 
 # Create one dimensional list of results per subject per condition
 def flat_results(results: list):
@@ -727,13 +742,17 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
     for s in range(0,fshape[0]):
         for c in range(0,fshape[1]):
 
-            shape = [len(results[count:count + points[s][c]])]
-
             if memory_safe == True:
 
-                results[count:count + points[s][c]] = from_disk(paths = results[count:count + points[s][c]])
+                sub_cond = from_disk(paths = results[count:count + points[s][c]])
 
-            trials = np.asarray(results[count:count + points[s][c]], dtype = dtype)
+            else:
+
+                sub_cond = results[count:count + points[s][c]]
+
+            shape = [len(sub_cond)]
+
+            trials = np.asarray(sub_cond, dtype = dtype)
 
             shape_ = [*shape, *fshape[2:]]
 
@@ -744,9 +763,13 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
 
                 if memory_safe == True:
 
-                    e_results[count:count + points[s][c]] = from_disk(paths = e_results[count:count + points[s][c]])
+                    e_sub_cond = from_disk(paths = e_results[count:count + points[s][c]])
 
-                e_trials = np.asarray(e_results[count:count + points[s][c]], dtype = dtype)
+                else:
+
+                    e_sub_cond = e_results[count:count + points[s][c]]
+
+                e_trials = np.asarray(e_sub_cond, dtype = dtype)
 
                 e_trials = e_trials.reshape(shape_)
 

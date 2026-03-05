@@ -22,6 +22,3 @@ poetry.lock
 
 # cargo folder
 Cargo
-
-# t.py test file
-Compute/t.py

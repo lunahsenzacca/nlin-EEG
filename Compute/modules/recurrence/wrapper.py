@@ -109,6 +109,8 @@ info = {
         'th_method' : th_method,
         'th_values' : th_values,
 
+        't': list(times),
+
         'clustered' : clst,
         'sub_list' : sub_list,
         'conditions' : conditions,
@@ -138,11 +140,13 @@ if __name__ == '__main__':
 
         os.makedirs('.tmp/memory_safe', exist_ok = True)
 
-        tmp_path = tempfile.TemporaryDirectory(prefix = obs_name, dir = '.tmp/memory_safe').name
+        tmp_dir = tempfile.TemporaryDirectory(prefix = obs_name, dir = '.tmp/memory_safe')
 
-    MNEs_iters, points = loader(info)
+        tmp_path = tmp_dir.name
+
+    MNEs_iters, points = loader(info = info)
 
     calculator(recurrence.it_recurrence(info = info, parameters = parameters, cython = cython, memory_safe = memory_safe, tmp_path = tmp_path),
                MNEs_iters = MNEs_iters, points = points,
                info = info, fshape = fshape,
-               dtype = np.int8, with_err = False)
+               dtype = np.int8, with_err = False, memory_safe = memory_safe)
