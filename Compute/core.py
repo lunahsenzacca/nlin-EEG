@@ -565,6 +565,8 @@ def flatMNEs(MNEs: list):
     # Save separation coordinates for 'collapse_trials' functions
     points = [[1 for j in range(0,len(MNEs[i]))] for i in range(0,len(MNEs))]
 
+    print(points)
+
     return flat, points
 
 # Multiprocessing helper function
@@ -583,7 +585,7 @@ def mp_wrapper(function, iterable: list, workers: int, desc: str, unit: str, lea
 # Extract time series from MNE data structure in a convenient manner
 # Returns a nested list of time series with the following hierarchy
 # 
-#   [Trials][Electrodes in cluster][Time points]
+#   [Trials][Clusters][Electrodes in cluster][Time points]
 # 
 # Each function needs 2 for loops to get to the individual time series 1-d vector, just 1 for the cluster
 def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window: list, sMNE = None, clst_method = 'append'):
@@ -594,11 +596,11 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
     if sMNE != None:
         sMNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
 
-    TS = []
-    E_TS = []
+    fTS = []
+    E_fTS = []
 
     # Check if we are clstering electrodes
-    if type(ch_list) == tuple:
+    if type(ch_list[0]) == list:
 
         for cl in ch_list:
 
@@ -618,8 +620,8 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
                 ts = ts.mean(axis = 1)[:,np.newaxis]
                 e_ts = e_ts.mean(axis = 1)[:,np.newaxis]
 
-            [TS.append(t) for t in ts]
-            [E_TS.append(e_t) for e_t in e_ts]
+            fTS.append(ts)
+            E_fTS.append(e_ts)
 
     else:
 
@@ -636,10 +638,18 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
                 ts = ts[np.newaxis]
                 e_ts = e_ts[np.newaxis]
 
-            [TS.append(t) for t in ts]
-            [E_TS.append(e_t) for e_t in e_ts]
+            fTS.append(ts)
+            E_fTS.append(e_ts)
 
-    print(len(TS),len(TS[0]),len(TS[0][0]))
+    n_trials = len(fTS[0])
+
+    TS = [[] for i in range(0,n_trials)]
+    E_TS = [[] for i in range(0,n_trials)]
+
+    for i in range(0,n_trials):
+        for c in range(0,len(ch_list)):
+            TS[i].append(fTS[c][i])
+            E_TS[i].append(E_fTS[c][i])
 
     return TS, E_TS
 
@@ -755,11 +765,11 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
 
             if memory_safe is True:
 
-                sub_cond = from_disk(results[count:count + points[s][c]])
+                sub_cond = from_disk(results[s+c])
 
             else:
 
-                sub_cond = results[count:count + points[s][c]]
+                sub_cond = results[s+c]
 
             shape = [len(sub_cond)]
 
@@ -774,11 +784,11 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
 
                 if memory_safe is True:
 
-                    e_sub_cond = from_disk(e_results[count:count + points[s][c]])
+                    e_sub_cond = from_disk(e_results[s+c])
 
                 else:
 
-                    e_sub_cond = e_results[count:count + points[s][c]]
+                    e_sub_cond = e_results[s+c]
 
                 e_trials = np.asarray(e_sub_cond, dtype = dtype)
 
@@ -789,8 +799,6 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
             else:
 
                 trials = trials[:,np.newaxis]
-
-            count = count + points[s][c]
 
             if memory_safe is True:
 
