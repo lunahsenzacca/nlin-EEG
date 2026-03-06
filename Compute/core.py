@@ -701,7 +701,7 @@ def load_last(X_transform = None):
                     avg_trials = info['avg_trials'],
                     calc_lb = info['calc_lb'])
 
-    results, X, info = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = X_transform)
+    results, X, info = load_results(obs_path = path, obs_name = info['obs_name'], X_transform = X_transform)
 
     return results, X, info
 
@@ -719,13 +719,9 @@ def to_disk(arr: np.ndarray, tmp_path: str):
     return path
 
 # Load list of numpy objects from list of paths
-def from_disk(paths: list):
+def from_disk(path: str):
 
-    data = []
-
-    for path in paths:
-
-        data.append(np.load(path))
+    data = np.load(path)
 
     return data
 
@@ -759,7 +755,6 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
         np.savez_compressed(sv_file)
 
     # Make homogeneous arrays for each subject-condition combination
-    count = 0
     for s in range(0,fshape[0]):
         for c in range(0,fshape[1]):
 
@@ -771,7 +766,7 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
 
                 sub_cond = results[s+c]
 
-            shape = [len(sub_cond)]
+            shape = [len(sub_cond)//fshape[2]]
 
             trials = np.asarray(sub_cond, dtype = dtype)
 
