@@ -1,9 +1,8 @@
-import os
 import json
 
 import numpy as np
 
-from core import loadMNE, collapse_trials, obs_path
+from core import loadMNE, save_results
 
 from rich.progress import track
 
@@ -102,6 +101,8 @@ def calculator(it_observable, MNEs_iters: list, points: list,
                           description = '[red]Processing:',
                           transient = False)
 
+
+    # ALL OF THIS SHOULD BE MUCH MORE ELEGANT AT SOME POINT, AND GENERALIZED FOR ANY NUMBER OF OUTPUTS MAYBE
     if with_err == True or extra_res == True:
 
         # Get separate results lists
@@ -119,45 +120,41 @@ def calculator(it_observable, MNEs_iters: list, points: list,
 
     if extra_res == False:
 
-        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = e_results, memory_safe = memory_safe )
-        R1 = []
+        save_results(results = results,
+                     points = points,
+                     fshape = fshape,
+                     info = info,
+                     sv_name = info['obs_name'],
+                     dtype = dtype,
+                     e_results = e_results,
+                     memory_safe = memory_safe)
 
     elif with_err == False and extra_res == True:
 
-        R = collapse_trials(results = results, points = points, fshape = fshape, dtype = dtype, e_results = None, memory_safe = memory_safe )
-        R1 = collapse_trials(results = e_results, points = points, fshape = fshape, dtype = extra_dtype, e_results = None, memory_safe = memory_safe )
+        save_results(results = results,
+                     points = points,
+                     fshape = fshape,
+                     info = info,
+                     sv_name = info['obs_name'],
+                     dtype = dtype,
+                     memory_safe = memory_safe)
+
+        save_results(results = e_results,
+                     points = points,
+                     fshape = fshape,
+                     info = info,
+                     sv_name = f'{info['obs_name']}_{extra_lb}',
+                     dtype = extra_dtype,
+                     memory_safe = memory_safe)
 
     else:
         raise ValueError('Only error or extra value can be saved!')
 
     print('\nDONE!')
 
-    # Save results to local
-
-    sv_path = obs_path(exp_name = info['exp_name'], obs_name = info['obs_name'], avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = info['calc_lb'])
-
-    os.makedirs(sv_path, exist_ok = True)
-
-    np.savez(sv_path + f'{info['obs_name']}.npz', *R)
-
-    if with_err == False and extra_res == True:
-
-        np.savez(sv_path + f'{info['obs_name']}_{extra_lb}.npz', *R1)
-
-    with open(sv_path + 'info.json','w') as f:
-        json.dump(info, f, indent = 2)
-
+    # Save info file to .tmp for faster relaunching
     with open('.tmp/last.json','w') as f:
         json.dump(info, f, indent = 2)
-
-    print('\nResults common shape: ', R[0].shape[1:])
-
-    if info['avg_trials'] == False:
-
-        print('\nTrials\n')
-
-        for c, prod in enumerate([i + '_' + j for i in info['sub_list'] for j in info['conditions']]):
-            print(f'{prod}: ', R[c].shape[0])
 
     print('')
 

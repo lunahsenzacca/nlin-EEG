@@ -20,6 +20,8 @@ import pandas as pd
 
 from tqdm import tqdm
 
+from time import time
+
 from rich.progress import Progress
 
 from multiprocessing import Pool
@@ -599,7 +601,7 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
     if type(ch_list) == tuple:
 
         for cl in ch_list:
-            
+
             # Get average time series of the clster
             ts = MNE.get_data(picks = cl) 
 
@@ -616,8 +618,8 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
                 ts = ts.mean(axis = 1)[:,np.newaxis]
                 e_ts = e_ts.mean(axis = 1)[:,np.newaxis]
 
-            TS.append(ts)
-            E_TS.append(e_ts)
+            [TS.append(t) for t in ts]
+            [E_TS.append(e_t) for e_t in e_ts]
 
     else:
 
@@ -634,13 +636,15 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
                 ts = ts[np.newaxis]
                 e_ts = e_ts[np.newaxis]
 
-            TS.append(ts)
-            E_TS.append(e_ts)
+            [TS.append(t) for t in ts]
+            [E_TS.append(e_t) for e_t in e_ts]
+
+    print(len(TS),len(TS[0]),len(TS[0][0]))
 
     return TS, E_TS
 
 # Open results .npz file and convert it to nested list structure
-def loadresults(obs_path: str, obs_name: str, X_transform = None):
+def load_results(obs_path: str, obs_name: str, X_transform = None):
 
     M, X, info = obs_data(obs_path = obs_path, obs_name = obs_name)
 
@@ -694,15 +698,9 @@ def load_last(X_transform = None):
 # Save numpy array in temporary path and return the latter as a string
 def to_disk(arr: np.ndarray, tmp_path: str):
 
-    svd = sorted(os.listdir(tmp_path))
+    id = str(time()).split('.')
 
-    if len(svd) == 0:
-
-        id = 100000
-
-    else:
-
-        id = int(svd[-1].split('.')[0]) + 1
+    id = id[0] + '_' + id[1]
 
     path = os.path.join(tmp_path, str(id) + '.npy')
 
@@ -713,12 +711,13 @@ def to_disk(arr: np.ndarray, tmp_path: str):
 # Load list of numpy objects from list of paths
 def from_disk(paths: list):
 
-    for i, path in enumerate(paths):
-        for j, p in enumerate(path):
+    data = []
 
-            paths[i][j] = np.load(p)
+    for path in paths:
 
-    return paths
+        data.append(np.load(path))
+
+    return data
 
 # Create one dimensional list of results per subject per condition
 def flat_results(results: list):
@@ -731,20 +730,32 @@ def flat_results(results: list):
 
     return flat, points
 
-# Function for trials averaging and homogeneous array generation (works for already averaged trials as well)
-def collapse_trials(results: list, points: list, fshape: list, e_results = None, dtype = np.float64, memory_safe = False):
+#  Function for homogeneous array saving after multiprocessing computation from disk or ram partially saved results
+def save_results(results: list, points: list, fshape: list, info: dict, sv_name: str, e_results = None, dtype = np.float64, memory_safe = False):
 
-    # Initzialize list of homegenous arrays
+    # Generate result saving path
+    sv_path = obs_path(exp_name = info['exp_name'], obs_name = info['obs_name'], avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = info['calc_lb'])
+
+    sv_file = sv_path + sv_name + '.npz'
+
+    os.makedirs(sv_path, exist_ok = True)
+
+    # Initzialize list of results
     RES = []
+
+    if memory_safe is True:
+
+        # Initzialize compressed archive
+        np.savez_compressed(sv_file)
 
     # Make homogeneous arrays for each subject-condition combination
     count = 0
     for s in range(0,fshape[0]):
         for c in range(0,fshape[1]):
 
-            if memory_safe == True:
+            if memory_safe is True:
 
-                sub_cond = from_disk(paths = results[count:count + points[s][c]])
+                sub_cond = from_disk(results[count:count + points[s][c]])
 
             else:
 
@@ -761,9 +772,9 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
             # Get error from computation uncertainty
             if e_results != None:
 
-                if memory_safe == True:
+                if memory_safe is True:
 
-                    e_sub_cond = from_disk(paths = e_results[count:count + points[s][c]])
+                    e_sub_cond = from_disk(e_results[count:count + points[s][c]])
 
                 else:
 
@@ -781,9 +792,30 @@ def collapse_trials(results: list, points: list, fshape: list, e_results = None,
 
             count = count + points[s][c]
 
-            RES.append(trials)
+            if memory_safe is True:
 
-    return RES
+                # Lazy load recursively for results saving
+                RES = np.load(sv_file)
+
+                np.savez_compressed(sv_file, *RES, trials)
+
+                RES.close()
+
+            else:
+
+                RES.append(trials)
+
+    if memory_safe is False:
+
+        np.savez_compressed(sv_file, *RES)
+
+    # Save info file
+    with open(sv_path + 'info.json','w') as f:
+        json.dump(info, f, indent = 2)
+
+    print('\nResults common shape: ', fshape[2:])
+
+    return
 
 # Prepare correxp.py results for peaks.py script
 def pp_getcorrexp(path: str):
