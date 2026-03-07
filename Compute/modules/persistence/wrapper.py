@@ -90,10 +90,10 @@ if __name__ == '__main__':
 
     print('\n    PERSISTENCE SCRIPT')
 
-    MNEs_iters, points = loader(info = info)
+    MNEs_iters = loader(info = info)
 
     calculator(persistence.it_persistence(info = info, parameters = parameters),
-               MNEs_iters = MNEs_iters, points = points,
+               MNEs_iters = MNEs_iters,
                info = info, fshape = fshape,
                with_err = False,
                extra_res = True, extra_lb = 'times', extra_dtype = np.int32)

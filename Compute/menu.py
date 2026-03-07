@@ -521,8 +521,9 @@ def launch():
     os.makedirs('.tmp/modules/', exist_ok = True)
 
     # Experiment info
-    with open('.tmp/info.json', 'w') as f:
+    with open('.tmp/info.json', 'w') as f, open('.tmp/last.json', 'w') as l:
         json.dump(info, f, indent = 2)
+        json.dump(info, l, indent = 2)
 
     # Script parameters
     with open(f'.tmp/modules/{obs_name}.json', 'w') as f:

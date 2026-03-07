@@ -88,9 +88,9 @@ if __name__ == '__main__':
 
     print('\n    EVOKEDS PLOT SCRIPT')
 
-    MNEs_iters, points = loader(info = info, with_std = True)
+    MNEs_iters = loader(info = info, with_std = True)
 
     calculator(evokeds.it_evokeds(info),
-               MNEs_iters = MNEs_iters, points = points,
+               MNEs_iters = MNEs_iters,
                info = info, fshape = fshape,
                with_err = True)

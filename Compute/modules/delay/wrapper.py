@@ -91,9 +91,9 @@ if __name__ == '__main__':
 
     print('\n    DELAY TIME SCRIPT')
 
-    MNEs_iters, points = loader(info = info)
+    MNEs_iters = loader(info = info)
 
     calculator(delay.it_delay_time(info = info, parameters = parameters),
-               MNEs_iters = MNEs_iters, points = points,
+               MNEs_iters = MNEs_iters,
                info = info, fshape = fshape,
                with_err = False)

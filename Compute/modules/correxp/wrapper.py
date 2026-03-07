@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     print('\n    CORRELATION EXPONENT SCRIPT')
 
-    log_CS_iters, points, info = correxp.correxp_getcorrsum(info = info, load_calc_lb = load_calc_lb)
+    log_CS_iters, info = correxp.correxp_getcorrsum(info = info, load_calc_lb = load_calc_lb)
 
     embeddings = info['embeddings']
     log_r = info['log_r']
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     info = info | add_info
 
     calculator(correxp.it_correlation_exponent(variables),
-               MNEs_iters = log_CS_iters, points = points,
+               MNEs_iters = log_CS_iters,
                info = info, fshape = fshape,
                with_err = True)
 

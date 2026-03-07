@@ -112,9 +112,9 @@ if __name__ == '__main__':
 
     print('\n    FREQUENCY SPECTRUM PLOT SCRIPT')
 
-    MNEs_iters, points = loader(info = info, with_std = True)
+    MNEs_iters = loader(info = info, with_std = True)
 
     calculator(spectrum.it_spectrum(info = info, parameters = parameters),
-               MNEs_iters = MNEs_iters, points = points,
+               MNEs_iters = MNEs_iters,
                info = info, fshape = fshape,
                with_err = True)

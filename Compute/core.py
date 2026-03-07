@@ -11,6 +11,8 @@ maind = get_maind()
 
 # Usual suspects
 import os
+import io
+import zipfile
 import mne
 import json
 import warnings
@@ -22,7 +24,7 @@ from tqdm import tqdm
 
 from time import time
 
-from rich.progress import Progress
+from rich.progress import Progress, track
 
 from multiprocessing import Pool
 
@@ -176,7 +178,7 @@ def obs_data(obs_path: str, obs_name: str):
     elif obs_name == 'delay':
 
         M = np.load(obs_path + 'delay.npz')
-        x = info['pois']
+        x = info['ch_list']
 
         X = [x]
 
@@ -556,32 +558,6 @@ def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_
 
     return full_data
 
-# Create one dimensional list with list of MNE objects per subject per condition
-def flatMNEs(MNEs: list):
-
-    # Flatten MNEs nested list
-    flat = [x for xs in MNEs for x in xs]
-
-    # Save separation coordinates for 'collapse_trials' functions
-    points = [[1 for j in range(0,len(MNEs[i]))] for i in range(0,len(MNEs))]
-
-    print(points)
-
-    return flat, points
-
-# Multiprocessing helper function
-def mp_wrapper(function, iterable: list, workers: int, desc: str, unit: str, leave = False, chunksize = 1):
-
-    with Pool(workers) as p:
-
-        results = list(tqdm(p.imap(function, iterable, chunksize = chunksize),
-                       desc = desc,
-                       unit = unit,
-                       total = len(iterable),
-                       leave = leave))
-
-    return results
-
 # Extract time series from MNE data structure in a convenient manner
 # Returns a nested list of time series with the following hierarchy
 # 
@@ -731,13 +707,10 @@ def flat_results(results: list):
     # Flatten results nested list
     flat = [x for xss in results for xs in xss for x in xs]
 
-    # Save separation coordinates for 'collapse_trials' functions
-    points = [[len(results[i][j]) for j in range(0,len(results[i]))] for i in range(0,len(results))]
-
-    return flat, points
+    return flat
 
 #  Function for homogeneous array saving after multiprocessing computation from disk or ram partially saved results
-def save_results(results: list, points: list, fshape: list, info: dict, sv_name: str, e_results = None, dtype = np.float64, memory_safe = False):
+def save_results(results: list, fshape: list, info: dict, sv_name: str, e_results = None, dtype = np.float64, memory_safe = False):
 
     # Generate result saving path
     sv_path = obs_path(exp_name = info['exp_name'], obs_name = info['obs_name'], avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = info['calc_lb'])
@@ -754,59 +727,64 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
         # Initzialize compressed archive
         np.savez_compressed(sv_file)
 
+    print('')
+
     # Make homogeneous arrays for each subject-condition combination
-    for s in range(0,fshape[0]):
-        for c in range(0,fshape[1]):
+    for count in track(range(0,fshape[0]*fshape[1]),
+                       description = '[red]Compressing results:',
+                       total = fshape[0]*fshape[1],
+                       transient = True):
+
+        if memory_safe is True:
+
+            sub_cond = from_disk(results[count])
+
+        else:
+
+            sub_cond = results[count]
+
+        shape = [len(sub_cond)//fshape[2]]
+
+        trials = np.asarray(sub_cond, dtype = dtype)
+
+        shape_ = [*shape, *fshape[2:]]
+
+        trials = trials.reshape(shape_)
+
+        # Get error from computation uncertainty
+        if e_results != None:
 
             if memory_safe is True:
 
-                sub_cond = from_disk(results[s+c])
+                e_sub_cond = from_disk(e_results[count])
 
             else:
 
-                sub_cond = results[s+c]
+                e_sub_cond = e_results[count]
 
-            shape = [len(sub_cond)//fshape[2]]
+            e_trials = np.asarray(e_sub_cond, dtype = dtype)
 
-            trials = np.asarray(sub_cond, dtype = dtype)
+            e_trials = e_trials.reshape(shape_)
 
-            shape_ = [*shape, *fshape[2:]]
+            trials = np.concatenate((trials[:,np.newaxis], e_trials[:,np.newaxis]), axis = 1)
 
-            trials = trials.reshape(shape_)
+        else:
 
-            # Get error from computation uncertainty
-            if e_results != None:
+            trials = trials[:,np.newaxis]
 
-                if memory_safe is True:
+        if memory_safe is True:
 
-                    e_sub_cond = from_disk(e_results[s+c])
+            bio = io.BytesIO()
 
-                else:
+            np.save(bio, trials)
 
-                    e_sub_cond = e_results[s+c]
+            with zipfile.ZipFile(sv_file, 'a', compression = zipfile.ZIP_DEFLATED) as zipf:
 
-                e_trials = np.asarray(e_sub_cond, dtype = dtype)
+                zipf.writestr(f'arr_{count}.npy', data=bio.getbuffer().tobytes(), compress_type = zipfile.ZIP_DEFLATED)
 
-                e_trials = e_trials.reshape(shape_)
+        else:
 
-                trials = np.concatenate((trials[:,np.newaxis], e_trials[:,np.newaxis]), axis = 1)
-
-            else:
-
-                trials = trials[:,np.newaxis]
-
-            if memory_safe is True:
-
-                # Lazy load recursively for results saving
-                RES = np.load(sv_file)
-
-                np.savez_compressed(sv_file, *RES, trials)
-
-                RES.close()
-
-            else:
-
-                RES.append(trials)
+            RES.append(trials)
 
     if memory_safe is False:
 
@@ -816,7 +794,7 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
     with open(sv_path + 'info.json','w') as f:
         json.dump(info, f, indent = 2)
 
-    print('\nResults common shape: ', fshape[2:])
+    print('Results common shape: ', fshape[2:])
 
     return
 
@@ -824,9 +802,9 @@ def save_results(results: list, points: list, fshape: list, info: dict, sv_name:
 def pp_getcorrexp(path: str):
 
     # Load correlation sum results
-    CE, _, variables = loadresults(obs_path = path, obs_name = 'correxp', X_transform = None)
+    CE, _, variables = load_results(obs_path = path, obs_name = 'correxp', X_transform = None)
 
-    flat_CE, points = flat_results(CE)
+    flat_CE = flat_results(CE)
 
     # Initzialize trial-wise iterable
     CE_iters = []
@@ -835,15 +813,15 @@ def pp_getcorrexp(path: str):
         # Build trial-wise iterable
         CE_iters.append([arr[0],arr[1]])
 
-    return CE_iters, points, variables
+    return CE_iters, variables
 
 # Prepare recurrence.py results for corrsum.py script
 def corrsum_getrecurrence(path: str):
 
     # Load correlation sum results
-    RP, _, variables = loadresults(obs_path = path, obs_name = 'recurrence', X_transform = None)
+    RP, _, variables = load_results(obs_path = path, obs_name = 'recurrence', X_transform = None)
 
-    flat_RP, points = flat_results(RP)
+    flat_RP = flat_results(RP)
 
     # Initzialize trial-wise iterable
     RP_iters = []
@@ -852,7 +830,7 @@ def corrsum_getrecurrence(path: str):
         # Build trial-wise iterable
         RP_iters.append([arr[0],arr[1]])
 
-    return RP_iters, points, variables
+    return RP_iters, variables
 
 ### HELPER FUNCTIONS ###
 

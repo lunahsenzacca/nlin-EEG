@@ -117,9 +117,9 @@ if __name__ == '__main__':
 
         cython_compile(verbose = cython_verbose)
 
-    MNEs_iters, points = loader(info = info)
+    MNEs_iters = loader(info = info)
 
     calculator(llyap.it_lyapunov(info = info, parameters = parameters, cython = cython),
-               MNEs_iters = MNEs_iters, points = points,
+               MNEs_iters = MNEs_iters,
                info = info, fshape = fshape,
                with_err = True)

@@ -25,10 +25,7 @@ def flatMNEs(MNEs: list):
     # Flatten MNEs nested list
     flat = [x for xs in MNEs for x in xs]
 
-    # Save separation coordinates for 'collapse_trials' functions
-    points = [[1 for j in range(0,len(MNEs[i]))] for i in range(0,len(MNEs))]
-
-    return flat, points
+    return flat
 
 # Multiprocessing helper function
 def mp_wrapper(function, iterable: list, workers: int, description: str, transient = True, chunksize = chunksize):
@@ -63,37 +60,22 @@ def loader(info: dict, with_std = False):
                       description = '[red]Loading data:')
 
     # Create flat iterable list of evokeds images
-    MNEs_iters, points = flatMNEs(MNEs = MNEs)
+    MNEs_iters = flatMNEs(MNEs = MNEs)
 
     print('DONE!')
 
-    return MNEs_iters, points
+    return MNEs_iters
 
 # Parallelized Observable computation
-def calculator(it_observable, MNEs_iters: list, points: list,
+def calculator(it_observable, MNEs_iters: list,
                info: dict, fshape: list,
                with_err = False, dtype = np.float64,
                memory_safe = False,
                extra_res = False, extra_lb = None, extra_dtype = None):
 
-    # IMPLEMENT A SMARTER WAY OF COMPUTING ETA
-
-    #if window[0] is None:
-    #    i_window = maind[exp_name]['window']
-    #else:
-    #    i_window = window
-
-    ## Get absolute complexity of the script and estimated completion time
-    #complexity = np.sum(np.asarray(points))*len(ch_list)*len(embeddings)*np.log(len(r))*(((maind[exp_name]['T'])**2)*(i_window[1]-i_window[0])**2)
-
-    #velocity = 26e-7
-
-    #eta = str(timedelta(seconds = int(complexity*velocity/workers)))
+    # IMPLEMENT A SMART WAY OF COMPUTING ETA
 
     print(f'\nComputing {maind['obs_nm'][info['obs_name']]}...\n')
-    #print('\nNumber of single computations: ' + str(int(complexity)))
-    #print('\nEstimated completion time < ~' + eta)
-    #print('\nSpawning ' + str(workers) + ' processes...')
 
     results_ = mp_wrapper(it_observable, iterable = MNEs_iters,
                           workers = workers,
@@ -101,6 +83,8 @@ def calculator(it_observable, MNEs_iters: list, points: list,
                           description = '[red]Processing:',
                           transient = False)
 
+    # Free RAM immediately after computation
+    del MNEs_iters
 
     # ALL OF THIS SHOULD BE MUCH MORE ELEGANT AT SOME POINT, AND GENERALIZED FOR ANY NUMBER OF OUTPUTS MAYBE
     if with_err == True or extra_res == True:
@@ -121,7 +105,6 @@ def calculator(it_observable, MNEs_iters: list, points: list,
     if extra_res == False:
 
         save_results(results = results,
-                     points = points,
                      fshape = fshape,
                      info = info,
                      sv_name = info['obs_name'],
@@ -132,7 +115,6 @@ def calculator(it_observable, MNEs_iters: list, points: list,
     elif with_err == False and extra_res == True:
 
         save_results(results = results,
-                     points = points,
                      fshape = fshape,
                      info = info,
                      sv_name = info['obs_name'],
@@ -140,7 +122,6 @@ def calculator(it_observable, MNEs_iters: list, points: list,
                      memory_safe = memory_safe)
 
         save_results(results = e_results,
-                     points = points,
                      fshape = fshape,
                      info = info,
                      sv_name = f'{info['obs_name']}_{extra_lb}',

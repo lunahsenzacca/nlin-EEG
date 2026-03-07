@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
 # Utility functions for directories and data
-from core import pics_path, obs_path, loadresults
+from core import pics_path, obs_path, load_results
 
 # Our Very Big Dictionary
 from init import get_maind
@@ -193,7 +193,7 @@ def transform_data(info: dict, instructions: dict, verbose: bool):
                        )
 
     # Load results for specific observable
-    results, X, variables = loadresults(obs_path = path, obs_name = info['obs_name'], X_transform = instructions['X_transform'])
+    results, X, variables = load_results(obs_path = path, obs_name = info['obs_name'], X_transform = instructions['X_transform'])
     
     # Get mirrored condition dictionary
     cond_dict = { key: value for value, key in maind[info['exp_name']]['conditions'].items()}

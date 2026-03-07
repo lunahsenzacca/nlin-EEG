@@ -144,9 +144,9 @@ if __name__ == '__main__':
 
         tmp_path = tmp_dir.name
 
-    MNEs_iters, points = loader(info = info)
+    MNEs_iters = loader(info = info)
 
     calculator(recurrence.it_recurrence(info = info, parameters = parameters, cython = cython, memory_safe = memory_safe, tmp_path = tmp_path),
-               MNEs_iters = MNEs_iters, points = points,
+               MNEs_iters = MNEs_iters,
                info = info, fshape = fshape,
                dtype = np.int8, with_err = False, memory_safe = memory_safe)
