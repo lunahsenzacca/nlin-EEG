@@ -695,9 +695,12 @@ def to_disk(arr: np.ndarray, tmp_path: str):
     return path
 
 # Load list of numpy objects from list of paths
-def from_disk(path: str):
+def from_disk(paths: str):
 
-    data = np.load(path)
+    data = []
+
+    for path in paths:
+        data.append(np.load(path))
 
     return data
 
@@ -743,11 +746,11 @@ def save_results(results: list, fshape: list, info: dict, sv_name: str, e_result
 
             sub_cond = results[count]
 
-        shape = [len(sub_cond)//fshape[2]]
+        n_trials = len(sub_cond)//np.prod(fshape[2:-1])
 
         trials = np.asarray(sub_cond, dtype = dtype)
 
-        shape_ = [*shape, *fshape[2:]]
+        shape_ = [n_trials, *fshape[2:]]
 
         trials = trials.reshape(shape_)
 

@@ -88,13 +88,14 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
                     rp = squareform(rp, checks = False)
 
+                    if memory_safe == True and type(tmp_path) == str:
+
+                        rp = to_disk(arr = np.asarray(rp, dtype = np.int8), tmp_path = tmp_path)
+
+
                     RP.append(rp)
 
     # Returns list in -C style ordering
-
-    if memory_safe == True and type(tmp_path) == str:
-
-        RP = to_disk(arr = np.asarray(RP, dtype = np.int8), tmp_path = tmp_path)
 
     return RP
 

@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
         os.makedirs('.tmp/memory_safe', exist_ok = True)
 
-        tmp_dir = tempfile.TemporaryDirectory(prefix = obs_name, dir = '.tmp/memory_safe')
+        tmp_dir = tempfile.TemporaryDirectory(prefix = f'{obs_name}-', dir = '.tmp/memory_safe')
 
         tmp_path = tmp_dir.name
 
