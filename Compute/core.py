@@ -688,9 +688,9 @@ def to_disk(arr: np.ndarray, tmp_path: str):
 
     id = id[0] + '_' + id[1]
 
-    path = os.path.join(tmp_path, str(id) + '.npy')
+    path = os.path.join(tmp_path, str(id) + '.npz')
 
-    np.save(path, arr)
+    np.savez_compressed(path, arr)
 
     return path
 
@@ -700,7 +700,7 @@ def from_disk(paths: str):
     data = []
 
     for path in paths:
-        data.append(np.load(path))
+        data.append(np.load(path)['arr_0'])
 
     return data
 
