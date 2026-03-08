@@ -2,6 +2,9 @@ import mne
 
 import numpy as np
 
+from time import time
+from os.path import join
+
 from scipy.spatial.distance import squareform
 
 from core import extractTS, multi_embedding, distance_matrix, to_disk
@@ -39,6 +42,18 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
     if cython == True:
 
         from cython_modules import c_core
+
+    # Prepare temporary file storage
+    sv_file = ''
+    if memory_safe is True and type(tmp_path) is str:
+
+        id = str(time()).split('.')
+
+        id = id[0] + '_' + id[1]
+
+        sv_file = join(tmp_path, str(id) + '.npz')
+
+        np.savez_compressed(sv_file)
 
     # Extract time series from data
     TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'append')
@@ -88,12 +103,17 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
                     rp = squareform(rp, checks = False)
 
-                    if memory_safe == True and type(tmp_path) == str:
+                    if memory_safe is True and type(tmp_path) == str:
 
-                        rp = to_disk(arr = np.asarray(rp, dtype = np.int8), tmp_path = tmp_path)
+                        to_disk(arr = np.asarray(rp, dtype = np.int8), sv_file = sv_file)
 
+                    else:
 
-                    RP.append(rp)
+                        RP.append(rp)
+
+    if memory_safe is True and type(tmp_path) == str:
+
+        RP = sv_file
 
     # Returns list in -C style ordering
 

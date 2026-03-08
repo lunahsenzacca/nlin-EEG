@@ -83,9 +83,6 @@ def calculator(it_observable, MNEs_iters: list,
                           description = '[red]Processing:',
                           transient = False)
 
-    # Free RAM immediately after computation
-    del MNEs_iters
-
     # ALL OF THIS SHOULD BE MUCH MORE ELEGANT AT SOME POINT, AND GENERALIZED FOR ANY NUMBER OF OUTPUTS MAYBE
     if with_err == True or extra_res == True:
 

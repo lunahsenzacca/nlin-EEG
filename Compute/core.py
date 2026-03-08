@@ -682,25 +682,41 @@ def load_last(X_transform = None):
     return results, X, info
 
 # Save numpy array in temporary path and return the latter as a string
-def to_disk(arr: np.ndarray, tmp_path: str):
+def to_disk(arr: np.ndarray, sv_file: str):
 
-    id = str(time()).split('.')
+    bio = io.BytesIO()
 
-    id = id[0] + '_' + id[1]
+    np.save(bio, arr)
 
-    path = os.path.join(tmp_path, str(id) + '.npz')
+    with np.load(sv_file) as M:
 
-    np.savez_compressed(path, arr)
+        if len(M.files) == 0:
 
-    return path
+            id = 0
+
+        else:
+
+            id = int(M.files[-1].split('_')[1]) + 1
+
+    with zipfile.ZipFile(sv_file, 'a',
+                         compression = zipfile.ZIP_DEFLATED,
+                         compresslevel = 1) as zipf:
+
+        zipf.writestr(f'arr_{id}.npy', data=bio.getbuffer().tobytes(),
+                      compress_type = zipfile.ZIP_DEFLATED,
+                      compresslevel = 1)
+
+    return
 
 # Load list of numpy objects from list of paths
-def from_disk(paths: str):
+def from_disk(sv_file: str):
 
     data = []
 
-    for path in paths:
-        data.append(np.load(path)['arr_0'])
+    with np.load(sv_file) as M:
+
+        for file in M.files:
+            data.append(M[file])
 
     return data
 
