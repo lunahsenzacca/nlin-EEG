@@ -9,6 +9,8 @@ from scipy.spatial.distance import squareform
 
 use('kitcat')
 
+print('config')
+
 #L = ['../Cargo/results','avg','BMD','Global','RP','Fixed']
 #
 #file_path = os.path.join(*L,'recurrence.npz')

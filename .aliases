@@ -9,7 +9,7 @@ alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu & disown'
 alias convert='kitty -d $HOME/nlin-EEG/Compute -e python -m makedata.toMNE;'
 
 # Launch t.py in a ipython shell
-alias nb='kitty -d $HOME/nlin-EEG/Compute -e ipython -i snippets/config.py -i snippets/last.py & disown'
+alias nb='kitty -d $HOME/nlin-EEG/Compute -e ipython -i -c "%run snippets/config.py" & disown'
 
 # Alias for kitty with local config
 alias kitty='kitty -c $HOME/nlin-EEG/.home/kitty/kitty.conf'
