@@ -68,7 +68,7 @@ from scipy.spatial.distance import squareform, pdist
 ### UTILITY FUNCTIONS ###
 
 # Cython modules compilation
-def cython_compile(verbose: bool, setup_name = 'cython_setup'):
+def cython_compile(verbose: bool, setup_name: str = 'cython_setup'):
 
     print('\nCompiling cython file...')
 
@@ -83,7 +83,7 @@ def cython_compile(verbose: bool, setup_name = 'cython_setup'):
     return
 
 # Get subject path
-def sub_path(subID: str, exp_name: str):
+def sub_path(subID: str, exp_name: str) -> str:
 
     # Text to attach before and after subID to get subject folder name for raw data
     snip = maind[exp_name]['directories']['subject']
@@ -93,7 +93,7 @@ def sub_path(subID: str, exp_name: str):
     return path
 
 # Get observable path
-def obs_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc_lb = None):
+def obs_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc_lb: str | None = None) -> str:
 
     if avg_trials == True:
         results = 'avg_results'
@@ -105,12 +105,12 @@ def obs_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc_
 
     if calc_lb != None:
 
-        path = path + calc_lb + '/'
+        path += calc_lb + '/'
 
     return path
 
 # Get pics path
-def pics_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc_lb = None):
+def pics_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc_lb: str | None = None) -> str:
 
     if avg_trials == True:
         pics = 'avg_pics'
@@ -122,15 +122,12 @@ def pics_path(exp_name: str, obs_name: str, clst_lb: str, avg_trials: bool, calc
 
     if calc_lb != None:
 
-        path = path + calc_lb + '/'
+        path += calc_lb + '/'
 
     return path
 
 # Get observable data
-def obs_data(obs_path: str, obs_name: str):
-
-    M = None
-    X = None
+def obs_data(obs_path: str, obs_name: str) -> tuple[np.lib.npyio.NpzFile, list, dict]:
 
     # Load result info
     with open(obs_path + 'info.json', 'r') as f:
@@ -226,13 +223,13 @@ def obs_data(obs_path: str, obs_name: str):
     return M, X, info
 
 # Convert channel names to appropriate .mat data index
-def name_toidx(names: list| tuple, exp_name: str):
+def name_toidx(names: list | tuple, exp_name: str) -> list:
     
     # Get list of electrodes names
     ch_list = maind[exp_name]['pois']
 
     # Check if we are clstering electrodes with tuples
-    if type(names) ==  tuple:
+    if type(names) ==  tuple or type[names[0]] == list:
 
         first = True
         for c in names:
@@ -262,7 +259,7 @@ def name_toidx(names: list| tuple, exp_name: str):
     return ch_clst_idx
 
 # Convert a list into a tuple of lists
-def tuplinator(list: list):
+def tuplinator(list: list) -> tuple:
 
     tup = [],
     first = True
@@ -278,7 +275,7 @@ def tuplinator(list: list):
     return tup
 
 # Get time array for a specific crop
-def get_tinfo(exp_name: str, avg_trials: bool, window = [None,None]):
+def get_tinfo(exp_name: str, avg_trials: bool, window: list = [None,None]) -> tuple[dict, list]:
 
     if avg_trials == True:
         method = 'avg_data'
@@ -311,7 +308,7 @@ def get_tinfo(exp_name: str, avg_trials: bool, window = [None,None]):
     return info, times
 
 # Function for single subject conversion from raw data to list  for MNE 
-def raw_tolist(subID: str, exp_name: str):
+def raw_tolist(subID: str, exp_name: str) -> tuple[list, list, list]:
 
     # Navigate subject folder with raw single trial files or epochs files
     sub_folder = sub_path(subID, exp_name = exp_name)
@@ -377,14 +374,14 @@ def raw_tolist(subID: str, exp_name: str):
     return data_list, info, events
 
 # Create info file for specific datased
-def toinfo(exp_name: str, info: mne.Info, ch_type = 'eeg'):
+def toinfo(exp_name: str, info: mne.Info, ch_type: str = 'eeg') -> mne.Info:
 
     if type(info) == None:
 
         # Get electrodes labels
         ch_list = maind[exp_name]['pois']
 
-        ch_types = [ch_type for n in range(0, len(ch_list))]
+        ch_types = [ch_type for ch in ch_list]
 
         # Get sampling frequency
         freq = maind[exp_name]['f']
@@ -473,7 +470,7 @@ def list_toMNE(data_list: list, info: mne.Info, events: tuple, subID: str, exp_n
     return
 
 # Create evoked file straight from raw data
-def toMNE(subID: str, exp_name: str, avg_trials: bool, sv_path: str, z_score = False, baseline = False):
+def toMNE(subID: str, exp_name: str, avg_trials: bool, sv_path: str, z_score: bool = False, baseline: bool = False):
 
     # Create data list
     data_list, info, events = raw_tolist(subID = subID, exp_name = exp_name)
@@ -484,7 +481,7 @@ def toMNE(subID: str, exp_name: str, avg_trials: bool, sv_path: str, z_score = F
     return
 
 # Load MNE files of a specific subject
-def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_std = False):
+def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_std: bool = False) -> list:
 
     # Select correct path for data
     if avg_trials == True:
@@ -539,7 +536,7 @@ def loadMNE(exp_name: str, avg_trials: bool, subID: str, conditions: list, with_
 #   [Trials][Clusters][Electrodes in cluster][Time points]
 # 
 # Each function needs 2 for loops to get to the individual time series 1-d vector, just 1 for the cluster
-def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window: list, sMNE = None, clst_method = 'append'):
+def extractTS(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple, sMNE: mne.Evoked | None = None, window: list = [None, None], clst_method: str = 'append') -> tuple[list, list]:
 
     # Apply fraction to evoked objects
     MNE.crop(tmin = window[0], tmax = window[1], include_tmax = False)
@@ -551,7 +548,7 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
     E_fTS = []
 
     # Check if we are clstering electrodes
-    if type(ch_list[0]) == list:
+    if type(ch_list) == tuple or type(ch_list[0]) == list:
 
         for cl in ch_list:
 
@@ -605,7 +602,7 @@ def extractTS(MNE: mne.Evoked|mne.epochs.EpochsFIF, ch_list: list|tuple, window:
     return TS, E_TS
 
 # Open results .npz file and convert it to nested list structure
-def load_results(obs_path: str, obs_name: str, X_transform = None):
+def load_results(obs_path: str, obs_name: str, X_transform: int | None = None) -> tuple[list, list, dict]:
 
     M, X, info = obs_data(obs_path = obs_path, obs_name = obs_name)
 
@@ -640,7 +637,7 @@ def load_results(obs_path: str, obs_name: str, X_transform = None):
     return results, X, info
 
 # Load last computed results
-def load_last(X_transform = None):
+def load_last(X_transform: int | None = None) -> tuple[list, list, dict]:
 
     with open('.tmp/last.json','r') as f:
 
@@ -684,7 +681,7 @@ def to_disk(arr: np.ndarray, sv_file: str):
     return
 
 # Load list of numpy objects from list of paths
-def from_disk(sv_file: str):
+def from_disk(sv_file: str) -> list:
 
     data = []
 
@@ -696,7 +693,7 @@ def from_disk(sv_file: str):
     return data
 
 # Create one dimensional list of results per subject per condition
-def flat_results(results: list):
+def flat_results(results: list) -> list:
 
     # Flatten results nested list
     flat = [x for xss in results for xs in xss for x in xs]
@@ -704,7 +701,7 @@ def flat_results(results: list):
     return flat
 
 #  Function for homogeneous array saving after multiprocessing computation from disk or ram partially saved results
-def save_results(results: list, fshape: list, info: dict, sv_name: str, e_results = None, dtype = np.float64, memory_safe = False):
+def save_results(results: list, fshape: list, info: dict, sv_name: str, e_results: list | None = None, dtype: type = np.float64, memory_safe: bool = False):
 
     # Generate result saving path
     sv_path = obs_path(exp_name = info['exp_name'], obs_name = info['obs_name'], avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = info['calc_lb'])
@@ -829,18 +826,18 @@ def corrsum_getrecurrence(path: str):
 ### HELPER FUNCTIONS ###
 
 # Euclidean distance
-def dist(x: np.ndarray, y: np.ndarray, m_norm = False, m = None):
+def dist(x: np.ndarray, y: np.ndarray, m_norm: bool = False, m: int | None = None) -> float:
 
     d = np.sqrt(np.sum((x - y)**2, axis = 0))
 
-    if m_norm and (m is not None):
+    if m_norm and m != None:
 
         d /= m
 
     return d
 
 # Transform data in log scale (Useful for logarithmic fits)
-def to_log(OBS: np.ndarray, verbose: bool):
+def to_log(OBS: np.ndarray, verbose: bool) -> np.ndarray:
 
     # Initzialize results
     log_OBS = OBS[0].copy()
@@ -881,7 +878,7 @@ def to_log(OBS: np.ndarray, verbose: bool):
     return log_OBS
 
 # Get average period (in time points) of a 1d trajectory through periodogram
-def avg_period(ts: list):
+def avg_period(ts: list) -> float:
 
     f, ps = periodogram(ts)
     avT = np.sum(ps)/np.sum(f*ps)
@@ -889,7 +886,7 @@ def avg_period(ts: list):
     return avT
 
 # Get Lorenz attractor derivatives
-def lorenz_delta(xyz, s=10, r=28, b=8/3):
+def lorenz_delta(xyz, s: float = 10, r: float = 28, b: float = 8/3) -> np.ndarray:
     """
     Parameters
     ----------
@@ -911,7 +908,7 @@ def lorenz_delta(xyz, s=10, r=28, b=8/3):
     return np.array([x_dot, y_dot, z_dot])
 
 # Generate lorentz system trajectory
-def lorenz_trajectory(dt: float, time_points: int, target_l = None, x0 = None):
+def lorenz_trajectory(dt: float, time_points: int, target_l: int | None = None, x0: np.ndarray | None = None) -> np.ndarray:
 
     # Generate random initial values
     if x0 == None:
@@ -938,7 +935,7 @@ def lorenz_trajectory(dt: float, time_points: int, target_l = None, x0 = None):
     return xyzs
 
 # Downsample timepoints of a timeseries averaging per window
-def downsample(ts, target_l: int):
+def downsample(ts: list | np.ndarray, target_l: int) -> np.ndarray:
 
     initial_l = len(ts)
 
@@ -961,7 +958,7 @@ def downsample(ts, target_l: int):
     return np.asarray(downsampled)
 
 # Z-Score normalization for multiple trials timeseries
-def zscore(trials_array: np.ndarray, keep_relations = False):
+def zscore(trials_array: np.ndarray, keep_relations: bool = False) -> np.ndarray:
     
     # 'trials_array' structure
     # Axis 0 = Trials
@@ -993,7 +990,7 @@ def zscore(trials_array: np.ndarray, keep_relations = False):
     return z_trials_array
 
 # 1-D function Adymensional Gaussian kernel convolution
-def gauss_kernel(function: np.ndarray, x: np.ndarray, scale: float, cutoff: int, order: int):
+def gauss_kernel(function: np.ndarray, x: np.ndarray, scale: float, cutoff: int, order: int) -> np.ndarray:
 
     i_len = len(function)
 
@@ -1017,18 +1014,16 @@ def gauss_kernel(function: np.ndarray, x: np.ndarray, scale: float, cutoff: int,
         if order == 0:
             ker = np.array([np.exp((x[j]-c_x[i])**2)/(2*(scale**2)) for j in range(i, 2*cutoff + i + 1)])
         elif order == 1:
-            print('Order 1 kernel Not yet implemented')
-            return
+            raise ValueError('Order 1 kernel Not yet implemented')
 
         c_function[i] = np.sum(vals*ker)/np.sum(ker)
 
     return c_function
 
-
 ### TIME SERIES MANIPULATION FUNCTIONS ###
 
 # Time-delay embedding of a single time series (1-d vector)
-def td_embedding(ts: np.ndarray, embedding: int, tau: str|int):
+def td_embedding(ts: np.ndarray, embedding: int, tau: str | int) -> np.ndarray:
 
     # Compute tau with given string method
 
@@ -1047,8 +1042,7 @@ def td_embedding(ts: np.ndarray, embedding: int, tau: str|int):
     # Check if embedding is possible
     if len(ts) < min_len:
 
-        print('Data lenght is insufficient, try smaller parameters')
-        return
+        raise ValueError('Data lenght is insufficient, try smaller parameters')
 
     # Set lenght of embedding
     m = len(ts) - min_len + 1
@@ -1066,7 +1060,7 @@ def td_embedding(ts: np.ndarray, embedding: int, tau: str|int):
     return emb_ts
 
 # Time-delay embedding of a list of time series (n-d n>1 vector)
-def multi_embedding(c_ts: list, embedding: int, tau: str|int):
+def multi_embedding(c_ts: list, embedding: int, tau: str | int) -> np.ndarray:
 
     lenghts = []
     emb_ts = []
@@ -1085,7 +1079,7 @@ def multi_embedding(c_ts: list, embedding: int, tau: str|int):
 
 ### OBSERVABLES FUNCTIONS ON EMBEDDED TIME SERIES ###
 
-def distance_matrix(emb_ts: np.ndarray, m_norm = None, m = None):
+def distance_matrix(emb_ts: np.ndarray, m_norm: bool = False, m: int | None = None) -> np.ndarray:
 
     emb_ts = emb_ts.T
 
