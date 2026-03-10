@@ -6,7 +6,7 @@
 alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu & disown'
 
 # Quick launch toMNE.py script
-alias convert=kitty -d $HOME/nlin-EEG/Compute -e 'micro -colorscheme cmc-16; python -m makedata.toMNE'
+alias convert='kitty -d $HOME/nlin-EEG/Compute -e python -m makedata.toMNE'
 
 # Alias for kitty with local config
 alias kitty='kitty -c $HOME/nlin-EEG/.home/kitty/kitty.conf'
