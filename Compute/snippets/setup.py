@@ -1,4 +1,6 @@
+import json
 import os
+import mne
 import sys
 import numpy as np
 import core as c

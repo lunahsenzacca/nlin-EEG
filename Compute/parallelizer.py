@@ -70,10 +70,15 @@ def loader(info: dict, with_std = False):
 def calculator(it_observable, MNEs_iters: list,
                info: dict, fshape: list,
                with_err = False, dtype = np.float64,
-               memory_safe = False,
+               memory_safe = False, tmp_path = None,
                extra_res = False, extra_lb = None, extra_dtype = None):
 
     # IMPLEMENT A SMART WAY OF COMPUTING ETA
+
+    if memory_safe is True:
+
+        with open(f'{tmp_path}/backup.json', 'w') as f:
+            json.dump({ 'succeded': [] }, f, indent = 2)
 
     print(f'\nComputing {maind['obs_nm'][info['obs_name']]}...\n')
 
@@ -98,6 +103,13 @@ def calculator(it_observable, MNEs_iters: list,
 
         results = results_
         e_results = None
+
+    if memory_safe is True:
+
+        d = { 'results': results, 'e_results': e_results, 'fshape': fshape }
+
+        with open(f'{tmp_path}/backup.json', 'w' ) as f:
+            json.dump(d, f, indent = 2)
 
     if extra_res == False:
 

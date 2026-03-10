@@ -413,6 +413,9 @@ def list_toMNE(data_list: list, info: mne.Info, events: tuple, subID: str, exp_n
         # File name for saving
         fname = sv_path + subID + '_' + conditions[i]
 
+        # Add subject and condition to info file
+        info[i]['description'] = f'{subID}_{conditions[i]}'
+
         # 'array' structure
         # Axis 0 = Trials
         # Axis 1 = Electrodes
@@ -688,7 +691,7 @@ def from_disk(sv_file: str) -> list:
     with np.load(sv_file) as M:
 
         for file in M.files:
-            data.append(M[file])
+            data.append(M[file].copy())
 
     return data
 
@@ -728,15 +731,15 @@ def save_results(results: list, fshape: list, info: dict, sv_name: str, e_result
 
         if memory_safe is True:
 
-            sub_cond = from_disk(results[count])
+            trials = from_disk(results[count])
 
         else:
 
-            sub_cond = results[count]
+            trials = results[count]
 
-        n_trials = len(sub_cond)//np.prod(fshape[2:-1])
+        n_trials = len(trials)//np.prod(fshape[2:-1])
 
-        trials = np.asarray(sub_cond, dtype = dtype)
+        trials = np.asarray(trials, dtype = dtype)
 
         shape_ = [n_trials, *fshape[2:]]
 
@@ -747,13 +750,13 @@ def save_results(results: list, fshape: list, info: dict, sv_name: str, e_result
 
             if memory_safe is True:
 
-                e_sub_cond = from_disk(e_results[count])
+                e_trials = from_disk(e_results[count])
 
             else:
 
-                e_sub_cond = e_results[count]
+                e_trials = e_results[count]
 
-            e_trials = np.asarray(e_sub_cond, dtype = dtype)
+            e_trials = np.asarray(e_trials, dtype = dtype)
 
             e_trials = e_trials.reshape(shape_)
 
@@ -769,9 +772,13 @@ def save_results(results: list, fshape: list, info: dict, sv_name: str, e_result
 
             np.save(bio, trials)
 
+            del trials
+
             with zipfile.ZipFile(sv_file, 'a', compression = zipfile.ZIP_DEFLATED) as zipf:
 
                 zipf.writestr(f'arr_{count}.npy', data=bio.getbuffer().tobytes(), compress_type = zipfile.ZIP_DEFLATED)
+
+            del bio
 
         else:
 

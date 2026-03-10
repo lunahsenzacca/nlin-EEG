@@ -149,4 +149,4 @@ if __name__ == '__main__':
     calculator(recurrence.it_recurrence(info = info, parameters = parameters, cython = cython, memory_safe = memory_safe, tmp_path = tmp_path),
                MNEs_iters = MNEs_iters,
                info = info, fshape = fshape,
-               dtype = np.int8, with_err = False, memory_safe = memory_safe)
+               dtype = np.int8, with_err = False, memory_safe = memory_safe, tmp_path = tmp_path )

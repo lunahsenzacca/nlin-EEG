@@ -1,8 +1,9 @@
 import mne
 
+import json
+
 import numpy as np
 
-from time import time
 from os.path import join
 
 from scipy.spatial.distance import squareform
@@ -47,13 +48,12 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
     sv_file = ''
     if memory_safe is True and type(tmp_path) is str:
 
-        id = str(time()).split('.')
+        id = MNE.info['description']
 
-        id = id[0] + '_' + id[1]
-
-        sv_file = join(tmp_path, str(id) + '.npz')
+        sv_file = join(tmp_path, id + '.npz')
 
         np.savez_compressed(sv_file)
+
 
     # Extract time series from data
     TS, _ = extractTS(MNE = MNE, ch_list = ch_list, window = window, clst_method = 'append')
@@ -114,6 +114,16 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
     if memory_safe is True and type(tmp_path) == str:
 
         RP = sv_file
+
+        with open(f'{tmp_path}/backup.json', 'r+' ) as f:
+
+            d = json.load(f)
+
+            d['succeded'].append(id)
+
+            f.seek(0)
+
+            json.dump(d, f, indent = 2)
 
     # Returns list in -C style ordering
 

@@ -6,13 +6,15 @@
 alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu & disown'
 
 # Quick launch toMNE.py script
-alias convert='kitty -d $HOME/nlin-EEG/Compute -e python -m makedata.toMNE;'
-
-# Launch t.py in a ipython shell
-alias nb='kitty -d $HOME/nlin-EEG/Compute -e ipython -i -c "%run snippets/config.py" & disown'
+alias convert=kitty -d $HOME/nlin-EEG/Compute -e 'micro -colorscheme cmc-16; python -m makedata.toMNE'
 
 # Alias for kitty with local config
 alias kitty='kitty -c $HOME/nlin-EEG/.home/kitty/kitty.conf'
 
 # Alias for micro with correct colorscheme
 alias micro='micro -colorscheme cmc-16'
+
+# Function for launching snippets
+nb () {
+  kitty -c $HOME/nlin-EEG/.home/kitty/kitty.conf -d $HOME/nlin-EEG/Compute -e ipython -i snippets/setup.py -- "$1" & disown
+}
