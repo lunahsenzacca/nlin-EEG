@@ -1,8 +1,5 @@
 #!.devenv/bash/bin/bash
 
-# Quick launch menu.py script
-alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu & disown'
-
 # Special terminal base function and alias
 kitty_mine () {
   kitty -d $HOME/nlin-EEG/Compute sh -c "$*" & disown
@@ -31,3 +28,7 @@ nb () {
   kitty_mine ipython -i snippets/setup.py -- "$1" & disown
 }
 
+# Launch menu
+menu () {
+  kitty_mine python -m menu
+}

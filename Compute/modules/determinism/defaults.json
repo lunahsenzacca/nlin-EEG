@@ -1,0 +1,4 @@
+{
+  "min_length": 5,
+  "exclude_trivial": true,
+}

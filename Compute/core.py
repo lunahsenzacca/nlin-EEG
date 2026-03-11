@@ -696,12 +696,15 @@ def from_disk(sv_file: str) -> list:
     return data
 
 # Create one dimensional list of results per subject per condition
-def flat_results(results: list) -> list:
+def flat_results(file: np.lib.npyio.NpzFile, id: str, stop: int = -1) -> tuple[np.ndarray, list]:
 
-    # Flatten results nested list
-    flat = [x for xss in results for xs in xss for x in xs]
+    flat = file[id]
 
-    return flat
+    shape = list(flat.shape)
+
+    flat = np.reshape(flat, [np.prod(shape[:stop]),*shape[stop:]])
+
+    return flat, shape
 
 #  Function for homogeneous array saving after multiprocessing computation from disk or ram partially saved results
 def save_results(results: list, fshape: list, info: dict, sv_name: str, e_results: list | None = None, dtype: type = np.float64, memory_safe: bool = False):

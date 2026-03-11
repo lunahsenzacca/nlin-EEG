@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 
-from core import loadMNE, save_results
+from core import loadMNE, save_results, flat_results
 
 from rich.progress import track
 
@@ -28,14 +28,15 @@ def flatMNEs(MNEs: list):
     return flat
 
 # Multiprocessing helper function
-def mp_wrapper(function, iterable: list, workers: int, description: str, transient = True, chunksize = chunksize):
+def mp_wrapper(function, iterable: list, workers: int, chunksize: int = chunksize, description: str = 'Be patient:', transient: bool = True, disable_bar: bool = False):
 
     with Pool(workers) as p:
 
         results = list(track(p.imap(function, iterable, chunksize = chunksize),
                        description = description,
                        total = len(iterable),
-                       transient = transient))
+                       transient = transient,
+                       disable = disable_bar))
 
     return results
 
@@ -65,6 +66,90 @@ def loader(info: dict, with_std = False):
     print('DONE!')
 
     return MNEs_iters
+
+# Parallelized Observable computation based on already saved results
+def stacked_calculator(observable, previous: np.lib.npyio.NpzFile,
+                       info: dict,
+                       with_err: bool = False, dtype: type = np.float64,
+                       extra_res: bool = False, extra_lb: str| None = None, extra_dtype: type | None = None):
+
+    print(f'\nComputing {maind['obs_nm'][info['obs_name']]}...\n')
+
+    results_ = []
+    shape = []
+    for id in track(previous.files, description = '[red]Processing:', total = len(previous.files), transient = False):
+
+        flat, shape = flat_results(file = previous, id = id)
+
+        iters = [i for i in range(0,len(flat))]
+
+        def it_observable(idx: int):
+
+            RES = observable(flat[idx])
+
+            return RES
+
+        partial = mp_wrapper(it_observable,iters,
+                             workers = workers,
+                             chunksize = (len(iters)//100 + 1),
+                             disable_bar = True)
+
+        results_.append(partial)
+
+    fshape = [len(info['sub_list']),len(info['conditions']),*shape[1:-1]]
+
+    # ALL OF THIS SHOULD BE MUCH MORE ELEGANT AT SOME POINT, AND GENERALIZED FOR ANY NUMBER OF OUTPUTS MAYBE
+    if with_err == True or extra_res == True:
+
+        # Get separate results lists
+        results = []
+        e_results = []
+        for r in results_:
+
+            results.append(r[0])
+            e_results.append(r[1])
+
+    else:
+
+        results = results_
+        e_results = None
+
+    if extra_res == False:
+
+        save_results(results = results,
+                     fshape = fshape,
+                     info = info,
+                     sv_name = info['obs_name'],
+                     dtype = dtype,
+                     e_results = e_results)
+
+    elif with_err == False and extra_res == True:
+
+        save_results(results = results,
+                     fshape = fshape,
+                     info = info,
+                     sv_name = info['obs_name'],
+                     dtype = dtype)
+
+        save_results(results = e_results,
+                     fshape = fshape,
+                     info = info,
+                     sv_name = f'{info['obs_name']}_{extra_lb}',
+                     dtype = extra_dtype)
+
+    else:
+        raise ValueError('Only error or extra value can be saved!')
+
+    print('\nDONE!')
+
+    # Save info file to .tmp for faster relaunching
+    with open('.tmp/last.json','w') as f:
+        json.dump(info, f, indent = 2)
+
+    print('')
+
+
+    return
 
 # Parallelized Observable computation
 def calculator(it_observable, MNEs_iters: list,
