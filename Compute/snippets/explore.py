@@ -1,4 +1,6 @@
-L = ['../Cargo/results','trl','BMD','Global','RP','Fixed']
+from scipy.spatial.distance import squareform
+
+L = ['../Cargo/results','avg','BMD','Global','RP','Fixed']
 
 file_path = os.path.join(*L,'recurrence.npz')
 info_path = os.path.join(*L,'info.json')

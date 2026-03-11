@@ -1,20 +1,33 @@
 #!.devenv/bash/bin/bash
 
-#echo 'Loaded some aliases'
-
 # Quick launch menu.py script
 alias menu='kitty -d $HOME/nlin-EEG/Compute -e python -m menu & disown'
 
-# Quick launch toMNE.py script
-alias convert='kitty -d $HOME/nlin-EEG/Compute -e python -m makedata.toMNE'
-
-# Alias for kitty with local config
-alias kitty='kitty -c $HOME/nlin-EEG/.home/kitty/kitty.conf'
-
-# Alias for micro with correct colorscheme
-alias micro='micro -colorscheme cmc-16'
-
-# Function for launching snippets
-nb () {
-  kitty -c $HOME/nlin-EEG/.home/kitty/kitty.conf -d $HOME/nlin-EEG/Compute -e ipython -i snippets/setup.py -- "$1" & disown
+# Special terminal base function and alias
+kitty_mine () {
+  kitty -d $HOME/nlin-EEG/Compute sh -c "$*" & disown
 }
+alias kitty=kitty_mine
+
+# Launch menu in special window
+menu () {
+  kitty_mine python -m menu & disown
+}
+
+# Open file in special terminal
+micro_mine () {
+  kitty_mine micro $1 & disown
+}
+alias micro=micro_mine
+
+# Open makedata module for edit and convert on close
+convert_mine () {
+  kitty_mine "micro makedata/toMNE.py ; python -m makedata.toMNE" & disown
+}
+alias convert=convert_mine
+
+# Launch snippet in special terminal
+nb () {
+  kitty_mine ipython -i snippets/setup.py -- "$1" & disown
+}
+

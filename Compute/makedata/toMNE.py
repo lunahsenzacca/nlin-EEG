@@ -21,7 +21,7 @@ chunksize = 1
 exp_name = 'bmasking_dense'
 
 # Average across trials
-avg_trials = True
+avg_trials = False
 
 # Subject IDs
 sub_list = maind[exp_name]['subIDs']
@@ -58,19 +58,15 @@ def it_toMNE(subID: str):
 # Build multiprocessing function
 def mp_toMNE():
 
-    print('\nConverting dataset to MNE file format')
+    from parallelizer import mp_wrapper
 
-    print('\nSpawning ' + str(workers) + ' processes...')
+    print('\nConverting dataset to MNE file format...\n')
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-        list(tqdm(p.imap(it_toMNE, sub_list), 
-                            desc = 'Processing',
-                            unit = 'sub',
-                            total = len(sub_list),
-                            leave = True,
-                            dynamic_ncols = True))
+    mp_wrapper(it_toMNE, sub_list,
+               workers = workers,
+               chunksize = chunksize,
+               description = '[red]Processing:'
+               )
 
     print('\nDONE!\n')
 

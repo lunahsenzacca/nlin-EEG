@@ -37,8 +37,8 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
 # Recurrence Plot of channel time series of a specific trial
 def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
                embeddings: list, tau: str|int, th_method: str, th_values: list,
-               m_norm = False, window = [None,None],
-               cython = False, memory_safe = False, tmp_path = None):
+               m_norm: bool = False, window: list = [None,None],
+               cython: bool = False, memory_safe: bool = False, tmp_path: str | None  = None):
 
     if cython == True:
 

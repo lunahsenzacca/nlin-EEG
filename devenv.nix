@@ -13,6 +13,10 @@
   enterShell = ''
     hello
     export SHELL=${pkgs.bashInteractive}/bin/bash
+    
+    export KITTY_CONFIG_DIRECTORY=$DEVENV_ROOT/.home/kitty
+    export MICRO_CONFIG_HOME=$DEVENV_ROOT/.home/micro
+
     source .aliases
   '';
 

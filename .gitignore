@@ -22,3 +22,7 @@ poetry.lock
 
 # cargo folder
 Cargo
+
+# uninteresting config files
+.home/micro/backups
+.home/micro/buffers
