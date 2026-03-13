@@ -1057,15 +1057,20 @@ def td_embedding(ts: np.ndarray, embedding: int, tau: str | int) -> np.ndarray:
     # Set lenght of embedding
     m = len(ts) - min_len + 1
 
-    # Get indexes
-    idxs = np.repeat([np.arange(embedding)*tau], m, axis = 0)
-    idxs += np.arange(m).reshape((m, 1))
+    if embedding > 1:
+        # Get indexes
+        idxs = np.repeat([np.arange(embedding)*tau], m, axis = 0)
+        idxs += np.arange(m).reshape((m, 1))
 
-    emb_ts = ts[idxs]
+        emb_ts = ts[idxs]
 
-    emb_ts = np.asarray(emb_ts, dtype = np.float64)
+        emb_ts = np.asarray(emb_ts, dtype = np.float64)
 
-    emb_ts = np.swapaxes(emb_ts, 0, 1)
+        emb_ts = np.swapaxes(emb_ts, 0, 1)
+
+    else:
+
+        emb_ts = ts[np.newaxis]
 
     return emb_ts
 

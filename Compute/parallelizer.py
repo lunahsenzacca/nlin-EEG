@@ -14,7 +14,7 @@ maind = get_maind()
 
 ### MULTIPROCESSING PARAMETERS ###
 
-workers = 12
+workers = 10
 chunksize = 1
 
 ### MULTIPROCESSING WRAPPERS ###

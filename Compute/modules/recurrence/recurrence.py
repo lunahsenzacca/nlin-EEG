@@ -69,6 +69,7 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
             # Cycle around embeddings
             for m in embeddings:
+
                 emb_ts = multi_embedding(c_ts = t, embedding = m, tau = tau)
 
                 if cython == False:
