@@ -1,6 +1,6 @@
 from scipy.spatial.distance import squareform
 
-L = ['../Cargo/results','avg','BMD','Global','RP','Fixed(0_1)']
+L = ['../Cargo/results','trl','BMD','Global','RP','Fixed(0_2)']
 
 file_path = os.path.join(*L,'recurrence.npz')
 info_path = os.path.join(*L,'info.json')
@@ -60,7 +60,7 @@ def heat(file: str, idxs: list):
 
     square = heat[0].shape[-2:]
 
-    heat = np.log(np.asarray(heat) + 0.001)
+    heat = np.log(np.asarray(heat))
 
     heat = heat.reshape([*shape[1:-1],*square])
 
