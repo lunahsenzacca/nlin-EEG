@@ -1,4 +1,5 @@
 from scipy.spatial.distance import squareform
+from scipy.stats import ttest_ind
 from seaborn import heatmap
 
 L = ['../Cargo/results','avg','BMD','C Frontal-Occipital','RP','Multiple']
@@ -91,11 +92,56 @@ def confront():
 
     return confront
 
+def split():
+
+    split_0 = heat('arr_0', show = False, cut = False)[np.newaxis]
+    split_1 = heat('arr_1', show = False, cut = False)[np.newaxis]
+
+    for i in range(1,len(info['sub_list'])):
+
+        split_0 = np.concatenate((split_0,heat(f'arr_{2*i}', show = False, cut = False)[np.newaxis]), axis = 0)
+        split_1 = np.concatenate((split_1,heat(f'arr_{2*i+1}', show = False, cut = False)[np.newaxis]), axis = 0)
+
+    split = np.concatenate((split_0[:,np.newaxis],split_1[:,np.newaxis]), axis = 1)
+
+    return split
+
 def show():
 
     conf = confront()
 
     cc = conf[0] - conf[1]
+
+    for j, emb in enumerate(info['embeddings']):
+        for i, poi in enumerate(info['ch_list']):
+
+            print(f'\nVVV Showing POI: {poi}, m: {emb}, th: {info['th_values']} VVV\n')
+
+            fig, ax = plt.subplots(1,3, figsize = (8,4), gridspec_kw={'width_ratios': [1, 1, 0.2]})
+
+            heatmap(cc[0,i,j,0], center = 0, cmap = 'coolwarm', cbar = False, ax = ax[0], xticklabels = 100, yticklabels = 100, square = True)
+            heatmap(cc[0,i,j,1], center = 0, cmap = 'coolwarm', cbar = True, ax = ax[1], xticklabels = 100, yticklabels = 100, square = True, cbar_ax = ax[2])
+
+            ax[0].invert_yaxis()
+            ax[1].invert_yaxis()
+
+            ax[2].set(box_aspect = 20, visible = True)
+
+            plt.tight_layout()
+
+            plt.show()
+
+            plt.close()
+
+    return
+
+def ttest():
+
+    spl = split()
+
+    t = ttest_ind(spl[:,0],spl[:,1])
+
+    cc = t.statistic
 
     for j, emb in enumerate(info['embeddings']):
         for i, poi in enumerate(info['ch_list']):
