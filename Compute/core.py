@@ -391,7 +391,7 @@ def toinfo(exp_name: str, info: mne.Info, ch_type: str = 'eeg') -> mne.Info:
     return info
 
 # Function for subwise MNE conversion from list of arrays
-def list_toMNE(data_list: list, info: mne.Info, events: tuple, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, sv_path: str):
+def list_toMNE(data_list: list, info: list, events: tuple, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, sv_path: str):
     
     # There are different number of trials for each condition,
     # so we cannot make one huge homogeneous ndarray, we have to save
@@ -424,9 +424,7 @@ def list_toMNE(data_list: list, info: mne.Info, events: tuple, subID: str, exp_n
         # Check that we are not being dumb
         if z_score == True and baseline == True:
 
-            print('\nTrying to apply both baseline and zscore, not allowed!')
-
-            return
+            raise ValueError('\nTrying to apply both baseline and zscore, not allowed!')
 
         # Apply zscore normalization
         elif z_score == True:

@@ -1,6 +1,7 @@
 from scipy.spatial.distance import squareform
+from seaborn import heatmap
 
-L = ['../Cargo/results','avg','ZBMD','C Frontal-Occipital','RP','']
+L = ['../Cargo/results','avg','BMD','C Frontal-Occipital','RP','Multiple']
 
 file_path = os.path.join(*L,'recurrence.npz')
 info_path = os.path.join(*L,'info.json')
@@ -10,7 +11,7 @@ M = np.load(file_path)
 with open(info_path, 'r') as f:
     info = json.load(f)
 
-def show(file: str, idxs: list):
+def peak(file: str, idxs: list):
 
     m = squareform(M[file][*idxs])
 
@@ -89,3 +90,32 @@ def confront():
     confront = np.concatenate((confront_0[np.newaxis],confront_1[np.newaxis]), axis = 0)/len(info['sub_list'])
 
     return confront
+
+def show():
+
+    conf = confront()
+
+    cc = conf[0] - conf[1]
+
+    for j, emb in enumerate(info['embeddings']):
+        for i, poi in enumerate(info['ch_list']):
+
+            print(f'\nVVV Showing POI: {poi}, m: {emb}, th: {info['th_values']} VVV\n')
+
+            fig, ax = plt.subplots(1,3, figsize = (8,4), gridspec_kw={'width_ratios': [1, 1, 0.2]})
+
+            heatmap(cc[0,i,j,0], center = 0, cmap = 'coolwarm', cbar = False, ax = ax[0], xticklabels = 100, yticklabels = 100, square = True)
+            heatmap(cc[0,i,j,1], center = 0, cmap = 'coolwarm', cbar = True, ax = ax[1], xticklabels = 100, yticklabels = 100, square = True, cbar_ax = ax[2])
+
+            ax[0].invert_yaxis()
+            ax[1].invert_yaxis()
+
+            ax[2].set(box_aspect = 20, visible = True)
+
+            plt.tight_layout()
+
+            plt.show()
+
+            plt.close()
+
+    return
