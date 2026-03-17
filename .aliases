@@ -17,11 +17,19 @@ micro_mine () {
 }
 alias micro=micro_mine
 
-# Open makedata module for edit and convert on close
+# Open makedata modules for edit and execution on close
 convert_mine () {
   kitty_mine "micro makedata/toMNE.py ; python -m makedata.toMNE" & disown
 }
 alias convert=convert_mine
+
+noise () {
+  kitty_mine "micro makedata/noise.py ; python -m makedata.noise" & disown
+}
+
+lorenz () {
+  kitty_mine "micro makedata/lorenz.py ; python -m makedata.lorenz" & disown
+}
 
 # Launch snippet in special terminal
 nb () {

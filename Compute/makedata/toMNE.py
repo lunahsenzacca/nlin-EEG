@@ -18,10 +18,10 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # Dataset name
-exp_name = 'bmasking_dense'
+exp_name = 'bmasking'
 
 # Average across trials
-avg_trials = True
+avg_trials = False
 
 # Subject IDs
 sub_list = maind[exp_name]['subIDs']
@@ -50,9 +50,9 @@ os.makedirs(sv_path, exist_ok = True)
 
 # Build iterable function
 def it_toMNE(subID: str):
-    
+
     toMNE(subID = subID, exp_name = exp_name, avg_trials = avg_trials, z_score = z_score, baseline = baseline, sv_path = sv_path)
-    
+
     return
 
 # Build multiprocessing function

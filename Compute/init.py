@@ -29,13 +29,6 @@ p_path = path + 'pics/'
 exp_lb = {
     'bmasking': 'BM',
     'zbmasking': 'ZBM',
-    'bmasking_dense': 'BMD',
-    'zbmasking_dense': 'ZBMD',
-    'bmasking_dense_noICA': 'BMDnoICA',
-    'zbmasking_dense_noICA':'ZBMDnoICA',
-    'bmasking_dense_highICA': 'BMDhighICA',
-    'zbmasking_dense_highICA':'ZBMDhighICA',
-    'flash_suppression' : 'FS',
     'lorenz': 'LZ',
     'noise': 'NZ'
 }
@@ -120,14 +113,6 @@ BM_subids = ['001','002','003','004','005','006','007','008','009','010',
             '031','033','034','035','036','037','038','040',
             '042']
 
-BM_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
-           'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 'Pz',
-           'FC1', 'FC2', 'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9',
-           'TP10', 'F1', 'F2', 'C1', 'C2', 'P1', 'P2', 'AF3', 'AF4', 'FC3',
-           'FC4', 'CP3', 'CP4', 'PO3', 'PO4', 'F5', 'F6', 'C5', 'C6', 'P5',
-           'P6', 'AF7', 'AF8', 'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8',
-           'Fpz', 'CPz', 'POz', 'Oz']
-
 BM_conditions = {'Conscious':'S__',
                  'Unconcious':'S_1',
                  'C L Self': 'S__1',
@@ -150,38 +135,7 @@ BM_conditions_IDs = {'S__': [1,2,3,4],
                      'S_13': 13,
                      'S_14': 14,}
 
-BM_paths = paths('bmasking', old = True)
-
-# Summarize in a dictionary
-BM_info = {
-    'T': 451,
-    'f': 500,
-    'subIDs': BM_subids,
-    'pois': BM_pois,
-    'conditions': BM_conditions,
-    'conditions_IDs': BM_conditions_IDs,
-    'directories': BM_paths,
-    'tau': 20,
-    'window': [-0.2,0.7]
-}
-
-# Create similar dictionary for zscored results
-ZBM_paths = paths('zbmasking', old = True)
-
-ZBM_info = {
-    'T': 451,
-    'f': 500,
-    'subIDs': BM_subids,
-    'pois': BM_pois,
-    'conditions': BM_conditions,
-    'conditions_IDs': BM_conditions_IDs,
-    'directories': ZBM_paths,
-    'tau': 15,
-    'window': [-0.2,0.7]
-
-}
-
-BMD_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 
+BM_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 
             'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 'Pz', 'FC1', 'FC2',
             'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9', 'TP10', 'F1', 'F2',
             'C1', 'C2', 'P1', 'P2', 'AF3', 'AF4', 'FC3', 'FC4', 'CP3', 'CP4', 'PO3', 'PO4',
@@ -189,112 +143,36 @@ BMD_pois = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
             'PO7', 'PO8', 'Fpz', 'CPz', 'POz', 'Oz']
 
 # Create similar dictionary for new preprocessing
-BMD_paths = paths('bmasking_dense')
+BM_paths = paths('bmasking')
 
-BMD_info = {
+BM_info = {
     'T': 901,
     'f': 1000,
     'subIDs': BM_subids,
-    'pois': BMD_pois,
+    'pois': BM_pois,
     'conditions': BM_conditions,
     'conditions_IDs': BM_conditions_IDs,
-    'directories': BMD_paths,
+    'directories': BM_paths,
     'tau': 35,
     'window': [-0.2,0.7]
 }
 
 # Create similar dictionary for new preprocessing
-ZBMD_paths = paths('zbmasking_dense')
+ZBM_paths = paths('zbmasking')
 
-ZBMD_info = {
+ZBM_info = {
     'T': 901,
     'f': 1000,
     'subIDs': BM_subids,
-    'pois': BMD_pois,
+    'pois': BM_pois,
     'conditions': BM_conditions,
     'conditions_IDs': BM_conditions_IDs,
-    'directories': ZBMD_paths,
+    'directories': ZBM_paths,
     'tau': 35,
     'window': [-0.2,0.7]
 }
 
-# Create similar dictionary for new preprocessing
-BMD_noICA_paths = paths('bmasking_dense_noICA')
-
-BMD_noICA_info = {
-    'T': 901,
-    'f': 1000,
-    'subIDs': BM_subids,
-    'pois': BMD_pois,
-    'conditions': BM_conditions,
-    'conditions_IDs': BM_conditions_IDs,
-    'directories': BMD_noICA_paths,
-    'tau': 35,
-    'window': [-0.2,0.7]
-}
-
-# Create similar dictionary for new preprocessing
-ZBMD_noICA_paths = paths('zbmasking_dense_noICA')
-
-ZBMD_noICA_info = {
-    'T': 901,
-    'f': 1000,
-    'subIDs': BM_subids,
-    'pois': BMD_pois,
-    'conditions': BM_conditions,
-    'conditions_IDs': BM_conditions_IDs,
-    'directories': ZBMD_noICA_paths,
-    'tau': 35,
-    'window': [-0.2,0.7]
-}
-
-# Create similar dictionary for new preprocessing
-BMD_highICA_paths = paths('bmasking_dense_highICA')
-
-BMD_highICA_info = {
-    'T': 901,
-    'f': 1000,
-    'subIDs': BM_subids,
-    'pois': BMD_pois,
-    'conditions': BM_conditions,
-    'conditions_IDs': BM_conditions_IDs,
-    'directories': BMD_highICA_paths,
-    'tau': 35,
-    'window': [-0.2,0.7]
-}
-
-# Create similar dictionary for new preprocessing
-ZBMD_highICA_paths = paths('zbmasking_dense_highICA')
-
-ZBMD_highICA_info = {
-    'T': 901,
-    'f': 1000,
-    'subIDs': BM_subids,
-    'pois': BMD_pois,
-    'conditions': BM_conditions,
-    'conditions_IDs': BM_conditions_IDs,
-    'directories': ZBMD_highICA_paths,
-    'tau': 35,
-    'window': [-0.2,0.7]
-}
-
-
-### Continuous Flash Suppresion dataset (At Some Point...) ###
-
-FS_subids = {
-}
-
-FS_pois = {
-}
-
-FS_conditions = {
-}
-
-FS_paths = paths('flash_suppression')
-
-FS_info = {
-}
-
+# Lorenz attractor
 LZ_conditions = {'Lorenz':'lorenz'}
 
 LZ_paths = paths('lorenz')
@@ -302,7 +180,7 @@ LZ_paths = paths('lorenz')
 LZ_info = {
     'T': 1000,
     'pois': [0],
-    'subIDs': ['000','100','200'],
+    'subIDs': ['000','001','002'],
     'conditions': LZ_conditions,
     'directories': LZ_paths,
     'tau': 20,
@@ -329,13 +207,6 @@ maind = {
     'path': path,
     'bmasking': BM_info,
     'zbmasking': ZBM_info,
-    'bmasking_dense': BMD_info,
-    'zbmasking_dense': ZBMD_info,
-    'bmasking_dense_noICA': BMD_noICA_info,
-    'zbmasking_dense_noICA': ZBMD_noICA_info,
-    'bmasking_dense_highICA': BMD_highICA_info,
-    'zbmasking_dense_highICA': ZBMD_highICA_info,
-    'fsuppression': FS_info,
     'lorenz': LZ_info,
     'noise': NZ_info,
     'exp_lb': exp_lb,

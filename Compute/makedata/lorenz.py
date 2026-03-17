@@ -1,20 +1,16 @@
 # Usual suspects
 import os
-import json
 import mne
 
 import numpy as np
 
-from tqdm import tqdm
+from parallelizer import mp_wrapper
 
 # Utility function for Z-Scoring
 from core import zscore
 
 # Utility function for lorenz attractor time series
 from core import lorenz_trajectory
-
-# Utility function for observables directories
-from core import obs_path
 
 #Our Very Big Dictionary
 from init import get_maind
@@ -29,7 +25,7 @@ chunksize = 1
 ### SCRIPT PARAMETERS ###
 
 # ID for save
-subID = '000'
+subID = '002'
 
 # Dataset name to add subject
 exp_name = 'lorenz'
@@ -38,7 +34,7 @@ exp_name = 'lorenz'
 ref_name = 'bmasking'
 
 # Number of trajectories with different initial conditions
-N_trajectories = 150
+N_trajectories = 1
 
 # Average trajectories or keep them separated
 avg_trajectories = True
@@ -73,46 +69,52 @@ def it_lorenz_trajectory(trajectory_idx: int):
 # Build trajectory generation multiprocessing function
 def mp_lorenz_trajectory():
 
-    print('\nGenerating Lorenz trajectories')
-    print('\nSpawning ' + str(workers) + ' processes...')
+    print('\nGenerating Lorenz trajectories\n')
 
     # Build mock iterable
     N_it = [i for i in range(0, N_trajectories)]
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        TS  = list(tqdm(p.imap_unordered(it_lorenz_trajectory, N_it),#, chunksize = chunksize),
-                       desc = 'Evolving initial conditions',
-                       unit = 'it',
-                       total = N_trajectories,
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
+    TS = mp_wrapper(function = it_lorenz_trajectory, iterable = N_it, workers = workers, chunksize = chunksize,
+                    description = 'Expect some turbulence:',
+                    transient = False)
 
     TS = np.asarray(TS)[:,np.newaxis]
+
+    # Folder path for saved MNE objects
+    sv_path = maind[exp_name]['directories'][method]
+
+    # Create directory
+    os.makedirs(sv_path, exist_ok = True)
+
+    # File name
+    sv_file = sv_path + subID + '_lorenz'
 
     # Create mne.info header
     info = mne.create_info(['lorenz'], sfreq = f)
 
-    # Initzialize Evokeds list
-    evokeds = []
+    info['description'] = subID + '_lorenz'
 
     # Average trajectories
     if avg_trajectories == True:
 
-        n_trials = len(TS)
-        avg = TS.mean(axis = 0)
-
         # Apply Z-Score
         if z_score == True:
 
-            avg = zscore(avg[np.newaxis])
-            avg = avg[0]
+            TS = zscore(TS)
 
-        ev = mne.EvokedArray(avg, info, nave = n_trials, comment = 'lorenz')
-        evokeds.append(ev)
+        n_trials = TS.shape[0]
+
+        # Just the average
+        avg = TS.mean(axis = 0)
+
+        # Standard error not deviation!
+        std = TS.std(axis = 0)/np.sqrt(n_trials)
+
+        ev = mne.EvokedArray(avg, info, nave = n_trials, kind = 'average', comment = 'lorenz', verbose = False)
+        s_ev = mne.EvokedArray(std, info, nave = n_trials, kind = 'standard_error', comment = 'lorenz', verbose = False)
+
+        ev.save(sv_file + '-ave.fif', overwrite = True, verbose = False)
+        s_ev.save(sv_file + '-std-ave.fif', overwrite = True, verbose = False)
 
     # Keep each individual one
     else:
@@ -122,23 +124,11 @@ def mp_lorenz_trajectory():
 
             TS = zscore(TS)
 
-        for trj in TS:
+        ep = mne.EpochsArray(TS, info, verbose = False)
 
-            ev = mne.EvokedArray(trj, info, nave = 1, comment = 'lorenz')
-            evokeds.append(ev)
+        ep.save(sv_file + '-epo.fif', overwrite = True, verbose = False)
 
     print('\nDONE!')
-
-    # Evoked folder path for saved subject
-    sv_path = maind[exp_name]['directories'][method]
-
-    # Create directory
-    os.makedirs(sv_path, exist_ok = True)
-
-    # Evoked file directory
-    sv_path = sv_path + subID + '-ave.fif'
-
-    mne.write_evokeds(sv_path, evokeds, overwrite = True, verbose = False)
 
     return
 

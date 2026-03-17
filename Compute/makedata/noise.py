@@ -1,11 +1,10 @@
 # Usual suspects
 import os
-import json
 import mne
 
 import numpy as np
 
-from tqdm import tqdm
+from parallelizer import mp_wrapper
 
 # Utility function for Z-Scoring
 from core import zscore
@@ -35,14 +34,13 @@ exp_name = 'noise'
 ref_name = 'bmasking'
 
 # Number of trajectories with different initial conditions
-N_trajectories = 150
+N_trajectories = 1
 
 # Average trajectories or keep them separated
 avg_trajectories = True
 
 if avg_trajectories == True:
     method = 'avg_data'
-    N_trajectories = 1
 else:
     method = 'trl_data'
 
@@ -71,31 +69,30 @@ def it_noise(trajectory_idx: int):
 # Build trajectory generation multiprocessing function
 def mp_noise():
 
-    print('\nGenerating Noise')
-    print('\nSpawning ' + str(workers) + ' processes...')
+    print('\nGenerating Noise\n')
 
     # Build mock iterable
     N_it = [i for i in range(0, N_trajectories)]
 
-    # Launch Pool multiprocessing
-    from multiprocessing import Pool
-    with Pool(workers) as p:
-
-        TS  = list(tqdm(p.imap_unordered(it_noise, N_it),#, chunksize = chunksize),
-                       desc = 'It\'s just noise',
-                       unit = 'it',
-                       total = N_trajectories,
-                       leave = False,
-                       dynamic_ncols = True)
-                       )
+    TS = mp_wrapper(function = it_noise, iterable = N_it, workers = workers, chunksize = chunksize,
+                    description = 'It\'s just noise:',
+                    transient = False)
 
     TS = np.asarray(TS)[:,np.newaxis]
+
+    # Folder path for saved MNE objects
+    sv_path = maind[exp_name]['directories'][method]
+
+    # Create directory
+    os.makedirs(sv_path, exist_ok = True)
+
+    # File name
+    sv_file = sv_path + subID + '_noise'
 
     # Create mne.info header
     info = mne.create_info(['noise'], sfreq = f)
 
-    # Initzialize Evokeds list
-    evokeds = []
+    info['description'] = subID + '_noise'
 
     # Average trajectories
     if avg_trajectories == True:
@@ -104,11 +101,20 @@ def mp_noise():
         if z_score == True:
 
             TS = zscore(TS)
-            TS = TS[0]
 
-        ev = mne.EvokedArray(TS, info, nave = 1, comment = 'noise')
-        
-        evokeds.append(ev)
+        n_trials = TS.shape[0]
+
+        # Just the average
+        avg = TS.mean(axis = 0)
+
+        # Standard error not deviation!
+        std = TS.std(axis = 0)/np.sqrt(n_trials)
+
+        ev = mne.EvokedArray(avg, info, nave = n_trials, kind = 'average', comment = 'noise', verbose = False)
+        s_ev = mne.EvokedArray(std, info, nave = n_trials, kind = 'standard_error', comment = 'noise', verbose = False)
+
+        ev.save(sv_file + '-ave.fif', overwrite = True, verbose = False)
+        s_ev.save(sv_file + '-std-ave.fif', overwrite = True, verbose = False)
 
     # Keep each individual one
     else:
@@ -118,23 +124,11 @@ def mp_noise():
 
             TS = zscore(TS)
 
-        for trj in TS:
+        ep = mne.EpochsArray(TS, info, verbose = False)
 
-            ev = mne.EvokedArray(trj, info, nave = 1, comment = 'noise')
-            evokeds.append(ev)
+        ep.save(sv_file + '-epo.fif', overwrite = True, verbose = False)
 
     print('\nDONE!')
-
-    # Evoked folder path for saved subject
-    sv_path = maind[exp_name]['directories'][method]
-
-    # Create directory
-    os.makedirs(sv_path, exist_ok = True)
-
-    # Evoked file directory
-    sv_path = sv_path + subID + '-ave.fif'
-
-    mne.write_evokeds(sv_path, evokeds, overwrite = True, verbose = False)
 
     return
 

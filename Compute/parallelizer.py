@@ -77,6 +77,7 @@ def stacked_calculator(observable, previous: np.lib.npyio.NpzFile,
 
     results_ = []
     shape = []
+
     for id in track(previous.files, description = '[red]Processing:', total = len(previous.files), transient = False):
 
         flat, shape = flat_results(file = previous, id = id)

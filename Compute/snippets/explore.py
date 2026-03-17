@@ -1,8 +1,9 @@
 from scipy.spatial.distance import squareform
 from scipy.stats import ttest_ind
 from seaborn import heatmap
+from rich import print as pp
 
-L = ['../Cargo/results','avg','BMD','C Frontal-Occipital','RP','Multiple']
+L = ['../Cargo/results','avg','BM','Frontal-Occipital','RP','']
 
 file_path = os.path.join(*L,'recurrence.npz')
 info_path = os.path.join(*L,'info.json')
@@ -12,7 +13,19 @@ M = np.load(file_path)
 with open(info_path, 'r') as f:
     info = json.load(f)
 
-def peak(file: str, idxs: list):
+keys = ['tau','embeddings','th_values','ch_list']
+
+def show_info():
+
+    print('\nHere\'s some info\n')
+
+    pp({key: info[key] for key in keys})
+
+    return
+
+show_info()
+
+def peak(file: str, idxs: list, title: str = '', sv_name: str | None = None):
 
     m = squareform(M[file][*idxs])
 
@@ -27,8 +40,24 @@ def peak(file: str, idxs: list):
 
     print(m.shape)
 
-    plt.imshow(m, cmap = 'Oranges')
+
+    fig, ax = plt.subplots(1,1, figsize = (5,5))
+
+    heatmap(m, cmap = 'Oranges', cbar = False, ax = ax, xticklabels = 100, yticklabels = 100, square = True)
+
+    ax.invert_yaxis()
+
+    fig.suptitle(title)
+
+    plt.tight_layout()
+
     plt.show()
+
+    if type(sv_name) == str:
+
+        plt.savefig(f'../Cargo/pics/{sv_name}.png', dpi = 300)
+
+    plt.close()
 
     del m
 

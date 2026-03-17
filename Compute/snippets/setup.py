@@ -10,4 +10,5 @@ from matplotlib import use
 
 use('kitcat')
 
-exec(open(f'snippets/{sys.argv[1]}.py').read())
+if len(sys.argv) > 1:
+    exec(open(f'snippets/{sys.argv[1]}.py').read())

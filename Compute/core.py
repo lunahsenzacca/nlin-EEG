@@ -308,7 +308,7 @@ def get_tinfo(exp_name: str, avg_trials: bool, window: list = [None,None]) -> tu
     return info, times
 
 # Function for single subject conversion from raw data to list  for MNE 
-def raw_tolist(subID: str, exp_name: str) -> tuple[list, list, list]:
+def raw_tolist(subID: str, exp_name: str) -> tuple[list, list, tuple]:
 
     # Navigate subject folder with raw single trial files or epochs files
     sub_folder = sub_path(subID, exp_name = exp_name)
@@ -342,7 +342,7 @@ def raw_tolist(subID: str, exp_name: str) -> tuple[list, list, list]:
             path = sub_folder + f
             
             # This also depends on raw data structure
-            if exp_name == 'bmasking' or exp_name == 'zbmasking':
+            if exp_name == 'bmasking_old' or exp_name == 'zbmasking_old':
                 mat_data = sio.loadmat(path)
                     
                 data = mat_data['F'][untup][np.newaxis]
@@ -371,28 +371,30 @@ def raw_tolist(subID: str, exp_name: str) -> tuple[list, list, list]:
 
         events.append(c_events)
 
+    events = tuple(events)
+
     return data_list, info, events
 
 # Create info file for specific datased
-def toinfo(exp_name: str, info: mne.Info, ch_type: str = 'eeg') -> mne.Info:
+def toinfo(exp_name: str, info: list, ch_type: str = 'eeg') -> list:
 
-    if type(info) == None:
+    if type(info[0]) == None:
 
         # Get electrodes labels
         ch_list = maind[exp_name]['pois']
 
-        ch_types = [ch_type for ch in ch_list]
+        #ch_types = [ch_type for ch in ch_list]
 
         # Get sampling frequency
         freq = maind[exp_name]['f']
 
-        info = mne.create_info(ch_list, ch_types = ch_types, sfreq = freq)
+        info = [mne.create_info(ch_list, ch_types = ch_type, sfreq = freq) for i in info]
 
     return info
 
 # Function for subwise MNE conversion from list of arrays
 def list_toMNE(data_list: list, info: list, events: tuple, subID: str, exp_name: str, avg_trials: bool, z_score: bool, baseline: bool, sv_path: str):
-    
+
     # There are different number of trials for each condition,
     # so we cannot make one huge homogeneous ndarray, we have to save
     # different files per subject and per condition
@@ -429,16 +431,12 @@ def list_toMNE(data_list: list, info: list, events: tuple, subID: str, exp_name:
         # Apply zscore normalization
         elif z_score == True:
 
-            array_ = zscore(array)
+            array = zscore(array)
 
         # Apply dumb baseline correction 
         elif baseline == True:
 
-            array_ = array.copy() - np.broadcast_to(array.mean(axis = 2)[:,:,np.newaxis], array.shape)
-
-        else:
-
-            array_ = array.copy()
+            array = array.copy() - np.broadcast_to(array.mean(axis = 2)[:,:,np.newaxis], array.shape)
 
         # Compute average and standard error across trials
         if avg_trials == True:
@@ -446,27 +444,27 @@ def list_toMNE(data_list: list, info: list, events: tuple, subID: str, exp_name:
             n_trials = array.shape[0]
 
             # Just the average
-            avg = array_.mean(axis = 0)
+            avg = array.mean(axis = 0)
 
             # Standard error not deviation!
-            std = array_.std(axis = 0)/np.sqrt(n_trials)
+            std = array.std(axis = 0)/np.sqrt(n_trials)
 
             ev = mne.EvokedArray(avg, info[i], nave = n_trials, tmin = tmin, kind = 'average', verbose = False)
             s_ev = mne.EvokedArray(std, info[i], nave = n_trials, tmin = tmin, kind = 'standard_error', verbose = False)
-            
+
             ev.save(fname + '-ave.fif', overwrite = True, verbose = False)
             s_ev.save(fname + '-std-ave.fif', overwrite = True, verbose = False)
 
-            del ev, s_ev, array_
+            del ev, s_ev
 
         # Or keep each individual trial
         else:
 
-            ep = mne.EpochsArray(array_, info[i], events = events[i], tmin = tmin, verbose = False)
+            ep = mne.EpochsArray(array, info[i], events = events[i], tmin = tmin, verbose = False)
 
             ep.save(fname + '-epo.fif', overwrite = True, verbose = False)
 
-            del ep, array_
+            del ep
 
     return
 
@@ -738,7 +736,7 @@ def save_results(results: list, fshape: list, info: dict, sv_name: str, e_result
 
             trials = results[count]
 
-        n_trials = len(trials)//np.prod(fshape[2:-1])
+        n_trials = int(len(trials)//np.prod(fshape[2:-1]))
 
         trials = np.asarray(trials, dtype = dtype)
 
@@ -952,8 +950,8 @@ def downsample(ts: list | np.ndarray, target_l: int) -> np.ndarray:
     window = int(initial_l/target_l)
 
     if window == 0:
-        print('target lenght too short')
-        return
+
+        raise ValueError('Target lenght too short')
 
     partial = int(initial_l/window)
 
