@@ -940,6 +940,19 @@ def lorenz_trajectory(dt: float, time_points: int, target_l: int | None = None, 
 
     return xyzs
 
+# Generatea a simple elliptical trajectory
+def sinusoidal(time_points: int, f: float, I: float = 1, C: float = 1/np.sqrt(2), dt: float = 0, df: float = 0, t0: float | None = None) -> np.ndarray: 
+
+    if t0 == None:
+        t0 = np.random.uniform(0, 2*np.pi,)
+
+    S = np.sqrt(1-C**2)
+
+    ts = np.array([[I*S*np.sin(2*np.pi*f*(t-t0)) for t in range(0, time_points)],
+                   [I*C*np.cos(2*np.pi*(f+df)*(t-t0-dt)) for t in range(0, time_points)]])
+
+    return ts
+
 # Downsample timepoints of a timeseries averaging per window
 def downsample(ts: list | np.ndarray, target_l: int) -> np.ndarray:
 

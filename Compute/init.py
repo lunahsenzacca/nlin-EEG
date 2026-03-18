@@ -29,8 +29,9 @@ p_path = path + 'pics/'
 exp_lb = {
     'bmasking': 'BM',
     'zbmasking': 'ZBM',
+    'noise': 'NZ',
     'lorenz': 'LZ',
-    'noise': 'NZ'
+    'sinusoidal': 'SN'
 }
 obs_lb = {
     'evokeds': 'EV',
@@ -61,7 +62,7 @@ obs_nm = {
     'llyap': 'Largest Lyapunov Exponent'
 }
 
-def paths(exp_name: str, old = False):
+def paths(exp_name: str, old: bool = False):
 
     paths = {'data': d_path + exp_lb[exp_name] + '/',
     'avg_data': path + 'toMNE/avg/' + exp_lb[exp_name] + '/',
@@ -172,43 +173,47 @@ ZBM_info = {
     'window': [-0.2,0.7]
 }
 
-# Lorenz attractor
-LZ_conditions = {'Lorenz':'lorenz'}
-
-LZ_paths = paths('lorenz')
-
-LZ_info = {
-    'T': 1000,
-    'pois': [0],
-    'subIDs': ['000','001','002'],
-    'conditions': LZ_conditions,
-    'directories': LZ_paths,
-    'tau': 20,
-    'window': [0,10] # Placeholder, there is actually a pysically reasonable value from this
-}
-
-NZ_conditions = {'Noise':'noise'}
-
+# White noise
 NZ_paths = paths('noise')
 
 NZ_info = {
-    'T': 451,
     'pois': [0],
     'subIDs': ['000'],
-    'conditions': NZ_conditions,
+    'conditions': {'Noise':'noise'},
     'directories': NZ_paths,
-    'tau': 20,
-    'window': [0,0.9]
+    'window': [None,None]
 }
 
+# Lorenz attractor
+LZ_paths = paths('lorenz')
+
+LZ_info = {
+    'pois': [0],
+    'subIDs': ['000','001','002'],
+    'conditions': {'Lorenz':'lorenz'},
+    'directories': LZ_paths,
+    'window': [None,None]
+}
+
+# Sinusoidal system
+SN_paths = paths('sinusoidal')
+
+SN_info = {
+    'pois': [0],
+    'subIDs': ['000','001','002','003'],
+    'conditions': {'Sinusoidal':'sinusoidal'},
+    'directories': SN_paths,
+    'window': [None,None]
+}
 
 # Save all of this in a Very Big Dictionary
 maind = {
     'path': path,
     'bmasking': BM_info,
     'zbmasking': ZBM_info,
-    'lorenz': LZ_info,
     'noise': NZ_info,
+    'lorenz': LZ_info,
+    'sinusoidal': SN_info,
     'exp_lb': exp_lb,
     'obs_lb': obs_lb,
     'obs_nm': obs_nm

@@ -3,7 +3,7 @@ from scipy.stats import ttest_ind
 from seaborn import heatmap
 from rich import print as pp
 
-L = ['../Cargo/results','avg','BM','Frontal-Occipital','RP','']
+L = ['../Cargo/results','avg','SN','Global','RP','']
 
 file_path = os.path.join(*L,'recurrence.npz')
 info_path = os.path.join(*L,'info.json')
@@ -13,17 +13,13 @@ M = np.load(file_path)
 with open(info_path, 'r') as f:
     info = json.load(f)
 
-keys = ['tau','embeddings','th_values','ch_list']
-
-def show_info():
+def show_info(keys: list):
 
     print('\nHere\'s some info\n')
 
     pp({key: info[key] for key in keys})
 
     return
-
-show_info()
 
 def peak(file: str, idxs: list, title: str = '', sv_name: str | None = None):
 

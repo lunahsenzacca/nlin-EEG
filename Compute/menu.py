@@ -242,6 +242,10 @@ def i_window(exp_name: str):
 
     window = maind[exp_name]['window']
 
+    if exp_name in ['noise','lorenz','sinusoidal']:
+
+        return window
+
     inputs = [
         [
             inq.List('window_opt',

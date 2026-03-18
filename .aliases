@@ -31,6 +31,10 @@ lorenz () {
   kitty_mine "micro makedata/lorenz.py ; python -m makedata.lorenz" & disown
 }
 
+sinusoidal () {
+  kitty_mine "micro makedata/sinusoidal.py ; python -m makedata.sinusoidal" & disown
+}
+
 # Launch snippet in special terminal
 nb () {
   kitty_mine ipython -i snippets/setup.py -- "$1" & disown
