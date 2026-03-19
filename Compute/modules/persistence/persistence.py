@@ -18,22 +18,23 @@ def persistence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list | tuple, m
 
     # Loop around pois time series
     for ts in TS:
+
         for t in ts:
 
             # Get informations peristence of peak and valleys
-            t_birth, _, pairs = Persistence0D(t)
-            nt_birth,_,npairs = Persistence0D(-t)
+            t_birth, _, pairs = Persistence0D(t[0])
+            nt_birth,_,npairs = Persistence0D(-t[0])
 
-            parr  = np.zeros((max_pairs,4), dtype = np.float64)
-            tarr  = np.zeros((max_pairs,2), dtype = np.int32)
+            parr  = np.zeros((4,max_pairs), dtype = np.float64)
+            tarr  = np.zeros((2,max_pairs), dtype = np.int32)
 
             for i in range(0,max_pairs):
                 if i < (min(len(pairs),len(npairs))):
-                    parr[i,0:2] = pairs[-i-1]
-                    parr[i,2:4] = npairs[-i-1]
+                    parr[0:2,i] = pairs[-i-1]
+                    parr[2:4,i] = npairs[-i-1]
 
-                    tarr[i,0] = t_birth[-i-1]
-                    tarr[i,1] = nt_birth[-i-1]
+                    tarr[0,i] = t_birth[-i-1]
+                    tarr[1,i] = nt_birth[-i-1]
                 else:
                     break
 

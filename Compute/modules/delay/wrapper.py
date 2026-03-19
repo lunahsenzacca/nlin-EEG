@@ -95,5 +95,5 @@ if __name__ == '__main__':
 
     calculator(delay.it_delay_time(info = info, parameters = parameters),
                MNEs_iters = MNEs_iters,
-               info = info, fshape = fshape,
-               with_err = False)
+               info = info, fshapes = [fshape],
+               cuts = [None])

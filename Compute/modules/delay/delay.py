@@ -56,6 +56,6 @@ def it_delay_time(info: dict, parameters: dict):
                          tau_method = parameters['tau_method'],
                          clst_method = parameters['clst_method'])
 
-        return TAU
+        return [TAU]
 
     return iterable

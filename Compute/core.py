@@ -703,7 +703,7 @@ def flat_results(file: np.lib.npyio.NpzFile, id: str, stop: int = -1) -> tuple[n
     return flat, shape
 
 #  Function for homogeneous array saving after multiprocessing computation from disk or ram partially saved results
-def save_results(results: list, fshape: list, info: dict, sv_name: str, e_results: list | None = None, dtype: type = np.float64, memory_safe: bool = False):
+def save_results(results: list, fshape: list, info: dict, sv_name: str, e_results: list | None = None, dtype: type = np.float64, cut: int| None = -1, memory_safe: bool = False):
 
     # Generate result saving path
     sv_path = obs_path(exp_name = info['exp_name'], obs_name = info['obs_name'], avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = info['calc_lb'])
@@ -736,7 +736,7 @@ def save_results(results: list, fshape: list, info: dict, sv_name: str, e_result
 
             trials = results[count]
 
-        n_trials = int(len(trials)//np.prod(fshape[2:-1]))
+        n_trials = int(len(trials)//np.prod(fshape[2:cut]))
 
         trials = np.asarray(trials, dtype = dtype)
 

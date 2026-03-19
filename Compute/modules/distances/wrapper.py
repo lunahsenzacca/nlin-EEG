@@ -2,14 +2,12 @@
 import json
 import numpy as np
 
-# Recurrence Plot computation function
-from modules.recurrence import recurrence
+# Distances Distributions computation function
+from modules.distances import distances
 
 # Cython file compile wrapper
 from core import cython_compile
 
-# Utility function for dimensional time and frequency domain of the experiment
-from core import get_tinfo
 
 # Multiprocessing wrappers
 from parallelizer import loader, calculator
@@ -20,7 +18,7 @@ from init import get_maind
 maind = get_maind()
 
 # Module name
-obs_name = 'recurrence'
+obs_name = 'distances'
 
 ### CYTHON DEBUG PARAMETERS ###
 
@@ -31,7 +29,7 @@ cython_verbose = False
 ### MEMORY SAFE PARAMETER ###
 
 # Whether to save results to disk to avoid RAM saturation
-memory_safe = True
+memory_safe = False
 tmp_path = None
 
 ### SCRIPT PARAMETERS ###
@@ -75,10 +73,7 @@ if type(ch_list) == tuple:
 else:
     clst = False
 
-# Load times for results array
-_, times = get_tinfo(exp_name = exp_name, avg_trials = avg_trials, window = window)
-
-### PARAMETERS FOR SEPARATION PLOT COMPUTATION ###
+### PARAMETERS FOR DISTANCES DISTRIBUTION COMPUTATION ###
 
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
@@ -92,11 +87,12 @@ embeddings = parameters['embeddings']
 # Apply embedding normalization when computing distances
 m_norm = parameters['m_norm']
 
-# Set threshold method
-th_method = parameters['th_method']
+# Distances for sampling the dependance
+log_span = parameters['log_span']
 
-# Set threshold values
-th_values = parameters['th_values']
+edges = np.logspace(log_span[0], log_span[1], num = log_span[2], base = log_span[3])
+
+parameters['edges'] = edges
 
 # Updated info dictionary
 info = {
@@ -106,10 +102,7 @@ info = {
         'tau' : tau,
         'embeddings' : embeddings,
         'm_norm' : m_norm,
-        'th_method' : th_method,
-        'th_values' : th_values,
-
-        't': list(times),
+        'log_span' : log_span,
 
         'clustered' : clst,
         'sub_list' : sub_list,
@@ -123,12 +116,12 @@ info = {
         }
 
 # Define shape of results
-fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(th_values),int(len(times)*(len(times) - 1)/2)]
+fshape = [len(sub_list),len(conditions),len(ch_list),len(embeddings),len(edges)-1]
 
 # Script main method
 if __name__ == '__main__':
 
-    print('\n    RECURRENCE PLOT SCRIPT')
+    print('\n    DISTANCES DISTRIBUTION SCRIPT')
 
     if cython == True:
 
@@ -146,8 +139,8 @@ if __name__ == '__main__':
 
     MNEs_iters = loader(info = info)
 
-    calculator(recurrence.it_recurrence(info = info, parameters = parameters, cython = cython, memory_safe = memory_safe, tmp_path = tmp_path),
+    calculator(distances.it_distances(info = info, parameters = parameters, cython = cython, memory_safe = memory_safe, tmp_path = tmp_path),
                MNEs_iters = MNEs_iters,
                info = info, fshapes = [fshape],
-               dtypes = [np.int8],
+               dtypes = [np.int64],
                memory_safe = memory_safe, tmp_path = tmp_path)

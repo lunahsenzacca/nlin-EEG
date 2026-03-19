@@ -4,7 +4,7 @@
   "embeddings": "Dimensionality of embeddings",
   "m_norm": "Normalize distances of embedding space",
   "w": "Theiler Window",
-  "log_span": "Logarithmic parameters for 'r' ADD LEGEND",
+  "log_span": "Parameters for logarithmically spaced points\n[start,stop,num,base]",
   "clst_method": "How to handle cluster of multiple electrodes",
   "dt": "Average time period for Rosenstein algorithm",
   "max_pairs": "Number of persistence pairs to keep",

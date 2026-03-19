@@ -3,9 +3,9 @@ from scipy.stats import ttest_ind
 from seaborn import heatmap
 from rich import print as pp
 
-L = ['../Cargo/results','avg','SN','Global','RP','']
+L = ['../Cargo/results','avg','ZBM','Frontal-Occipital','PS','']
 
-file_path = os.path.join(*L,'recurrence.npz')
+file_path = os.path.join(*L,'persistence.npz')
 info_path = os.path.join(*L,'info.json')
 
 M = np.load(file_path)

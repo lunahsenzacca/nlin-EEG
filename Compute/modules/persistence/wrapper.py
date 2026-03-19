@@ -83,7 +83,8 @@ info = {
         }
 
 # Define shape of results
-fshape = [len(sub_list),len(conditions),len(ch_list),max_pairs,2]
+fshape_pairs = [len(sub_list),len(conditions),len(ch_list),max_pairs,4]
+fshape_times = [len(sub_list),len(conditions),len(ch_list),max_pairs,2]
 
 # Script main method
 if __name__ == '__main__':
@@ -94,6 +95,6 @@ if __name__ == '__main__':
 
     calculator(persistence.it_persistence(info = info, parameters = parameters),
                MNEs_iters = MNEs_iters,
-               info = info, fshape = fshape,
-               with_err = False,
-               extra_res = True, extra_lb = 'times', extra_dtype = np.int32)
+               info = info, fshapes = [fshape_pairs, fshape_times],
+               cuts = [-2,-2], res_types = [1,1],
+               dtypes = [np.float64,np.int32], labels = ['','_times'])
