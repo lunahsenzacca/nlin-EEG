@@ -3,9 +3,9 @@ from scipy.stats import ttest_ind
 from seaborn import heatmap
 from rich import print as pp
 
-L = ['../Cargo/results','avg','ZBM','Frontal-Occipital','PS','']
+L = ['../Cargo/results','avg','BM','Frontal-Occipital','RP','']
 
-file_path = os.path.join(*L,'persistence.npz')
+file_path = os.path.join(*L,'recurrence.npz')
 info_path = os.path.join(*L,'info.json')
 
 M = np.load(file_path)
@@ -71,21 +71,13 @@ def heat(file: str, idxs: list | None = None, show = True, cut = True):
 
     heat = []
 
-    cut = 0
+    c = 0
     for i, t in enumerate(trials):
 
         h = squareform(t)
 
-        if i == 0:
-            cut = len(h)
-            for j in range(0,len(h)):
-                h[j,j] = 1
-                if h[j,0] == 2:
-                    cut = j
-                    break
-
-        if cut:
-            h = h[:cut,:cut]
+        for j in range(0,len(h)):
+            h[j,j] = 1
 
         heat.append(h)
 
@@ -101,17 +93,29 @@ def heat(file: str, idxs: list | None = None, show = True, cut = True):
 
         return
 
+    if type(idxs) == list:
+
+        heat = heat[*idxs]
+
+        if cut:
+            for i in range(0,len(heat)):
+
+                if heat[i,0] == 2:
+                    heat= heat[:i,:i]
+                    break
+
+
     return heat
 
-def confront():
+def confront(idxs: list | None = None, cut = False):
 
-    confront_0 = heat('arr_0', show = False, cut = False)
-    confront_1 = heat('arr_1', show = False, cut = False)
+    confront_0 = heat('arr_0', idxs = idxs, show = False, cut = cut)
+    confront_1 = heat('arr_1', idxs = idxs, show = False, cut = cut)
 
     for i in range(1,len(info['sub_list'])):
 
-        confront_0 += heat(f'arr_{2*i}', show = False, cut = False)
-        confront_1 += heat(f'arr_{2*i+1}', show = False, cut = False)
+        confront_0 += heat(f'arr_{2*i}', idxs = idxs, show = False, cut = cut)
+        confront_1 += heat(f'arr_{2*i+1}', idxs = idxs, show = False, cut = cut)
 
     confront = np.concatenate((confront_0[np.newaxis],confront_1[np.newaxis]), axis = 0)/len(info['sub_list'])
 
@@ -131,34 +135,54 @@ def split():
 
     return split
 
-def show():
+def show(idxs: list | None = None):
 
-    conf = confront()
+    if idxs is None:
 
-    cc = conf[0] - conf[1]
+        conf = confront()
 
-    for j, emb in enumerate(info['embeddings']):
-        for i, poi in enumerate(info['ch_list']):
+        cc = conf[0] - conf[1]
 
-            print(f'\nVVV Showing POI: {poi}, m: {emb}, th: {info['th_values']} VVV\n')
+        for j, emb in enumerate(info['embeddings']):
+            for i, poi in enumerate(info['ch_list']):
 
-            fig, ax = plt.subplots(1,3, figsize = (8,4), gridspec_kw={'width_ratios': [1, 1, 0.2]})
+                print(f'\nVVV Showing POI: {poi}, m: {emb}, th: {info['th_values']} VVV\n')
 
-            heatmap(cc[0,i,j,0], center = 0, cmap = 'coolwarm', cbar = False, ax = ax[0], xticklabels = 100, yticklabels = 100, square = True)
-            heatmap(cc[0,i,j,1], center = 0, cmap = 'coolwarm', cbar = True, ax = ax[1], xticklabels = 100, yticklabels = 100, square = True, cbar_ax = ax[2])
+                fig, ax = plt.subplots(1,3, figsize = (8,4), gridspec_kw={'width_ratios': [1, 1, 0.2]})
 
-            ax[0].invert_yaxis()
-            ax[1].invert_yaxis()
+                heatmap(cc[0,i,j,0], center = 0, cmap = 'coolwarm', cbar = False, ax = ax[0], xticklabels = 100, yticklabels = 100, square = True)
+                heatmap(cc[0,i,j,1], center = 0, cmap = 'coolwarm', cbar = True, ax = ax[1], xticklabels = 100, yticklabels = 100, square = True, cbar_ax = ax[2])
 
-            ax[2].set(box_aspect = 20, visible = True)
+                ax[0].invert_yaxis()
+                ax[1].invert_yaxis()
 
-            plt.tight_layout()
+                ax[2].set(box_aspect = 20, visible = True)
 
-            plt.show()
+                plt.tight_layout()
 
-            plt.close()
+                plt.show()
 
-    return
+                plt.close()
+
+        return
+
+    else:
+
+        conf = confront(idxs = idxs, cut = True)
+
+        fig, ax = plt.subplots(1,2, figsize = (5,4), gridspec_kw={'width_ratios': [1, 0.2]})
+
+        cc = conf[0] - conf[1]
+
+        heatmap(cc, center = 0, cmap = 'coolwarm', cbar = True, ax = ax[0], cbar_ax = ax[1], xticklabels = 100, yticklabels = 100, square = True)
+
+        ax[0].invert_yaxis()
+
+        ax[1].set(box_aspect = 20, visible = True)
+
+        plt.show()
+
+        return fig, ax
 
 def ttest():
 
