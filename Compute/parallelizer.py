@@ -70,8 +70,8 @@ def loader(info: dict, with_std = False):
 # Parallelized Observable computation based on already saved results
 def stacked_calculator(observable, previous: np.lib.npyio.NpzFile,
                        info: dict,
-                       with_err: bool = False, dtype: type = np.float64,
-                       extra_res: bool = False, extra_lb: str| None = None, extra_dtype: type | None = None):
+                       res_type = 1, dtype = np.float64,
+                       cut: int | None = -1):
 
     print(f'\nComputing {maind['obs_nm'][info['obs_name']]}...\n')
 
@@ -84,6 +84,8 @@ def stacked_calculator(observable, previous: np.lib.npyio.NpzFile,
 
         iters = [i for i in range(0,len(flat))]
 
+        global it_observable
+
         def it_observable(idx: int):
 
             RES = observable(flat[idx])
@@ -95,60 +97,39 @@ def stacked_calculator(observable, previous: np.lib.npyio.NpzFile,
                              chunksize = (len(iters)//100 + 1),
                              disable_bar = True)
 
+        partial = np.asarray(partial).swapaxes(0,1)
+
         results_.append(partial)
 
-    fshape = [len(info['sub_list']),len(info['conditions']),*shape[1:-1]]
+    fshape = [len(info['sub_list']),len(info['conditions']),*shape[2:-1]]
 
-    # ALL OF THIS SHOULD BE MUCH MORE ELEGANT AT SOME POINT, AND GENERALIZED FOR ANY NUMBER OF OUTPUTS MAYBE
-    if with_err == True or extra_res == True:
+    if res_type == 1:
 
-        # Get separate results lists
-        results = []
-        e_results = []
-        for r in results_:
-
-            results.append(r[0])
-            e_results.append(r[1])
-
-    else:
-
-        results = results_
-        e_results = None
-
-    if extra_res == False:
-
-        save_results(results = results,
+        save_results(results = [results[0] for results in results_],
                      fshape = fshape,
+                     cut = cut,
                      info = info,
                      sv_name = info['obs_name'],
                      dtype = dtype,
-                     e_results = e_results)
+                     e_results = None)
 
-    elif with_err == False and extra_res == True:
+    elif res_type == 2:
 
-        save_results(results = results,
+        save_results(results = [results[0] for results in results_],
                      fshape = fshape,
+                     cut = cut,
                      info = info,
                      sv_name = info['obs_name'],
-                     dtype = dtype)
-
-        save_results(results = e_results,
-                     fshape = fshape,
-                     info = info,
-                     sv_name = f'{info['obs_name']}_{extra_lb}',
-                     dtype = extra_dtype)
-
-    else:
-        raise ValueError('Only error or extra value can be saved!')
+                     dtype = dtype,
+                     e_results = [results[1] for results in results_])
 
     print('\nDONE!')
 
     # Save info file to .tmp for faster relaunching
-    with open('.tmp/last.json','w') as f:
-        json.dump(info, f, indent = 2)
+    #with open('.tmp/last.json','w') as f:
+    #    json.dump(info, f, indent = 2)
 
     print('')
-
 
     return
 
@@ -177,8 +158,6 @@ def calculator(it_observable, MNEs_iters: list,
                           chunksize = chunksize,
                           description = '[red]Processing:',
                           transient = False)
-
-    print(len(results_[0]))
 
     if memory_safe is True:
 
@@ -215,35 +194,6 @@ def calculator(it_observable, MNEs_iters: list,
                          memory_safe = memory_safe)
 
             c += 2
-
-    #if extra_res == False:
-
-    #    save_results(results = results,
-    #                 fshape = fshape,
-    #                 info = info,
-    #                 sv_name = info['obs_name'],
-    #                 dtype = dtype,
-    #                 e_results = e_results,
-    #                 memory_safe = memory_safe)
-
-    #elif with_err == False and extra_res == True:
-
-    #    save_results(results = results,
-    #                 fshape = fshape,
-    #                 info = info,
-    #                 sv_name = info['obs_name'],
-    #                 dtype = dtype,
-    #                 memory_safe = memory_safe)
-
-    #    save_results(results = e_results,
-    #                 fshape = fshape,
-    #                 info = info,
-    #                 sv_name = f'{info['obs_name']}_{extra_lb}',
-    #                 dtype = extra_dtype,
-    #                 memory_safe = memory_safe)
-
-    #else:
-    #    raise ValueError('Only error or extra value can be saved!')
 
     print('\nDONE!')
 

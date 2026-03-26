@@ -41,6 +41,7 @@ obs_lb = {
     'persistence': 'PS',
     'distances': 'DS',
     'recurrence': 'RP',
+    'determinism': 'DET',
     'separation': 'STP',
     'corrsum': 'CS',
     'correxp': 'CE',
@@ -48,7 +49,6 @@ obs_lb = {
 #    'plateaus': 'PL',
 #    'idim': 'D2',
     'llyap': 'LLE'
-
 }
 obs_nm = {
     'evokeds': 'Evoked Signals',
@@ -58,10 +58,15 @@ obs_nm = {
     'persistence': 'Persistence Sets',
     'distances': 'Distances Distribution',
     'recurrence': 'Recurrence Plot',
+    'determinism': 'Determinism',
     'separation': 'Spacetime Separation',
     'corrsum': 'Correlation Sum',
     'correxp': 'Correlation Exponent',
     'llyap': 'Largest Lyapunov Exponent'
+}
+
+stacked = {
+    'recurrence': ['determinism']
 }
 
 def paths(exp_name: str, old: bool = False):
@@ -218,7 +223,8 @@ maind = {
     'sinusoidal': SN_info,
     'exp_lb': exp_lb,
     'obs_lb': obs_lb,
-    'obs_nm': obs_nm
+    'obs_nm': obs_nm,
+    'stacked': stacked
 }
 
 import json

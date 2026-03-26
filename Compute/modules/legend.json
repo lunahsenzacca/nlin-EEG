@@ -12,5 +12,7 @@
   "N": "Number of simulated time series for uncertainty estimation",
   "wf": "Window factor for Fourier spectrum calculation",
   "th_method": "Method for distance matrix thresholding",
-  "th_values": "Values for distance matrix thresholding"
+  "th_values": "Values for distance matrix thresholding",
+  "exclude_trivial": "Exclude points on the identity lines",
+  "min_dlength": "Minimum length of diagonal recurrence lines"
 }

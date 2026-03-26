@@ -52,7 +52,7 @@ window = info['window']
 ### DATA PATHS ###
 
 # Label of Correlation Sum calculation
-load_calc_lb = parameters['load_calc_lb']
+load_calc_lb = info['load_calc_lb']
 
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
@@ -60,7 +60,7 @@ calc_lb = parameters['calc_lb']
 ### PARAMETERS FOR DETERMINISM COMPUTATION ###
 
 # Minimum length of diagonal lines considered
-min_length = parameters['min_length']
+min_dlength = parameters['min_dlength']
 
 # Exclude diagonal points in calculation
 exclude_trivial = parameters['exclude_trivial']
@@ -68,7 +68,7 @@ exclude_trivial = parameters['exclude_trivial']
 add_info = {
     'calc_lb': calc_lb,
 
-    'min_length': min_length,
+    'min_dlength': min_dlength,
     'exclude_trivial': exclude_trivial
 }
 
@@ -77,11 +77,11 @@ if __name__ == '__main__':
 
     print('\n    DETERMINISM SCRIPT')
 
-    RP, info = determinism.get_recurrence(info = info, load_calc_lb = load_calc_lb)
+    RP = determinism.get_recurrence(info = info, load_calc_lb = load_calc_lb)
 
     # Updated info dictionary
     info = info | add_info
 
-    stacked_calculator(determinism.determinism, previous = RP,
-                      info = info)
+    stacked_calculator(determinism.it_determinism(parameters = parameters), previous = RP,
+                       info = info, cut = None)
 

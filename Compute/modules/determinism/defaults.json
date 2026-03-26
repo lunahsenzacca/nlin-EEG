@@ -1,4 +1,5 @@
 {
-  "min_length": 5,
-  "exclude_trivial": true,
+  "calc_lb": null,
+  "min_dlength": 4,
+  "exclude_trivial": true
 }

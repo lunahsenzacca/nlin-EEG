@@ -454,27 +454,101 @@ def i_plot_opt():
 
     return inputs
 
-# Initial selection, choose between launch and plot
-def cmode():
+def run_stacked(obs_name: str, stacked: str):
 
-    input = [
-        inq.List('mode',
-                message = 'Hello! Please select a mode',
-                choices = ['Launch module', 'Plot results','Relaunch last selection','Just quit...']
-        )
+    saved = []
+    for root, dirs, files in os.walk('../Cargo/results', topdown = False):
+        for name in files:
+            if name == 'info.json':
+
+                relpath = os.path.relpath(root, start = '../Cargo/results')
+                if f'/{maind['obs_lb'][stacked]}/' in relpath:
+                    saved.append(relpath)
+
+    if len(saved) == 0:
+        opt = [f'Run {maind['obs_nm'][stacked]} calculation first...']
+    else:
+        opt = [f'Choose from saved... ({len(saved)} found)', f'Run {maind['obs_nm'][stacked]} calculation first...']
+
+    inputs = [
+        [
+            inq.List('run_opt',
+                     message = f'Choose how to compute {maind['obs_nm'][obs_name]}',
+                     choices = opt
+                     )
+        ],[
+            inq.List('saved_opt',
+                     message = 'Found the following saved results',
+                     choices = saved
+            )
+        ]
     ]
 
-    mode = inq.prompt(input)['mode']
+    run_opt = inq.prompt(inputs[0])['run_opt']
 
-    return mode
+    if 'Choo' in run_opt:
 
-#Launch new computation
-def launch():
+        keep_choosing = 0
+        path = ''
+        while keep_choosing == 0:
 
-    ## Prompt for preprocessed dataset name, subjects, conditions, channels and time window
+            saved_opt = inq.prompt(inputs[1])['saved_opt']
 
-    ## Prompt for module
-    obs_name = i_obs_name()
+            path = '../Cargo/results/' + saved_opt + '/'
+            info_file = path + 'info.json'
+
+            print('')
+
+            with open(info_file, 'r') as f:
+                info = json.load(f)
+
+            title = maind['obs_nm'][info['obs_name']]
+            if info['calc_lb'] is not None:
+                title = title + f'\n({info['calc_lb']})'
+
+            info.pop('obs_name')
+            info.pop('calc_lb')
+
+            pdict(info, title = title)
+
+            keep_choosing = not inq.confirm('Choose another?')
+
+            print('')
+
+        with open(path + 'info.json', 'r') as f:
+            info = json.load(f)
+
+        info['load_calc_lb'] = info['calc_lb']
+
+        ## Prompt for module parameters
+        parameters = i_parameters(obs_name)
+        info['calc_lb'] = parameters['calc_lb']
+        info['obs_name'] = obs_name
+
+        keep_open = run(info = info, parameters = parameters)
+
+    else:
+
+        s_parameters = i_parameters(obs_name)
+
+        info, parameters = set_info(obs_name = stacked)
+
+        keep_open = run(info = info, parameters = parameters)
+
+        if keep_open == 1:
+            return keep_open
+
+        s_parameters = parameters | s_parameters
+
+        info['load_calc_lb'] = info['calc_lb']
+        info['obs_name'] = obs_name
+        info.pop('calc_lb')
+
+        _ = run(info = info, parameters = s_parameters, opts = False)
+
+    return keep_open
+
+def set_info(obs_name: str):
 
     # Get exp_name
     exp_name = i_exp_name()
@@ -512,11 +586,18 @@ def launch():
         'calc_lb': calc_lb
     }
 
-    ## Prompt for compute or plot or both
-    plot_opt, quit_opt = i_launch_opt(info)
-    if quit_opt == True:
-        keep_open = 1
-        return keep_open
+    return info, parameters
+
+def run(info: dict, parameters: dict, opts: bool = True):
+
+    if opts is True:
+        ## Prompt for compute or plot or both
+        plot_opt, quit_opt = i_launch_opt(info)
+        if quit_opt == True:
+            keep_open = 1
+            return keep_open
+    else:
+        plot_opt = False
 
     # Set extra instructions for plotting to false FOR NOW
     info['extra_instructions'] = False
@@ -530,26 +611,59 @@ def launch():
         json.dump(info, l, indent = 2)
 
     # Script parameters
-    with open(f'.tmp/modules/{obs_name}.json', 'w') as f:
+    with open(f'.tmp/modules/{info['obs_name']}.json', 'w') as f:
         json.dump(parameters, f, indent = 2)
 
     # Opts
     with open('.tmp/opts.json', 'w') as f:
         json.dump({'plot_opt': plot_opt}, f, indent = 2)
 
-    cmd = f'python -m modules.{obs_name}.wrapper'
+    cmd = f'python -m modules.{info['obs_name']}.wrapper'
 
     os.system(cmd)
 
-    ## Launch compiled plotting
-
-    if plot_opt == True:
-
-        cmd = 'python -m plotting.plot'
-
-        os.system(cmd)
-
     return 0
+
+# Initial selection, choose between launch and plot
+def cmode():
+
+    input = [
+        inq.List('mode',
+                message = 'Hello! Please select a mode',
+                choices = ['Launch module', 'Plot results','Relaunch last selection','Just quit...']
+        )
+    ]
+
+    mode = inq.prompt(input)['mode']
+
+    return mode
+
+#Launch new computation
+def launch():
+
+    ## Prompt for preprocessed dataset name, subjects, conditions, channels and time window
+
+    ## Prompt for module
+    obs_name = i_obs_name()
+
+    stacked = None
+
+    for base in maind['stacked']:
+        print(base)
+        if obs_name in maind['stacked'][base]:
+            stacked = base
+
+    if stacked is None:
+
+        info, parameters = set_info(obs_name = obs_name)
+
+        keep_open = run(info = info, parameters = parameters)
+
+    else:
+
+        keep_open = run_stacked(obs_name = obs_name, stacked = stacked)
+
+    return keep_open
 
 # Plot some results
 def plot():
@@ -614,8 +728,6 @@ def plot():
         plot_def = inq.prompt(input[3])['plot_def']
 
         if plot_def == True:
-
-            import subprocess
 
             info['extra_instructions'] = True
 
