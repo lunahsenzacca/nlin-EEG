@@ -462,7 +462,7 @@ def run_stacked(obs_name: str, stacked: str):
             if name == 'info.json':
 
                 relpath = os.path.relpath(root, start = '../Cargo/results')
-                if f'/{maind['obs_lb'][stacked]}/' in relpath:
+                if f'/{maind['obs_lb'][stacked]}' in relpath:
                     saved.append(relpath)
 
     if len(saved) == 0:

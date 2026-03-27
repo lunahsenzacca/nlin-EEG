@@ -41,7 +41,7 @@ def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = Tru
         c = len(RP)
         for i in range(len(RP)):
             RP[i,i] = 0
-            if RP[i,-1] == 2:
+            if RP[i,0] == 2:
                 c = i
                 break
 

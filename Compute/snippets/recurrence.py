@@ -1,17 +1,8 @@
 from scipy.spatial.distance import squareform
 from scipy.stats import ttest_ind
 from seaborn import heatmap
-from rich import print as pp
 
-L = ['../Cargo/results','avg','BM','Frontal-Occipital','RP','']
-
-file_path = os.path.join(*L,'recurrence.npz')
-info_path = os.path.join(*L,'info.json')
-
-M = np.load(file_path)
-
-with open(info_path, 'r') as f:
-    info = json.load(f)
+M, info = 
 
 def show_info(keys: list):
 
