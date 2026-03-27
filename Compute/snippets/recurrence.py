@@ -2,15 +2,7 @@ from scipy.spatial.distance import squareform
 from scipy.stats import ttest_ind
 from seaborn import heatmap
 
-M, info = 
-
-def show_info(keys: list):
-
-    print('\nHere\'s some info\n')
-
-    pp({key: info[key] for key in keys})
-
-    return
+M, info = load('recurrence', 'avg/BM/Global/RP/Multiple')
 
 def peak(file: str, idxs: list, title: str = '', sv_name: str | None = None):
 

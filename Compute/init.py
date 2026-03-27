@@ -41,6 +41,7 @@ obs_lb = {
     'persistence': 'PS',
     'distances': 'DS',
     'recurrence': 'RP',
+    'rrate': 'RR',
     'determinism': 'DET',
     'separation': 'STP',
     'corrsum': 'CS',
@@ -58,6 +59,7 @@ obs_nm = {
     'persistence': 'Persistence Sets',
     'distances': 'Distances Distribution',
     'recurrence': 'Recurrence Plot',
+    'rrate': 'Recurrence Rate',
     'determinism': 'Determinism',
     'separation': 'Spacetime Separation',
     'corrsum': 'Correlation Sum',
@@ -66,7 +68,7 @@ obs_nm = {
 }
 
 stacked = {
-    'recurrence': ['determinism']
+    'recurrence': ['rrate','determinism']
 }
 
 def paths(exp_name: str, old: bool = False):

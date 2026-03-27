@@ -1,4 +1,3 @@
-
 def plot_head(M: np.ndarray, exp_lb: str, axes = Axes, cmap: str = 'coolwarm', vlim: tuple = (0,1)):
 
     ex_file = os.listdir(f'../Cargo/toMNE/avg/{exp_lb}')[0]

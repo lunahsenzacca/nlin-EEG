@@ -7,6 +7,8 @@ import core as c
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
+from rich import print as pp
+
 from style import pdict
 
 from init import maind
