@@ -160,6 +160,19 @@ def obs_data(obs_path: str, obs_name: str) -> tuple[np.lib.npyio.NpzFile, list, 
         x = info['t']
 
         X = [x]
+    elif obs_name == 'rrate':
+
+        M = np.load(obs_path + 'rrate.npz')
+        x = info['t']
+
+        X = [x]
+
+    elif obs_name == 'determinism':
+
+        M = np.load(obs_path + 'determinism.npz')
+        x = info['t']
+
+        X = [x]
 
     elif obs_name == 'separation':
 

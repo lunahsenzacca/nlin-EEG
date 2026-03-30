@@ -56,6 +56,8 @@ def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = Tru
     num = 0  # points in diagonals with length >= min_length
     den = 0  # points in all diagonals (length >= 1)
 
+    #lengths = []
+
     for offset in range(-(n - 1), 0):
         if exclude_trivial and offset == 0:
             continue
@@ -64,6 +66,24 @@ def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = Tru
             continue
         den += rl.sum()
         num += rl[rl >= min_length].sum()
+
+    #    [lengths.append(l) for l in rl]
+
+    #N = len(lengths)
+
+    #unique, counts = np.unique(np.asarray(lengths), return_counts = True)
+
+    #d = dict(zip(unique,counts))
+
+    #for l in range(1,list(d.keys())[-1]):
+
+    #    if l in d.keys():
+
+    #        den += l*d[l]/N
+
+    #        if l >= min_length:
+
+    #            num += l*d[l]/N
 
     if den == 0:
         return 0.0

@@ -1,5 +1,5 @@
 {
   "calc_lb": null,
-  "min_dlength": 4,
+  "min_dlength": 40,
   "exclude_trivial": true
 }
