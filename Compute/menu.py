@@ -522,8 +522,11 @@ def run_stacked(obs_name: str, stacked: str):
 
         ## Prompt for module parameters
         parameters = i_parameters(obs_name)
+
         info['calc_lb'] = parameters['calc_lb']
         info['obs_name'] = obs_name
+
+        parameters = parameters | info
 
         keep_open = run(info = info, parameters = parameters)
 

@@ -14,7 +14,7 @@ def _run_lengths_ones(x: np.ndarray) -> np.ndarray:
     ends   = np.flatnonzero(d == -1)
     return ends - starts
 
-def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = True, raw_RP: bool = False) -> float:
+def determinism(RP: np.ndarray, min_lengths: list = [3], exclude_trivial: bool = True, raw_RP: bool = False) -> np.ndarray:
     """
     DET: fraction of recurrent points that are part of diagonal lines
     of length >= min_length.
@@ -23,8 +23,8 @@ def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = Tru
     ----------
     RP : (n,n) array-like
         Binary recurrence plot.
-    min_length : int
-        Minimum diagonal line length (inclusive).
+    min_lengths : list
+        Minimum diagonal line lengths (inclusive).
     exclude_trivial : bool
         If True, excludes the line of identity (offset=0), as is common in RQA.
 
@@ -53,7 +53,7 @@ def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = Tru
     if n != m:
         raise ValueError("RP must be square.")
 
-    num = 0  # points in diagonals with length >= min_length
+    num = np.asarray([0 for i in range(0,len(min_lengths))])  # points in diagonals with length >= min_length
     den = 0  # points in all diagonals (length >= 1)
 
     #lengths = []
@@ -65,7 +65,9 @@ def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = Tru
         if rl.size == 0:
             continue
         den += rl.sum()
-        num += rl[rl >= min_length].sum()
+
+        for i, l in enumerate(min_lengths):
+            num[i] += rl[rl >= l].sum()
 
     #    [lengths.append(l) for l in rl]
 
@@ -86,7 +88,7 @@ def determinism(RP: np.ndarray, min_length: int = 3, exclude_trivial: bool = Tru
     #            num += l*d[l]/N
 
     if den == 0:
-        return 0.0
+        return np.asarray([0.0 for i in range(0,len(min_lengths))])
 
     return num / den
 
@@ -112,7 +114,7 @@ def it_determinism(parameters: dict):
     def iterable(RP: np.ndarray):
 
         DET = determinism(RP = RP,
-                          min_length = parameters['min_dlength'],
+                          min_lengths = parameters['min_dlengths'],
                           exclude_trivial = parameters['exclude_trivial'],
                           raw_RP = True)
 

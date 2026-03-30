@@ -70,17 +70,17 @@ def loader(info: dict, with_std = False):
 # Parallelized Observable computation based on already saved results
 def stacked_calculator(observable, previous: np.lib.npyio.NpzFile,
                        info: dict,
+                       fshape: list,
                        res_type = 1, dtype = np.float64,
                        cut: int | None = -1):
 
     print(f'\nComputing {maind['obs_nm'][info['obs_name']]}...\n')
 
     results_ = []
-    shape = []
 
     for id in track(previous.files, description = '[red]Processing:', total = len(previous.files), transient = False):
 
-        flat, shape = flat_results(file = previous, id = id)
+        flat, _ = flat_results(file = previous, id = id)
 
         iters = [i for i in range(0,len(flat))]
 
@@ -100,8 +100,6 @@ def stacked_calculator(observable, previous: np.lib.npyio.NpzFile,
         partial = np.asarray(partial).swapaxes(0,1)
 
         results_.append(partial)
-
-    fshape = [len(info['sub_list']),len(info['conditions']),*shape[2:-1]]
 
     if res_type == 1:
 

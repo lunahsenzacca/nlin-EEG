@@ -81,6 +81,21 @@ def load(obs_name: str, path: str | None = None):
 
     return RES, info
 
+def group(RES, info):
+
+    M = []
+
+    for i in range(0,len(info['sub_list'])):
+        M.append([RES[f'arr_{2*i}'],RES[f'arr_{2*i + 1}']])
+
+    return np.asarray(M)
+
+def get_mne_info(exp_lb):
+
+    ex_file = os.listdir(f'../Cargo/toMNE/avg/{exp_lb}')[0]
+    _ = mne.read_evokeds(f'../Cargo/toMNE/avg/{exp_lb}/{ex_file}', verbose = False)[0]
+
+    return _.info
 
 if len(sys.argv) > 1:
     exec(open(f'snippets/{sys.argv[1]}.py').read())

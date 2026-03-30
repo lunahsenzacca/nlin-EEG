@@ -14,5 +14,5 @@
   "th_method": "Method for distance matrix thresholding",
   "th_values": "Values for distance matrix thresholding",
   "exclude_trivial": "Exclude points on the identity lines",
-  "min_dlength": "Minimum length of diagonal recurrence lines"
+  "min_dlengths": "Minimum lengths of diagonal recurrence lines"
 }

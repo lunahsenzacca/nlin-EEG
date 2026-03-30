@@ -59,8 +59,8 @@ calc_lb = parameters['calc_lb']
 
 ### PARAMETERS FOR DETERMINISM COMPUTATION ###
 
-# Minimum length of diagonal lines considered
-min_dlength = parameters['min_dlength']
+# Minimum lengths of diagonal lines considered
+min_dlengths = parameters['min_dlengths']
 
 # Exclude diagonal points in calculation
 exclude_trivial = parameters['exclude_trivial']
@@ -68,9 +68,12 @@ exclude_trivial = parameters['exclude_trivial']
 add_info = {
     'calc_lb': calc_lb,
 
-    'min_dlength': min_dlength,
+    'min_dlengths': min_dlengths,
     'exclude_trivial': exclude_trivial
 }
+
+# Define shape of results
+fshape = [len(sub_list),len(conditions),len(ch_list),len(parameters['embeddings']),len(parameters['th_values']),len(min_dlengths)]
 
 # Script main method
 if __name__ == '__main__':
@@ -83,5 +86,5 @@ if __name__ == '__main__':
     info = info | add_info
 
     stacked_calculator(determinism.it_determinism(parameters = parameters), previous = RP,
-                       info = info, cut = None)
+                       info = info, fshape = fshape)
 
