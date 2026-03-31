@@ -652,7 +652,6 @@ def launch():
     stacked = None
 
     for base in maind['stacked']:
-        print(base)
         if obs_name in maind['stacked'][base]:
             stacked = base
 

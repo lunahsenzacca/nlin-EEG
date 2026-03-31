@@ -1,8 +1,6 @@
 # Usual suspects
 import json
 
-import numpy as np
-
 # Determinism computation functions
 from modules.determinism import determinism
 
@@ -51,7 +49,7 @@ window = info['window']
 
 ### DATA PATHS ###
 
-# Label of Correlation Sum calculation
+# Label of Recurrence Plot calculation
 load_calc_lb = info['load_calc_lb']
 
 # Label for parameter selection
@@ -83,7 +81,7 @@ if __name__ == '__main__':
     RP = determinism.get_recurrence(info = info, load_calc_lb = load_calc_lb)
 
     # Updated info dictionary
-    info = info | add_info
+    info = info | add_info | parameters
 
     stacked_calculator(determinism.it_determinism(parameters = parameters), previous = RP,
                        info = info, fshape = fshape)

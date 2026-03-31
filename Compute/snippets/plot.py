@@ -7,6 +7,6 @@ def plot_head(M: np.ndarray, exp_lb: str, axes = Axes, cmap: str = 'coolwarm', v
 
     del _
 
-    mne.viz.plot_topomap(M, info, axes = axes, show = False, cmap = cmap, sensors = 'k*', vlim = vlim)
+    im, cou = mne.viz.plot_topomap(M, info, axes = axes, show = False, cmap = cmap, sensors = 'k*', vlim = vlim)
 
-    return
+    return im

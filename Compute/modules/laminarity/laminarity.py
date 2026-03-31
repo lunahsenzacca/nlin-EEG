@@ -14,9 +14,9 @@ def _run_lengths_ones(x: np.ndarray) -> np.ndarray:
     ends   = np.flatnonzero(d == -1)
     return ends - starts
 
-def determinism(RP: np.ndarray, min_lengths: list = [3], exclude_trivial: bool = True, raw_RP: bool = False) -> np.ndarray:
+def laminarity(RP: np.ndarray, min_lengths: list = [3], raw_RP: bool = False) -> np.ndarray:
     """
-    DET: fraction of recurrent points that are part of diagonal lines
+    LAM: fraction of recurrent points that are part of vertical lines
     of length >= min_length.
 
     Parameters
@@ -24,14 +24,12 @@ def determinism(RP: np.ndarray, min_lengths: list = [3], exclude_trivial: bool =
     RP : (n,n) array-like
         Binary recurrence plot.
     min_lengths : list
-        Minimum diagonal line lengths (inclusive).
-    exclude_trivial : bool
-        If True, excludes the line of identity (offset=0), as is common in RQA.
+        Minimum vertical line lengths (inclusive).
 
     Returns
     -------
     det : float
-        Determinism in [0,1]. Returns 0.0 if no diagonal recurrence points exist.
+        laminarity in [0,1]. Returns 0.0 if no vertical recurrence points exist.
     """
 
     if raw_RP is True:
@@ -53,13 +51,11 @@ def determinism(RP: np.ndarray, min_lengths: list = [3], exclude_trivial: bool =
     if n != m:
         raise ValueError("RP must be square.")
 
-    num = np.asarray([0 for i in range(0,len(min_lengths))])  # points in diagonals with length >= min_length
-    den = 0  # points in all diagonals (length >= 1)
+    num = np.asarray([0 for i in range(0,len(min_lengths))])  # points in columns with length >= min_length
+    den = 0  # points in all columns (length >= 1)
 
-    for offset in range(-(n - 1), 0):
-        if exclude_trivial and offset == 0:
-            continue
-        rl = _run_lengths_ones(np.diagonal(RP, offset=offset))
+    for j in range(0, n):
+        rl = _run_lengths_ones(RP[j:,j])
         if rl.size == 0:
             continue
         den += rl.sum()
@@ -73,7 +69,7 @@ def determinism(RP: np.ndarray, min_lengths: list = [3], exclude_trivial: bool =
     return num / den
 
 # Prepare recurrence results
-def get_recurrence(info: dict, load_calc_lb: str):
+def get_results(info: dict, load_calc_lb: str):
 
     path = obs_path(exp_name = info['exp_name'], obs_name = 'recurrence', avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = load_calc_lb)
 
@@ -84,20 +80,19 @@ def get_recurrence(info: dict, load_calc_lb: str):
     with open(path + 'info.json', 'r') as f:
         info = json.load(f)
 
-    return RP
+    return RP, info
 
 # Iterable function generator
-def it_determinism(parameters: dict):
+def it_laminarity(parameters: dict):
 
     global iterable
 
     def iterable(RP: np.ndarray):
 
-        DET = determinism(RP = RP,
-                          min_lengths = parameters['min_dlengths'],
-                          exclude_trivial = parameters['exclude_trivial'],
+        LAM = laminarity(RP = RP,
+                          min_lengths = parameters['min_vlengths'],
                           raw_RP = True)
 
-        return [DET]
+        return [LAM]
 
     return iterable

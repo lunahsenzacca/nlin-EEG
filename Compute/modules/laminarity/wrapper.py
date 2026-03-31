@@ -1,8 +1,8 @@
 # Usual suspects
 import json
 
-# Recurrence Rate computation functions
-from modules.rrate import rrate
+# Laminarity computation functions
+from modules.laminarity import laminarity
 
 # Multiprocessing wrappers
 from parallelizer import stacked_calculator
@@ -13,7 +13,7 @@ from init import get_maind
 maind = get_maind()
 
 # Module name
-obs_name = 'rrate'
+obs_name = 'laminarity'
 
 ### LOAD EXPERIMENT INFO AND SCRIPT PARAMETERS ###
 with open('./.tmp/info.json', 'r') as f:
@@ -49,36 +49,36 @@ window = info['window']
 
 ### DATA PATHS ###
 
-# Label of Recurrence Rate calculation
+# Label of Recurrence Plot calculation
 load_calc_lb = info['load_calc_lb']
 
 # Label for parameter selection
 calc_lb = parameters['calc_lb']
 
-### PARAMETERS FOR RECURRENCE RATE COMPUTATION ###
+### PARAMETERS FOR LAMINARITY COMPUTATION ###
 
-# Exclude diagonal points in calculation
-exclude_trivial = parameters['exclude_trivial']
+# Minimum lengths of diagonal lines considered
+min_vlengths = parameters['min_vlengths']
 
 add_info = {
     'calc_lb': calc_lb,
 
-    'exclude_trivial': exclude_trivial
+    'min_vlengths': min_vlengths,
 }
 
 # Define shape of results
-fshape = [len(sub_list),len(conditions),len(ch_list),len(parameters['embeddings']),len(parameters['th_values'])]
+fshape = [len(sub_list),len(conditions),len(ch_list),len(parameters['embeddings']),len(parameters['th_values']),len(min_vlengths)]
 
 # Script main method
 if __name__ == '__main__':
 
-    print('\n    RECURRENCE RATE SCRIPT')
+    print('\n    LAMINARITY SCRIPT')
 
-    RP = rrate.get_recurrence(info = info, load_calc_lb = load_calc_lb)
+    RP = laminarity.get_recurrence(info = info, load_calc_lb = load_calc_lb)
 
     # Updated info dictionary
     info = info | add_info
 
-    stacked_calculator(rrate.it_rrate(parameters = parameters), previous = RP,
-                       info = info, fshape = fshape, cut = None)
+    stacked_calculator(laminarity.it_laminarity(parameters = parameters), previous = RP,
+                       info = info, fshape = fshape)
 

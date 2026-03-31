@@ -43,6 +43,7 @@ obs_lb = {
     'recurrence': 'RP',
     'rrate': 'RR',
     'determinism': 'DET',
+    'laminarity': 'LAM',
     'separation': 'STP',
     'corrsum': 'CS',
     'correxp': 'CE',
@@ -61,6 +62,7 @@ obs_nm = {
     'recurrence': 'Recurrence Plot',
     'rrate': 'Recurrence Rate',
     'determinism': 'Determinism',
+    'laminarity': 'Laminarity',
     'separation': 'Spacetime Separation',
     'corrsum': 'Correlation Sum',
     'correxp': 'Correlation Exponent',
@@ -68,7 +70,7 @@ obs_nm = {
 }
 
 stacked = {
-    'recurrence': ['rrate','determinism']
+    'recurrence': ['rrate','determinism','laminarity']
 }
 
 def paths(exp_name: str, old: bool = False):
