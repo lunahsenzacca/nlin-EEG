@@ -74,8 +74,13 @@ def load(obs_name: str, path: str | None = None):
         title = title + f'\n({info['calc_lb']})'
 
     info_temp = info.copy()
-    info_temp.pop('obs_name')
-    info_temp.pop('calc_lb')
+
+    pop = ['obs_name','calc_lb','sub_list','t','clst_lb','exp_lb','avg_trials']
+
+    for key in list(info_temp.keys()):
+
+        if key in pop:
+            info_temp.pop(key)
 
     pdict(info_temp, title = title)
 

@@ -1,4 +1,4 @@
-def plot_head(M: np.ndarray, exp_lb: str, axes = Axes, cmap: str = 'coolwarm', vlim: tuple = (0,1)):
+def plot_head(M: np.ndarray, exp_lb: str, axes = Axes, cmap: str = 'coolwarm', vlim: tuple = (None,None)):
 
     ex_file = os.listdir(f'../Cargo/toMNE/avg/{exp_lb}')[0]
     _ = mne.read_evokeds(f'../Cargo/toMNE/avg/{exp_lb}/{ex_file}', verbose = False)[0]
