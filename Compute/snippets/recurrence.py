@@ -2,7 +2,7 @@ from scipy.spatial.distance import squareform
 from scipy.stats import ttest_ind
 from seaborn import heatmap
 
-M, info = load('recurrence', 'avg/BM/Global/RP/Multiple')
+M, info = load('recurrence', 'trl/BM/Global/RP/Fixed(0_2)')
 
 def peak(file: str, idxs: list, title: str = '', sv_name: str | None = None):
 

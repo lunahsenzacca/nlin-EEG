@@ -23,7 +23,7 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
 
             # Get value of theta
             if dist_matrix[i,j] < r:
-                
+
                 rplt[i,j] = 1
                 rplt[j,i] = 1
 
@@ -31,6 +31,27 @@ def rec_plt(dist_matrix: np.ndarray, r: float, T: int):
 
                 rplt[i,j] = 0
                 rplt[j,i] = 0
+
+    return rplt
+
+# Recurrence Plot for a single distance matrix
+def rec_plt_multi(dist_matrix: np.ndarray, rvals: list, T: int):
+
+    dist_matrix = squareform(dist_matrix)
+
+    rplt = np.full((len(rvals),int(T*(T-1)/2)), 2, dtype = np.int8)
+
+    # Cycle through all different couples of points
+    for i in range(0,len(dist_matrix)):
+        for k, r in enumerate(rvals):
+
+            if dist_matrix[i] < r:
+
+                rplt[k,i] = 1
+
+            else:
+
+                rplt[k,i] = 0
 
     return rplt
 
@@ -92,25 +113,27 @@ def recurrence(MNE: mne.Evoked | mne.epochs.EpochsFIF, ch_list: list|tuple,
 
                     raise ValueError('Unknown threshold method')
 
-                for r in rvals:
+                rp = rec_plt_multi(dist_matrix = dist_matrix, rvals = rvals, T = t.shape[-1])
 
-                    if cython == False:
+                for i in range(0,len(rvals)):
 
-                        rp = rec_plt(dist_matrix = dist_matrix, r = r, T = t.shape[-1])
+                    #if cython == False:
 
-                    else:
+                    #    rp = rec_plt(dist_matrix = dist_matrix, r = r, T = t.shape[-1])
 
-                        rp = c_core.rec_plt(dist_matrix = dist_matrix, r = r, T = t.shape[-1])
+                    #else:
 
-                    rp = squareform(rp, checks = False)
+                    #    rp = c_core.rec_plt(dist_matrix = dist_matrix, r = r, T = t.shape[-1])
+
+                    #rp = squareform(rp, checks = False)
 
                     if memory_safe is True and type(tmp_path) == str:
 
-                        to_disk(arr = np.asarray(rp, dtype = np.int8), sv_file = sv_file)
+                        to_disk(arr = np.asarray(rp[i], dtype = np.int8), sv_file = sv_file)
 
                     else:
 
-                        RP.append(rp)
+                        RP.append(rp[i])
 
     if memory_safe is True and type(tmp_path) == str:
 

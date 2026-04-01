@@ -2,10 +2,10 @@ from mne.stats import combine_adjacency, ttest_ind_no_p, permutation_cluster_tes
 from mne.channels import find_ch_adjacency
 
 exp_lb = 'BM'
-avg_trials = 'avg'
+avg_trials = 'trl'
 clst_lb = 'Global'
-obs_name = 'rentropy'
-calc_lb = 'MI_Multiple'
+obs_name = 'determinism'
+calc_lb = ''
 
 #exp_lb = 'BM'
 #avg_trials = 'trl'
@@ -13,9 +13,9 @@ calc_lb = 'MI_Multiple'
 #obs_name = 'determinism'
 #calc_lb = ''
 
-idxs = [3,1,2]
+idxs = [0,0,0]
 
-vlim = (0,1)
+vlim = (0.2,0.8)
 
 RES, info = load(obs_name, f'{avg_trials}/{exp_lb}/{clst_lb}/{maind['obs_lb'][obs_name]}/{calc_lb}')
 
@@ -49,7 +49,7 @@ else:
 
             [c_trials.append(t) for t in np.squeeze(M[s][c])]
 
-        nM.append(c_trials)
+        nM.append(np.asarray(c_trials))
 
     M = nM
 
@@ -71,9 +71,9 @@ def test(M, plot = False, p_th = 0.1):
     threshold_tfce = dict(start=0, step=0.1)
 
     T, clst, clst_p, H0 = permutation_cluster_test(X = X,
-                                                   n_permutations = 1000,
+                                                   n_permutations = 10000,
                                                    threshold = threshold_tfce,
-                                                   stat_fun = ttest_ind_no_p,
+                                                   #stat_fun = ttest_ind_no_p,
                                                    adjacency = adj,
                                                    n_jobs = 10,
                                                    seed = 42)
