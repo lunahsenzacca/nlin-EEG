@@ -33,6 +33,7 @@ exp_lb = {
     'lorenz': 'LZ',
     'sinusoidal': 'SN'
 }
+
 obs_lb = {
     'evokeds': 'EV',
 #    'epochs': 'EP',
@@ -44,6 +45,7 @@ obs_lb = {
     'rrate': 'RR',
     'determinism': 'DET',
     'laminarity': 'LAM',
+    'rentropy': 'RS',
     'separation': 'STP',
     'corrsum': 'CS',
     'correxp': 'CE',
@@ -63,6 +65,7 @@ obs_nm = {
     'rrate': 'Recurrence Rate',
     'determinism': 'Determinism',
     'laminarity': 'Laminarity',
+    'rentropy': 'Recurrence Entropy',
     'separation': 'Spacetime Separation',
     'corrsum': 'Correlation Sum',
     'correxp': 'Correlation Exponent',
@@ -70,7 +73,7 @@ obs_nm = {
 }
 
 stacked = {
-    'recurrence': ['rrate','determinism','laminarity']
+    'recurrence': ['rrate','determinism','laminarity','rentropy']
 }
 
 def paths(exp_name: str, old: bool = False):
@@ -108,13 +111,6 @@ conditions  = Conditions list or dictionary;
 
 directories = Strings for dataset and results navigation;
 
-k           = Nearest neighbours used for autocorrelation time
-              estimation by first minimum of Mutual Information (FMMI);
-
-Rth        = Threshold for False Nearest Neighbour (FNN) for embedding
-             dimension estimation;
-
-tau        = Timepoints delay used for time series embedding.
 '''
 
 ### Backward Masking dataset infos ###
@@ -165,7 +161,6 @@ BM_info = {
     'conditions': BM_conditions,
     'conditions_IDs': BM_conditions_IDs,
     'directories': BM_paths,
-    'tau': 35,
     'window': [-0.2,0.7]
 }
 
@@ -180,7 +175,6 @@ ZBM_info = {
     'conditions': BM_conditions,
     'conditions_IDs': BM_conditions_IDs,
     'directories': ZBM_paths,
-    'tau': 35,
     'window': [-0.2,0.7]
 }
 

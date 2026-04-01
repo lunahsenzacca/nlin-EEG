@@ -4,8 +4,8 @@ from mne.channels import find_ch_adjacency
 exp_lb = 'BM'
 avg_trials = 'avg'
 clst_lb = 'Global'
-obs_name = 'determinism'
-calc_lb = ''
+obs_name = 'rentropy'
+calc_lb = 'MI_Multiple'
 
 #exp_lb = 'BM'
 #avg_trials = 'trl'
@@ -13,7 +13,9 @@ calc_lb = ''
 #obs_name = 'determinism'
 #calc_lb = ''
 
-idxs = [2,1,2]
+idxs = [3,1,2]
+
+vlim = (0,1)
 
 RES, info = load(obs_name, f'{avg_trials}/{exp_lb}/{clst_lb}/{maind['obs_lb'][obs_name]}/{calc_lb}')
 
@@ -80,11 +82,11 @@ def test(M, plot = False, p_th = 0.1):
 
     if plot is True:
 
-        fig, ax = plt.subplot_mosaic([['Un','Ma'],['widebar','widebar'],['t','p']], figsize = (11,11), height_ratios = [0.7,0.05,1])
+        fig, ax = plt.subplot_mosaic([['Un','Ma'],['widebar','widebar'],['t','p']], figsize = (9,9), height_ratios = [0.7,0.05,1])
 
         im = [
-            plot_head(M[0].mean(axis = 0), exp_lb = 'BM', cmap = 'Oranges', axes = ax['Un'], vlim = (0.1,0.7)),
-            plot_head(M[1].mean(axis = 0), exp_lb = 'BM', cmap = 'Oranges', axes = ax['Ma'], vlim = (0.1,0.7)),
+            plot_head(M[0].mean(axis = 0), exp_lb = 'BM', cmap = 'Oranges', axes = ax['Un'], vlim = vlim),
+            plot_head(M[1].mean(axis = 0), exp_lb = 'BM', cmap = 'Oranges', axes = ax['Ma'], vlim = vlim),
             plot_head(T,exp_lb = 'BM', cmap = 'coolwarm', axes = ax['t']),
             plot_head([-np.log10(p) for p in clst_p],exp_lb = 'BM', cmap = 'GnBu', axes = ax['p'], mask = mask, mask_params = dict(markersize = 8))
         ]
@@ -117,7 +119,10 @@ def test(M, plot = False, p_th = 0.1):
     rel_idx = np.argwhere(clst_p <= p_th).flatten()
     rel_names = [info['ch_list'][i] for i in rel_idx]
 
-    print('Found the following significant electrodes:', *rel_names)
+    if len(rel_names) != 0:
+        print('Found the following significant electrodes:', *rel_names)
+    else:
+        print('No significant electrodes were found! :(')
 
     return T, clst, clst_p, H0
 

@@ -374,7 +374,7 @@ def i_launch_opt(info: dict):
 
     path = obs_path(exp_name = info['exp_name'], obs_name = info['obs_name'], clst_lb = info['clst_lb'], avg_trials = info['avg_trials'], calc_lb = info['calc_lb'])
 
-    exist = os.path.isdir(path)
+    exist = os.path.isfile(path + '/info.json')
 
     warn = ''
 

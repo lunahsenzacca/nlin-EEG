@@ -3,10 +3,14 @@ import numpy as np
 
 from scipy.stats import linregress
 
-from core import gauss_kernel, to_log, obs_path, loadresults, flat_results
+from core import gauss_kernel, obs_path
 
 # Correlation Exponent elementar function
-def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, scale = None, cutoff = None):
+def correlation_exponent(CS: list | np.ndarray, log_r: list, n_points: int, gauss_filter: bool, scale = None, cutoff: int | None = None, log_CS: bool = False):
+
+    if log_CS is False:
+        for i, cs in CS:
+            CS[i] = np.log(cs)
 
     rlen = len(log_r) - n_points + 1
 
@@ -15,12 +19,12 @@ def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, sca
     n_log_r = []
     for i in range(0,rlen):
 
-        m = np.array([(log_csum[i+j+1] - log_csum[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
+        m = np.array([(CS[i+j+1] - CS[i+j])/(log_r[i+j+1] - log_r[i+j]) for j in range(0,n_points-1)])
 
         # Get value for error of slope
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            results = linregress(x = np.asarray(log_r)[i:i + n_points], y = log_csum[i:i + n_points], nan_policy = 'omit')
+            results = linregress(x = np.asarray(log_r)[i:i + n_points], y = CS[i:i + n_points], nan_policy = 'omit')
 
         ce.append(np.asarray(m).mean())
         e_ce.append(results.stderr)
@@ -43,67 +47,23 @@ def corr_exp(log_csum: list, log_r: list, n_points: int, gauss_filter: bool, sca
     return  ce, e_ce
 
 # Prepare corrsum.py results for correlation_exponent sub-wise function
-def correxp_getcorrsum(info: dict, load_calc_lb: str):
+def get_corrsum(info: dict, load_calc_lb: str):
 
-    path = obs_path(exp_name = info['exp_name'], obs_name = 'corrsum', avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = load_calc_lb)
+    path = obs_path(exp_name = info['exp_name'], obs_name = 'recurrence', avg_trials = info['avg_trials'], clst_lb = info['clst_lb'], calc_lb = load_calc_lb)
 
-    # Load correlation sum results
-    CS, _, info = loadresults(obs_path = path, obs_name = 'corrsum', X_transform = None)
+    # Load Correlation Sum file
+    CS = np.load(path + 'corrsum.npz')
 
-    flat_CS, points = flat_results(CS)
-
-    # Initzialize trial-wise iterable
-    log_CS_iters = []
-    for arr in flat_CS:
-
-        log_CS = to_log(arr, verbose = False)
-
-        # Build trial-wise iterable
-        log_CS_iters.append([log_CS[0],log_CS[1]])
-
-    return log_CS_iters, points, info
-
-# Sub-wise function for Correlation Exponent computation
-def correlation_exponent(log_CS_iters: list, n_points: int, log_r: list,
-                         gauss_filter = False, scale = None, cutoff = None):
-
-    # Reduced rvals lenght for mobile average
-    rlen = len(log_r) - n_points + 1
-
-    # Initzialize results arrays
-    CE = []
-    E_CE = []
-
-    abc = log_CS_iters[0]
-    abc_ = log_CS_iters[1]
-    for ab, ab_ in zip(abc, abc_):
-        for a, a_ in zip(ab, ab_):
-
-            ce, e_ce = corr_exp(log_csum = a, log_r = log_r, n_points = n_points, gauss_filter = gauss_filter, scale = scale, cutoff = cutoff)
-
-            CE.append(ce)
-            E_CE.append(e_ce)
-
-    CE = np.asarray(CE)
-    E_CE = np.asarray(E_CE)
-
-    rshp = list(log_CS_iters[0].shape)
-
-    rshp[-1] = rlen
-
-    CE = CE.reshape(rshp)
-    E_CE = E_CE.reshape(rshp)
-
-    return CE, E_CE
+    return CS
 
 # Iterable function generator
 def it_correlation_exponent(variables: dict):
 
     global iterable
 
-    def iterable(log_CS_iters: np.ndarray):
+    def iterable(CS: np.ndarray):
 
-        CE, E_CE = correlation_exponent(log_CS_iters = log_CS_iters,
+        CE, E_CE = correlation_exponent(CS = CS,
                                         n_points = variables['n_points'],
                                         gauss_filter = variables['gauss_filter'],
                                         scale = variables['scale'],
