@@ -2,10 +2,10 @@ from mne.stats import combine_adjacency, ttest_ind_no_p, permutation_cluster_tes
 from mne.channels import find_ch_adjacency
 
 exp_lb = 'BM'
-avg_trials = 'trl'
+avg_trials = 'avg'
 clst_lb = 'Global'
 obs_name = 'determinism'
-calc_lb = ''
+calc_lb = 'MI_Multiple'
 
 #exp_lb = 'BM'
 #avg_trials = 'trl'
@@ -13,7 +13,7 @@ calc_lb = ''
 #obs_name = 'determinism'
 #calc_lb = ''
 
-idxs = [0,0,0]
+idxs = [2,1,2]
 
 vlim = (0.2,0.8)
 
@@ -73,7 +73,7 @@ def test(M, plot = False, p_th = 0.1):
     T, clst, clst_p, H0 = permutation_cluster_test(X = X,
                                                    n_permutations = 10000,
                                                    threshold = threshold_tfce,
-                                                   #stat_fun = ttest_ind_no_p,
+                                                   stat_fun = ttest_ind_no_p,
                                                    adjacency = adj,
                                                    n_jobs = 10,
                                                    seed = 42)
@@ -135,7 +135,7 @@ def plot_head(M: np.ndarray, exp_lb: str, axes = Axes, cmap: str = 'coolwarm', v
 
     del _
 
-    im, _ = mne.viz.plot_topomap(M, pos = info, axes = axes, show = False, cmap = cmap, sensors = 'k*', vlim = vlim, **args)
+    im, _ = mne.viz.plot_topomap(M, pos = info, axes = axes, show = False, cmap = cmap, sensors = 'k*', vlim = vlim, sphere =(0,0,0,0.12), **args)
 
     return im
 

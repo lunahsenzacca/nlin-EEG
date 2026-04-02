@@ -1,8 +1,25 @@
 from scipy.spatial.distance import squareform
 from scipy.stats import ttest_ind
 from seaborn import heatmap
+from rich.progress import track
 
-M, info = load('recurrence', 'trl/BM/Global/RP/Fixed(0_2)')
+exp_lb = 'BM'
+avg_trials = 'avg'
+clst_lb = 'Global'
+obs_name = 'recurrence'
+calc_lb = 'Multiple'
+
+#exp_lb = 'BM'
+#avg_trials = 'trl'
+#clst_lb = 'TEST'
+#obs_name = 'determinism'
+#calc_lb = ''
+
+idxs = [0,0,0]
+
+vlim = (0.2,0.8)
+
+M, info = load(obs_name, f'{avg_trials}/{exp_lb}/{clst_lb}/{maind['obs_lb'][obs_name]}/{calc_lb}')
 
 def peak(file: str, idxs: list, title: str = '', sv_name: str | None = None):
 
@@ -70,23 +87,23 @@ def heat(file: str, idxs: list | None = None, show = True, cut = True):
 
     heat = heat.reshape([*shape[1:-1],*square])
 
-    if show and type(idxs) == list:
-        plt.imshow(heat[*idxs], cmap = 'Oranges')
-        plt.show()
-
-        return
-
     if type(idxs) == list:
 
         heat = heat[*idxs]
 
-        if cut:
+        if cut is True:
             for i in range(0,len(heat)):
 
                 if heat[i,0] == 2:
-                    heat= heat[:i,:i]
+                    heat = heat[:i,:i]
                     break
 
+        if show is True:
+            fig, ax = plt.subplots(1,1, figsize = (5,5))
+            heatmap(heat, cmap = 'Oranges', vmax = 1, cbar = False, ax = ax, xticklabels = 100, yticklabels = 100, square = True)
+            plt.show()
+
+            return
 
     return heat
 
@@ -95,7 +112,8 @@ def confront(idxs: list | None = None, cut = False):
     confront_0 = heat('arr_0', idxs = idxs, show = False, cut = cut)
     confront_1 = heat('arr_1', idxs = idxs, show = False, cut = cut)
 
-    for i in range(1,len(info['sub_list'])):
+    for i in track(range(1,len(info['sub_list'])),
+                   total = len(info['sub_list'])-1):
 
         confront_0 += heat(f'arr_{2*i}', idxs = idxs, show = False, cut = cut)
         confront_1 += heat(f'arr_{2*i+1}', idxs = idxs, show = False, cut = cut)
